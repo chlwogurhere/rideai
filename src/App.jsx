@@ -461,15 +461,28 @@ function Tag({ type, children }) {
 
 
 function FrameCard({ frame }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    if (ref.current && frame.canvas) {
+      const el = ref.current;
+      el.width = frame.canvas.width;
+      el.height = frame.canvas.height;
+      el.getContext("2d").drawImage(frame.canvas, 0, 0);
+    }
+  }, [frame.canvas]);
+
   return (
     <div style={{ background: "#ffffff", border: "0.5px solid rgba(0,0,0,0.08)", borderRadius: "12px", overflow: "hidden" }}>
-      {frame.svg
-        ? <div dangerouslySetInnerHTML={{ __html: frame.svg }} style={{ width: "100%", display: "block", lineHeight: 0 }} />
-        : <div style={{ aspectRatio: "16/9", background: "#f8fafc", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, color: "#94a3b8" }}>일러스트 준비 중...</div>
+      {frame.canvas
+        ? <canvas ref={ref} style={{ width: "100%", display: "block" }} />
+        : frame.svg
+          ? <div dangerouslySetInnerHTML={{ __html: frame.svg }} style={{ width: "100%", display: "block", lineHeight: 0 }} />
+          : <div style={{ aspectRatio: "16/9", background: "#f8fafc", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, color: "#94a3b8" }}>준비 중...</div>
       }
       <div style={{ padding: "12px 14px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 7, flexWrap: "wrap" }}>
           <Tag type={frame.type}>{frame.type === "good" ? "✅ 잘된 점" : "⚠️ 개선 필요"}</Tag>
+          {frame.time != null && <span style={{ fontSize: 11, color: "#94a3b8" }}>{frame.time.toFixed(1)}초</span>}
         </div>
         <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 5 }}>{frame.title}</div>
         <div style={{ fontSize: 13, color: "#475569", lineHeight: 1.7 }}>{frame.desc}</div>
@@ -593,14 +606,21 @@ export default function App() {
         data = defaultData(sport);
       }
 
-      // Build SVG illustrations
-      setLoadMsg("장면 일러스트 생성 중..."); setPct(65);
+      // Build frames — use real capture if available, else SVG illustration
+      setLoadMsg("장면 이미지 생성 중..."); setPct(65);
       const annotated = [];
       const frames = data.frames || [];
       for (let i = 0; i < frames.length; i++) {
         const fd = frames[i];
-        const svg = make3DFigureSVG(sport, fd.type, fd);
-        annotated.push({ ...fd, canvas: null, svg });
+        const fi = Math.min(Math.max(fd.frameIndex || i, 0), capturedFrames.length - 1);
+        const src = capturedFrames[fi]?.data || null;
+        let canvas = null, svg = null;
+        if (src) {
+          canvas = await annotateCanvas(src, fd.annotations || []);
+        } else {
+          svg = make3DFigureSVG(sport, fd.type, fd);
+        }
+        annotated.push({ ...fd, canvas, svg, time: capturedFrames[fi]?.time ?? null });
         setPct(65 + Math.round((i + 1) / frames.length * 30));
       }
 
@@ -785,7 +805,7 @@ export default function App() {
 
       {/* VERSION */}
       <div style={{ textAlign: "center", padding: "32px 0 8px", fontSize: 11, color: "#cbd5e1" }}>
-        RIDE AI ver 0.01-1
+        RIDE AI ver 0.01-2
       </div>
 
     </div>
