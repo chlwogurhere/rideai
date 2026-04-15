@@ -92,45 +92,96 @@ function annotateCanvas(dataUrl, anns) {
   return new Promise(res => {
     const img = new Image();
     img.onload = () => {
+      const W = img.width, H = img.height;
+
+      // ── Smart crop: find subject center from annotation coords ──
+      // Collect all annotation points
+      const pts = [];
+      (anns || []).forEach(a => {
+        pts.push({ x: a.x, y: a.y });
+        if (a.arrow) pts.push({ x: a.arrow.x, y: a.arrow.y });
+      });
+
+      let cropX, cropY, cropW, cropH;
+      if (pts.length > 0) {
+        // Center of annotations
+        const cx = pts.reduce((s, p) => s + p.x, 0) / pts.length;
+        const cy = pts.reduce((s, p) => s + p.y, 0) / pts.length;
+        // Crop ~55% of image centered around subject, with padding
+        cropW = Math.round(W * 0.55);
+        cropH = Math.round(H * 0.55);
+        cropX = Math.round(cx * W - cropW / 2);
+        cropY = Math.round(cy * H - cropH / 2);
+        // Clamp to image bounds
+        cropX = Math.max(0, Math.min(W - cropW, cropX));
+        cropY = Math.max(0, Math.min(H - cropH, cropY));
+      } else {
+        // No annotations — use full image
+        cropX = 0; cropY = 0; cropW = W; cropH = H;
+      }
+
+      // Output canvas at fixed display width
+      const OUT = 600;
+      const scale = OUT / cropW;
       const c = document.createElement("canvas");
-      c.width = img.width; c.height = img.height;
+      c.width = OUT;
+      c.height = Math.round(cropH * scale);
       const ctx = c.getContext("2d");
-      ctx.drawImage(img, 0, 0);
-      ctx.fillStyle = "rgba(0,0,0,0.1)"; ctx.fillRect(0, 0, c.width, c.height);
+
+      // Draw cropped + scaled image
+      ctx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, c.width, c.height);
+
+      // ── Draw annotations (coords remapped to cropped space) ──
       (anns || []).forEach(a => {
         const col = a.type === "good" ? "#22c55e" : "#ef4444";
-        const px = a.x * c.width, py = a.y * c.height;
-        ctx.beginPath(); ctx.arc(px, py, 14, 0, Math.PI * 2);
+        // Remap from original [0,1] to cropped canvas pixels
+        const px = (a.x * W - cropX) * scale;
+        const py = (a.y * H - cropY) * scale;
+
+        // Skip if outside cropped area
+        if (px < -20 || px > c.width + 20 || py < -20 || py > c.height + 20) return;
+
+        ctx.beginPath(); ctx.arc(px, py, 16, 0, Math.PI * 2);
         ctx.fillStyle = col + "30"; ctx.fill();
         ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.stroke();
+
         if (a.arrow) {
-          const ax = a.arrow.x * c.width, ay = a.arrow.y * c.height;
+          const ax = (a.arrow.x * W - cropX) * scale;
+          const ay = (a.arrow.y * H - cropY) * scale;
           const ang = Math.atan2(ay - py, ax - px);
           ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(ax, ay);
-          ctx.strokeStyle = col; ctx.lineWidth = 2.5;
-          ctx.setLineDash([6, 3]); ctx.stroke(); ctx.setLineDash([]);
+          ctx.strokeStyle = col; ctx.lineWidth = 3;
+          ctx.setLineDash([7, 3]); ctx.stroke(); ctx.setLineDash([]);
           ctx.beginPath();
           ctx.moveTo(ax, ay);
-          ctx.lineTo(ax - 12 * Math.cos(ang - 0.4), ay - 12 * Math.sin(ang - 0.4));
-          ctx.lineTo(ax - 12 * Math.cos(ang + 0.4), ay - 12 * Math.sin(ang + 0.4));
+          ctx.lineTo(ax - 14 * Math.cos(ang - 0.4), ay - 14 * Math.sin(ang - 0.4));
+          ctx.lineTo(ax - 14 * Math.cos(ang + 0.4), ay - 14 * Math.sin(ang + 0.4));
           ctx.closePath(); ctx.fillStyle = col; ctx.fill();
+
+          // Label near arrow tip
+          const fs = 14;
+          ctx.font = "bold " + fs + "px sans-serif";
+          const lbl = a.label || "";
+          const tw = ctx.measureText(lbl).width;
+          const lx = ax + 10, ly = ay - 6;
+          const bw = tw + 16, bh = fs + 10, bx = lx - 4, by = ly - fs - 2, br = 5;
+          ctx.fillStyle = "rgba(0,0,0,0.88)";
+          ctx.beginPath();
+          ctx.moveTo(bx+br,by); ctx.lineTo(bx+bw-br,by); ctx.arcTo(bx+bw,by,bx+bw,by+br,br);
+          ctx.lineTo(bx+bw,by+bh-br); ctx.arcTo(bx+bw,by+bh,bx+bw-br,by+bh,br);
+          ctx.lineTo(bx+br,by+bh); ctx.arcTo(bx,by+bh,bx,by+bh-br,br);
+          ctx.lineTo(bx,by+br); ctx.arcTo(bx,by,bx+br,by,br);
+          ctx.closePath(); ctx.fill();
+          ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.stroke();
+          ctx.fillStyle = col; ctx.fillText(lbl, lx + 4, ly);
         }
-        const fs = Math.max(13, Math.round(c.width * 0.024));
-        ctx.font = "bold " + fs + "px sans-serif";
-        const lbl = a.label || "", tw = ctx.measureText(lbl).width;
-        const lx = (a.arrow ? a.arrow.x * c.width : px) + 8;
-        const ly = (a.arrow ? a.arrow.y * c.height : py) - 8;
-        const bw = tw + 16, bh = fs + 10, bx = lx - 4, by = ly - fs - 2, br = 5;
-        ctx.fillStyle = "rgba(0,0,0,0.85)";
-        ctx.beginPath();
-        ctx.moveTo(bx+br,by); ctx.lineTo(bx+bw-br,by); ctx.arcTo(bx+bw,by,bx+bw,by+br,br);
-        ctx.lineTo(bx+bw,by+bh-br); ctx.arcTo(bx+bw,by+bh,bx+bw-br,by+bh,br);
-        ctx.lineTo(bx+br,by+bh); ctx.arcTo(bx,by+bh,bx,by+bh-br,br);
-        ctx.lineTo(bx,by+br); ctx.arcTo(bx,by,bx+br,by,br);
-        ctx.closePath(); ctx.fill();
-        ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.stroke();
-        ctx.fillStyle = col; ctx.fillText(lbl, lx + 4, ly);
       });
+
+      // Subtle crop indicator border
+      ctx.strokeStyle = "rgba(255,255,255,0.15)";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(1, 1, c.width - 2, c.height - 2);
+
       res(c);
     };
     img.onerror = () => res(null);
@@ -577,7 +628,7 @@ export default function App() {
         + '],'
         + '"feedback":[{"type":"good","tag":"잘된 점","text":"' + sl + ' 전문용어(설명) 2~3문장"},{"type":"warn","tag":"개선 포인트","text":"' + sl + ' 전문용어(설명) 2~3문장"},{"type":"info","tag":"코치 조언","text":"' + sl + ' 전문용어(설명) 2~3문장"}],'
         + '"tips":["팁1","팁2","팁3","팁4"]}'
-        + "\n규칙: value 60-95 정수, good/warn 균형 각2개, x/y 0.0-1.0, 한국어로만 작성";
+        + "\n규칙: value 60-95 정수, good/warn 균형 각2개, 한국어로만 작성. x/y 좌표는 이미지 속 실제 라이더(사람) 위치를 정확히 가리켜야 합니다 — 라이더가 화면 중앙 하단에 있으면 x≈0.5, y≈0.65 처럼 실제 위치로. arrow 좌표는 분석할 신체 부위(무릎·상체·발 등)의 정확한 픽셀 위치입니다.";
 
       // Build message — include real frames if captured
       const msgContent = [];
@@ -805,7 +856,7 @@ export default function App() {
 
       {/* VERSION */}
       <div style={{ textAlign: "center", padding: "32px 0 8px", fontSize: 11, color: "#cbd5e1" }}>
-        RIDE AI ver 0.01-2
+        RIDE AI ver 0.01-3
       </div>
 
     </div>
