@@ -449,9 +449,6 @@ function ScoreBar({ label, value, color }) {
       <div style={{ height: 7, background: "rgba(0,0,0,0.08)", borderRadius: 99 }}>
         <div style={{ height: "100%", width: value + "%", background: color, borderRadius: 99, transition: "width 1.2s ease" }} />
       </div>
-    <div style={{ textAlign: "center", padding: "20px 0 8px", fontSize: 11, color: "#cbd5e1" }}>
-      RIDE AI ver 0.01-1
-    </div>
     </div>
   );
 }
@@ -785,6 +782,12 @@ export default function App() {
           </button>
         </div>
       )}
+
+      {/* VERSION */}
+      <div style={{ textAlign: "center", padding: "32px 0 8px", fontSize: 11, color: "#cbd5e1" }}>
+        RIDE AI ver 0.01-1
+      </div>
+
     </div>
     </div>
   );
