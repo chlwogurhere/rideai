@@ -6,13 +6,17 @@ const MODEL = "claude-sonnet-4-20250514";
 async function apiCall(messages, system, apiKey) {
   const key = apiKey || window.__RIDEAI_KEY__ || import.meta.env.VITE_ANTHROPIC_API_KEY || "";
   if (!key) throw new Error("API 키가 없습니다. 설정에서 Anthropic API 키를 입력해주세요.");
-  const r = await fetch("https://api.anthropic.com/v1/messages", {
+  // Use local proxy to avoid CORS
+  const url = window.location.hostname === "localhost"
+    ? "https://api.anthropic.com/v1/messages"
+    : "/api/proxy";
+  const headers = { "Content-Type": "application/json", "x-api-key": key };
+  if (window.location.hostname === "localhost") {
+    headers["anthropic-version"] = "2023-06-01";
+  }
+  const r = await fetch(url, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": key,
-      "anthropic-version": "2023-06-01",
-    },
+    headers,
     body: JSON.stringify({ model: MODEL, max_tokens: 3000, system, messages }),
   });
   if (!r.ok) throw new Error("HTTP " + r.status);
