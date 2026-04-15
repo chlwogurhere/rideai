@@ -7,13 +7,10 @@ async function apiCall(messages, system, apiKey) {
   const key = apiKey || window.__RIDEAI_KEY__ || import.meta.env.VITE_ANTHROPIC_API_KEY || "";
   if (!key) throw new Error("API 키가 없습니다. 설정에서 Anthropic API 키를 입력해주세요.");
   // Use local proxy to avoid CORS
-  const url = window.location.hostname === "localhost"
-    ? "https://api.anthropic.com/v1/messages"
-    : "/api/proxy";
+  const isLocal = window.location.hostname === "localhost";
+  const url = isLocal ? "https://api.anthropic.com/v1/messages" : "/api/proxy";
   const headers = { "Content-Type": "application/json", "x-api-key": key };
-  if (window.location.hostname === "localhost") {
-    headers["anthropic-version"] = "2023-06-01";
-  }
+  if (isLocal) headers["anthropic-version"] = "2023-06-01";
   const r = await fetch(url, {
     method: "POST",
     headers,
@@ -452,6 +449,9 @@ function ScoreBar({ label, value, color }) {
       <div style={{ height: 7, background: "rgba(0,0,0,0.08)", borderRadius: 99 }}>
         <div style={{ height: "100%", width: value + "%", background: color, borderRadius: 99, transition: "width 1.2s ease" }} />
       </div>
+    <div style={{ textAlign: "center", padding: "20px 0 8px", fontSize: 11, color: "#cbd5e1" }}>
+      RIDE AI ver 0.01-1
+    </div>
     </div>
   );
 }
@@ -526,13 +526,24 @@ export default function App() {
       if (urlRef.current) URL.revokeObjectURL(urlRef.current);
       urlRef.current = URL.createObjectURL(file);
       const vid = vidRef.current;
-      vid.src = urlRef.current; vid.load();
-      await new Promise(r => setTimeout(r, 600));
+      // Temporarily make video large enough to decode frames
+      vid.style.width = "640px";
+      vid.style.height = "360px";
+      vid.style.opacity = "0.01";
+      vid.style.position = "fixed";
+      vid.style.top = "-9999px";
+      vid.src = urlRef.current;
+      vid.load();
+      await new Promise(r => setTimeout(r, 800));
 
       // ── Real frame capture (works in Chrome browser) ──
       setLoadMsg("영상 프레임 캡처 중..."); setPct(15);
       const capturedFrames = await captureFrames(vid, 4);
       console.log("captured frames:", capturedFrames.length);
+      // Reset video size
+      vid.style.width = "2px";
+      vid.style.height = "2px";
+      vid.style.top = "0";
 
       setLoadMsg("AI 코치 분석 중..."); setPct(35);
       const isSki = sport === "ski";
