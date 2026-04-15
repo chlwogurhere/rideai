@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.01-5";
+const VERSION = "ver 0.01-6";
 
 /* ── API ──────────────────────────────────────────────────── */
 async function apiCall(messages, system, apiKey) {
@@ -94,10 +94,50 @@ function buildAnnotatedCanvas(frame, subX, subY, anns) {
       ctx.fillStyle=g; ctx.fillRect(0,0,OUT,OUT);
       // Subject crosshair
       const sx=(subX*W-x0)*scale, sy=(subY*H-y0)*scale;
-      ctx.strokeStyle="rgba(255,255,255,0.35)"; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+      ctx.strokeStyle="rgba(255,255,255,0.25)"; ctx.lineWidth=1; ctx.setLineDash([4,4]);
       ctx.beginPath(); ctx.moveTo(sx,0); ctx.lineTo(sx,OUT); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(0,sy); ctx.lineTo(OUT,sy); ctx.stroke();
       ctx.setLineDash([]);
+
+      // ── Stick figure overlay (headless, thin lines, semi-transparent) ──
+      // Proportional to image size — figure height ~35% of canvas
+      const fh = OUT * 0.35;  // figure height
+      const fcx = sx, fcy = sy; // figure center = subject click point
+      // Joint positions (relative to center, torso = top 40%, legs = bottom 60%)
+      const neck  = [fcx,       fcy - fh*0.50];
+      const chest = [fcx,       fcy - fh*0.28];
+      const hip   = [fcx,       fcy];
+      const lSh   = [fcx-fh*0.22, fcy-fh*0.38];
+      const rSh   = [fcx+fh*0.22, fcy-fh*0.38];
+      const lEl   = [fcx-fh*0.28, fcy-fh*0.12];
+      const rEl   = [fcx+fh*0.28, fcy-fh*0.12];
+      const lWr   = [fcx-fh*0.22, fcy+fh*0.10];
+      const rWr   = [fcx+fh*0.22, fcy+fh*0.10];
+      const lKn   = [fcx-fh*0.13, fcy+fh*0.32];
+      const rKn   = [fcx+fh*0.13, fcy+fh*0.32];
+      const lFt   = [fcx-fh*0.10, fcy+fh*0.60];
+      const rFt   = [fcx+fh*0.10, fcy+fh*0.60];
+
+      const figColor = "rgba(255,255,255,0.65)";
+      ctx.strokeStyle = figColor; ctx.lineWidth = 2.5; ctx.lineCap = "round"; ctx.lineJoin = "round";
+
+      const line = (a,b) => { ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.stroke(); };
+      // Spine
+      line(neck, chest); line(chest, hip);
+      // Arms
+      line(lSh, lEl); line(lEl, lWr);
+      line(rSh, rEl); line(rEl, rWr);
+      // Legs
+      line(hip, lKn); line(lKn, lFt);
+      line(hip, rKn); line(rKn, rFt);
+      // Shoulder bar
+      line(lSh, rSh);
+      // Hip bar
+      line([fcx-fh*0.10,fcy], [fcx+fh*0.10,fcy]);
+      // Joint dots
+      const dot = (p,r) => { ctx.beginPath(); ctx.arc(p[0],p[1],r,0,Math.PI*2); ctx.fillStyle=figColor; ctx.fill(); };
+      [neck,lSh,rSh,lEl,rEl,hip,lKn,rKn].forEach(p=>dot(p,3.5));
+
       // Annotations remapped to cropped coords
       (anns||[]).forEach(a=>{
         const col=a.type==="good"?"#22c55e":"#ef4444";
@@ -295,6 +335,7 @@ export default function App(){
   const [apiKey,setApiKey]=useState(()=>localStorage.getItem("rideai_key")||"");
   const [showKeyInput,setShowKeyInput]=useState(false);
   const fileRef=useRef(null),vidRef=useRef(null),urlRef=useRef(null);
+  const fileTooLarge = file && file.size > 100*1024*1024;
 
   const saveKey=k=>{setApiKey(k);localStorage.setItem("rideai_key",k);window.__RIDEAI_KEY__=k;setShowKeyInput(false);};
   const onFile=f=>{if(f&&f.type.startsWith("video/")){setFile(f);setPhase("upload");}};
@@ -366,8 +407,65 @@ export default function App(){
   };
 
   const onPicksDone=async(picks)=>{
-    setPhase("loading");setLoadMsg("피드백 이미지 생성 중...");setPct(60);
-    const data=rawData, annotated=[], fl=data.frames||[];
+    setPhase("loading");setLoadMsg("피사체 기반 정밀 분석 중...");setPct(40);
+    const isSki=sport==="ski", sl=isSki?"스키":"스노보드";
+
+    // ── 2nd pass: send cropped subject images to AI for precise analysis ──
+    const pickedFrames=[];
+    for(let i=0;i<capturedFrames.length;i++){
+      const frame=capturedFrames[i], pick=picks[i];
+      if(!frame||!pick) continue;
+      // Build a cropped image centered on the subject pick
+      const cropped=await new Promise(res=>{
+        const img=new Image(); img.onload=()=>{
+          const W=img.width,H=img.height,side=Math.round(Math.min(W,H)*0.52);
+          let x0=Math.round(pick.x*W-side/2),y0=Math.round(pick.y*H-side/2);
+          x0=Math.max(0,Math.min(W-side,x0)); y0=Math.max(0,Math.min(H-side,y0));
+          const c=document.createElement("canvas"); c.width=500; c.height=500;
+          c.getContext("2d").drawImage(img,x0,y0,side,side,0,0,500,500);
+          res(c.toDataURL("image/jpeg",0.88));
+        }; img.src=frame.data;
+      });
+      pickedFrames.push({data:cropped,time:frame.time,frameIdx:i});
+    }
+
+    let refinedData=rawData;
+    if(pickedFrames.length>0){
+      try{
+        setLoadMsg("피사체 정밀 분석 중...");setPct(55);
+        const msg2=[];
+        msg2.push({type:"text",text:"아래는 라이더를 중심으로 정밀하게 크롭한 "+pickedFrames.length+"개 장면입니다. 라이더의 자세를 세밀하게 재분석하여 더 정확한 코칭 피드백을 제공하세요. 신체 부위(무릎 굴곡, 상체 기울기, 팔 위치, 시선)를 구체적으로 분석하세요."});
+        pickedFrames.forEach((f,i)=>{
+          msg2.push({type:"text",text:"[정밀 장면 "+(i+1)+" — "+f.time+"초]"});
+          msg2.push({type:"image",source:{type:"base64",media_type:"image/jpeg",data:f.data.split(",")[1]}});
+        });
+        const termGuide2=isSki
+          ?"스키: 카빙 턴(날 세워 도는 기술),엣지(측면 날),전경 자세(앞으로 기울임),플렉션(무릎굽히기),상체 선행(상체가 먼저 도는 현상)"
+          :"스노보드: 토사이드(발가락 쪽 엣지),힐사이드(뒤꿈치 쪽 엣지),앵귤레이션(관절 꺾어 엣지 각도),로테이션(어깨 방향 전환),스탠스(발 위치)";
+        msg2.push({type:"text",text:
+          "전문 "+sl+" 코치로서 위 크롭 이미지를 바탕으로 정밀 분석하세요. 설명: "+termGuide2+
+          "
+
+JSON으로만 응답(마크다운 없이):
+"+
+          '{"scores":[{"label":"자세","value":78,"color":"#3b82f6"},{"label":"균형","value":72,"color":"#22c55e"},{"label":"기술","value":70,"color":"#f59e0b"}],'+
+          '"frames":[{"frameIndex":0,"type":"good","title":"제목10자","desc":"신체부위 구체적 분석 2문장","annotations":[{"x":0.5,"y":0.45,"type":"good","label":"라벨","arrow":{"x":0.5,"y":0.6}}]},'+
+          '{"frameIndex":1,"type":"warn","title":"제목","desc":"신체부위 구체적 분석 2문장","annotations":[{"x":0.5,"y":0.45,"type":"warn","label":"라벨","arrow":{"x":0.5,"y":0.58}}]},'+
+          '{"frameIndex":2,"type":"good","title":"제목","desc":"신체부위 구체적 분석 2문장","annotations":[{"x":0.5,"y":0.45,"type":"good","label":"라벨","arrow":{"x":0.5,"y":0.6}}]},'+
+          '{"frameIndex":3,"type":"warn","title":"제목","desc":"신체부위 구체적 분석 2문장","annotations":[{"x":0.5,"y":0.45,"type":"warn","label":"라벨","arrow":{"x":0.5,"y":0.58}}]}],'+
+          '"feedback":[{"type":"good","tag":"잘된 점","text":"구체적 칭찬 2~3문장"},{"type":"warn","tag":"개선 포인트","text":"구체적 개선점 2~3문장"},{"type":"info","tag":"코치 조언","text":"실용적 훈련 조언 2~3문장"}],'+
+          '"tips":["구체적 팁1","팁2","팁3","팁4"]}'+
+          "
+규칙: value 60-95, good/warn 각2개, 한국어, 크롭이미지 기준 x/y(0.3~0.7 범위에 라이더 있음)"
+        });
+        const raw2=await apiCall([{role:"user",content:msg2}],"You are a JSON API. Output ONLY a valid JSON object. No markdown. No code fences.",apiKey);
+        refinedData=parseJSON(raw2);
+      }catch(e){ console.warn("2nd pass failed:",e.message); }
+    }
+
+    // Build annotated canvases with stick figure
+    setLoadMsg("장면 이미지 생성 중...");setPct(72);
+    const annotated=[], fl=refinedData.frames||[];
     for(let i=0;i<fl.length;i++){
       const fd=fl[i], fi=Math.min(Math.max(fd.frameIndex||i,0),capturedFrames.length-1);
       const frame=capturedFrames[fi], pick=picks[fi]||picks[i];
@@ -380,9 +478,9 @@ export default function App(){
         canvas=await buildAnnotatedCanvas(frame,cx,cy,anns);
       }else{ svg=make3DFigureSVG(sport,fd.type,fd); }
       annotated.push({...fd,canvas,svg,time:frame?.time??null});
-      setPct(60+Math.round((i+1)/fl.length*38));
+      setPct(72+Math.round((i+1)/fl.length*26));
     }
-    setPct(100);setResult({...rawData,annotated});setTab(annotated.some(f=>f.type==="good")?"good":"warn");setPhase("done");
+    setPct(100);setResult({...refinedData,annotated});setTab(annotated.some(f=>f.type==="good")?"good":"warn");setPhase("done");
   };
 
   const reset=()=>{
@@ -442,15 +540,23 @@ export default function App(){
             <button onClick={()=>setPhase("sport")} style={{marginLeft:"auto",fontSize:12,color:"#94a3b8",background:"none",border:"none",cursor:"pointer"}}>← 종목 변경</button>
           </div>
           <div onClick={()=>fileRef.current?.click()} onDrop={onDrop} onDragOver={e=>e.preventDefault()}
-            style={{border:"2px dashed rgba(0,0,0,0.12)",borderRadius:16,padding:"44px 20px",textAlign:"center",cursor:"pointer",background:"#fff",marginBottom:14}}>
+            style={{border:"2px dashed rgba(0,0,0,0.12)",borderRadius:16,padding:"44px 20px",textAlign:"center",cursor:"pointer",background:"#fff",marginBottom:12}}>
             <input ref={fileRef} type="file" accept="video/*" onChange={e=>onFile(e.target.files[0])} style={{display:"none"}}/>
             <div style={{fontSize:40,marginBottom:12}}>🎬</div>
             <div style={{fontSize:15,fontWeight:500,marginBottom:6,color:"#0f172a"}}>{file?"✓ "+file.name:"라이딩 영상을 업로드하세요"}</div>
             <div style={{fontSize:13,color:"#94a3b8"}}>{file?(file.size/1024/1024).toFixed(1)+" MB · 분석 준비 완료":"클릭하거나 드래그 · MP4, MOV, AVI"}</div>
           </div>
-          <button onClick={runAnalysis} disabled={!file} style={{width:"100%",padding:15,borderRadius:10,border:"none",background:file?"#0f172a":"#e2e8f0",color:file?"#fff":"#94a3b8",fontSize:15,fontWeight:600,cursor:file?"pointer":"not-allowed"}}>
+          <div style={{background:"#f8fafc",border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:10,padding:"12px 14px",marginBottom:14,fontSize:13,color:"#64748b",lineHeight:1.7}}>
+            <div style={{fontWeight:500,color:"#475569",marginBottom:3}}>📋 업로드 안내</div>
+            <div>• 최대 파일 용량: <strong>100MB</strong></div>
+            <div>• 지원 형식: MP4, MOV, AVI</div>
+            <div>• 라이더가 화면에 잘 보이는 영상일수록 분석 정확도가 높아집니다</div>
+            <div>• 영상이 길수록 분석 시간이 다소 걸릴 수 있습니다</div>
+          </div>
+          <button onClick={runAnalysis} disabled={!file||fileTooLarge} style={{width:"100%",padding:15,borderRadius:10,border:"none",background:(file&&!fileTooLarge)?"#0f172a":"#e2e8f0",color:(file&&!fileTooLarge)?"#fff":"#94a3b8",fontSize:15,fontWeight:600,cursor:(file&&!fileTooLarge)?"pointer":"not-allowed"}}>
             AI 분석 시작 →
           </button>
+          {fileTooLarge&&<div style={{marginTop:10,textAlign:"center",fontSize:13,color:"#dc2626"}}>⚠️ 파일 크기가 100MB를 초과합니다. 더 작은 영상을 선택해주세요.</div>}
         </div>)}
 
         {/* STEP 3: LOADING */}
