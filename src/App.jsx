@@ -104,19 +104,20 @@ function annotateCanvas(dataUrl, anns) {
 
       let cropX, cropY, cropW, cropH;
       if (pts.length > 0) {
-        // Center of annotations
-        const cx = pts.reduce((s, p) => s + p.x, 0) / pts.length;
-        const cy = pts.reduce((s, p) => s + p.y, 0) / pts.length;
-        // Crop ~55% of image centered around subject, with padding
-        cropW = Math.round(W * 0.55);
-        cropH = Math.round(H * 0.55);
+        // Use arrow tips (actual subject body parts) as center — more accurate than annotation circles
+        const arrowPts = (anns || []).filter(a => a.arrow).map(a => ({ x: a.arrow.x, y: a.arrow.y }));
+        const centerPts = arrowPts.length > 0 ? arrowPts : pts;
+        const cx = centerPts.reduce((s, p) => s + p.x, 0) / centerPts.length;
+        const cy = centerPts.reduce((s, p) => s + p.y, 0) / centerPts.length;
+        // Crop 45% of image — tighter zoom on subject
+        cropW = Math.round(W * 0.45);
+        cropH = Math.round(H * 0.52);
         cropX = Math.round(cx * W - cropW / 2);
         cropY = Math.round(cy * H - cropH / 2);
         // Clamp to image bounds
         cropX = Math.max(0, Math.min(W - cropW, cropX));
         cropY = Math.max(0, Math.min(H - cropH, cropY));
       } else {
-        // No annotations — use full image
         cropX = 0; cropY = 0; cropW = W; cropH = H;
       }
 
@@ -621,24 +622,30 @@ export default function App() {
         + "\n\nJSON 형식으로만 응답 (마크다운 없이):\n"
         + '{"scores":[{"label":"자세","value":75,"color":"#3b82f6"},{"label":"균형","value":70,"color":"#22c55e"},{"label":"기술","value":68,"color":"#f59e0b"}],'
         + '"frames":['
-        + '{"frameIndex":0,"type":"good","title":"제목10자이내","desc":"' + sl + ' 전문용어(설명) 2문장","annotations":[{"x":0.5,"y":0.5,"type":"good","label":"라벨","arrow":{"x":0.65,"y":0.68}}]},'
+        + '{"frameIndex":0,"type":"good","title":"제목10자이내","desc":"' + sl + ' 전문용어(설명) 2문장","annotations":[{"x":0.45,"y":0.6,"type":"good","label":"라벨","arrow":{"x":0.45,"y":0.72}}]},'
         + '{"frameIndex":1,"type":"warn","title":"제목","desc":"' + sl + ' 전문용어(설명) 2문장","annotations":[{"x":0.4,"y":0.4,"type":"warn","label":"라벨","arrow":{"x":0.28,"y":0.55}}]},'
         + '{"frameIndex":2,"type":"good","title":"제목","desc":"' + sl + ' 전문용어(설명) 2문장","annotations":[{"x":0.5,"y":0.6,"type":"good","label":"라벨","arrow":{"x":0.6,"y":0.7}}]},'
         + '{"frameIndex":3,"type":"warn","title":"제목","desc":"' + sl + ' 전문용어(설명) 2문장","annotations":[{"x":0.45,"y":0.45,"type":"warn","label":"라벨","arrow":{"x":0.3,"y":0.6}}]}'
         + '],'
         + '"feedback":[{"type":"good","tag":"잘된 점","text":"' + sl + ' 전문용어(설명) 2~3문장"},{"type":"warn","tag":"개선 포인트","text":"' + sl + ' 전문용어(설명) 2~3문장"},{"type":"info","tag":"코치 조언","text":"' + sl + ' 전문용어(설명) 2~3문장"}],'
         + '"tips":["팁1","팁2","팁3","팁4"]}'
-        + "\n규칙: value 60-95 정수, good/warn 균형 각2개, 한국어로만 작성. x/y 좌표는 이미지 속 실제 라이더(사람) 위치를 정확히 가리켜야 합니다 — 라이더가 화면 중앙 하단에 있으면 x≈0.5, y≈0.65 처럼 실제 위치로. arrow 좌표는 분석할 신체 부위(무릎·상체·발 등)의 정확한 픽셀 위치입니다.";
+        + "\n규칙: value 60-95 정수, good/warn 균형 각2개, 한국어로만 작성." + " [좌표 규칙 - 매우 중요] 이미지에서 라이더(사람)를 찾아 실제 위치로 좌표를 지정하세요." + " x는 좌(0.0)→우(1.0), y는 위(0.0)→아래(1.0) 비율입니다." + " annotations의 x,y: 라이더 몸 전체의 중심점." + " arrow의 x,y: 분석하는 신체 부위(무릎이면 무릎 위치, 상체면 가슴 위치)의 정확한 좌표." + " 라이더가 이미지 우측 중간에 있다면 x≈0.7, y≈0.55 처럼 실제 위치를 반영하세요. 절대 x=0.5,y=0.5 같은 기본값을 쓰지 마세요.";
 
       // Build message — include real frames if captured
       const msgContent = [];
       if (capturedFrames.length > 0) {
+        // Prepend instruction for precise coordinate detection
+        msgContent.push({ type: "text", text:
+          "아래 " + capturedFrames.length + "개 이미지는 실제 " + sl + " 라이딩 영상 캡처입니다. " +
+          "각 이미지에서 라이더(사람)의 위치를 정확히 파악하고, " +
+          "annotations의 x,y는 라이더 몸 중심, arrow의 x,y는 분석 신체부위의 실제 픽셀 위치로 지정하세요. " +
+          "라이더가 이미지 오른쪽에 있으면 x=0.7~0.9, 왼쪽이면 x=0.1~0.3, 중앙이면 x=0.4~0.6으로 실제 위치를 반영하세요."
+        });
         capturedFrames.forEach((f, i) => {
           msgContent.push({ type: "text", text: "[장면 " + (i+1) + "/" + capturedFrames.length + " — " + f.time + "초]" });
           msgContent.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: f.data.split(",")[1] } });
         });
-        // Update prompt to mention we have real frames
-        msgContent.push({ type: "text", text: "위 " + capturedFrames.length + "개 이미지는 실제 " + sl + " 라이딩 영상에서 캡처한 장면입니다. 각 장면을 직접 분석하고\n\n" + promptText });
+        msgContent.push({ type: "text", text: promptText });
       } else {
         msgContent.push({ type: "text", text: promptText });
       }
@@ -856,7 +863,7 @@ export default function App() {
 
       {/* VERSION */}
       <div style={{ textAlign: "center", padding: "32px 0 8px", fontSize: 11, color: "#cbd5e1" }}>
-        RIDE AI ver 0.01-3
+        RIDE AI ver 0.01-4
       </div>
 
     </div>
