@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.02-8";
+const VERSION = "ver 0.02-9";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -496,6 +496,36 @@ function StepBar({current}){
       </div>
     ))}
   </div>);
+}
+
+/* ── Share Frame Card (separate component — no hooks in map) ── */
+function ShareFrameCard({frame}){
+  const ref=useRef(null);
+  const isGood=frame.type==="good";
+  const col=isGood?"#166534":"#991b1b";
+  const bg=isGood?"#f0fdf4":"#fef2f2";
+  useEffect(()=>{
+    if(ref.current&&frame.canvas){
+      const el=ref.current;
+      el.width=frame.canvas.width; el.height=frame.canvas.height;
+      el.getContext("2d").drawImage(frame.canvas,0,0);
+    }
+  },[frame.canvas]);
+  return(
+    <div style={{background:"#fff",borderRadius:10,overflow:"hidden",border:"0.5px solid rgba(0,0,0,0.08)"}}>
+      {frame.canvas
+        ? <canvas ref={ref} style={{width:"100%",display:"block"}}/>
+        : frame.svg
+          ? <div dangerouslySetInnerHTML={{__html:frame.svg}} style={{width:"100%",display:"block",lineHeight:0}}/>
+          : <div style={{aspectRatio:"1",background:"#f8fafc"}}/>
+      }
+      <div style={{padding:"8px 10px",background:bg}}>
+        <div style={{fontSize:11,fontWeight:600,color:col,marginBottom:3}}>{isGood?"✅ 잘된 점":"⚠️ 개선 필요"}{frame.time!=null?" · "+frame.time.toFixed(1)+"초":""}</div>
+        <div style={{fontSize:11,fontWeight:500,marginBottom:2}}>{frame.title}</div>
+        <div style={{fontSize:10,color:"#475569",lineHeight:1.5}}>{frame.desc}</div>
+      </div>
+    </div>
+  );
 }
 
 /* ── MAIN APP ─────────────────────────────────────────────── */
@@ -1034,35 +1064,7 @@ export default function App(){
             <div style={{marginBottom:14}}>
               <div style={{fontSize:13,fontWeight:600,marginBottom:10}}>장면별 분석</div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                {(result?.annotated||[]).map((f,i)=>{
-                  const isGood = f.type==="good";
-                  const col = isGood?"#166534":"#991b1b";
-                  const bg  = isGood?"#f0fdf4":"#fef2f2";
-                  const ref2 = useRef(null);
-                  // Draw canvas in share panel too
-                  useEffect(()=>{
-                    if(ref2.current&&f.canvas){
-                      const el=ref2.current;
-                      el.width=f.canvas.width; el.height=f.canvas.height;
-                      el.getContext("2d").drawImage(f.canvas,0,0);
-                    }
-                  },[f.canvas]);
-                  return(
-                    <div key={i} style={{background:"#fff",borderRadius:10,overflow:"hidden",border:"0.5px solid rgba(0,0,0,0.08)"}}>
-                      {f.canvas
-                        ? <canvas ref={ref2} style={{width:"100%",display:"block"}}/>
-                        : f.svg
-                          ? <div dangerouslySetInnerHTML={{__html:f.svg}} style={{width:"100%",display:"block",lineHeight:0}}/>
-                          : <div style={{aspectRatio:"1",background:"#f8fafc"}}/>
-                      }
-                      <div style={{padding:"8px 10px",background:bg}}>
-                        <div style={{fontSize:11,fontWeight:600,color:col,marginBottom:3}}>{isGood?"✅ 잘된 점":"⚠️ 개선 필요"}{f.time!=null?" · "+f.time.toFixed(1)+"초":""}</div>
-                        <div style={{fontSize:11,fontWeight:500,marginBottom:2}}>{f.title}</div>
-                        <div style={{fontSize:10,color:"#475569",lineHeight:1.5}}>{f.desc}</div>
-                      </div>
-                    </div>
-                  );
-                })}
+                {(result?.annotated||[]).map((f,i)=><ShareFrameCard key={i} frame={f}/>)}
               </div>
             </div>
             {/* Feedback */}
