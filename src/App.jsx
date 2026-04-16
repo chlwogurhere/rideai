@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.02-7";
+const VERSION = "ver 0.02-8";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -502,10 +502,36 @@ function StepBar({current}){
 export default function App(){
   const [authed,setAuthed]=useState(()=>sessionStorage.getItem("rideai_auth")==="ok");
   const [saving,setSaving]=useState(false);
+  const [feedback,setFeedback]=useState(null); // null | 'good' | 'bad'
+  const [feedbackDone,setFeedbackDone]=useState(false);
+  const analysisIdRef = useRef(null);
   const resultRef = useRef(null);
   const shareRef = useRef(null);
 
   // Build a share-optimized canvas: no video, both good+warn frames shown
+  const submitFeedback = async (type) => {
+    if (feedbackDone) return;
+    setFeedback(type);
+    // Save to localStorage to prevent duplicate
+    const aid = analysisIdRef.current || "unknown";
+    localStorage.setItem("rideai_fb_"+aid, "done");
+    // Send to proxy for logging (best-effort)
+    try {
+      await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: aid,
+          type,
+          sport,
+          timestamp: new Date().toISOString(),
+          scores: result?.scores || [],
+        }),
+      });
+    } catch(e) { console.warn("feedback send failed:", e.message); }
+    setTimeout(() => setFeedbackDone(true), 1000);
+  };
+
   const buildShareCanvas = async () => {
     const h2c = await loadHtml2Canvas();
     // Temporarily show both tabs by rendering share-specific element
@@ -771,7 +797,13 @@ export default function App(){
       annotated.push({...fd,canvas,svg,time:frame?.time??null,gifFrames});
       setPct(72+Math.round((i+1)/fl.length*26));
     }
-    setPct(100);setResult({...refinedData,annotated});setTab(annotated.some(f=>f.type==="good")?"good":"warn");setPhase("done");
+    setPct(100);
+    const aid = Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+    analysisIdRef.current = aid;
+    // Check if already feedbacked (shouldn't be for new analysis)
+    setFeedback(null);
+    setFeedbackDone(localStorage.getItem("rideai_fb_"+aid)==="done");
+    setResult({...refinedData,annotated});setTab(annotated.some(f=>f.type==="good")?"good":"warn");setPhase("done");
   };
 
   const reset=()=>{
@@ -948,6 +980,27 @@ export default function App(){
               </div>
             ))}
           </div>
+          {/* ── Feedback ── */}
+          <div style={{background:"#fff",border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:12,padding:"18px 20px",marginBottom:16,textAlign:"center"}}>
+            {!feedbackDone ? (<>
+              <div style={{fontSize:14,fontWeight:500,color:"#0f172a",marginBottom:6}}>이 분석이 도움이 됐나요?</div>
+              <div style={{fontSize:12,color:"#94a3b8",marginBottom:14}}>피드백은 AI 코치 개선에 사용됩니다</div>
+              <div style={{display:"flex",gap:10,justifyContent:"center"}}>
+                <button onClick={()=>submitFeedback("good")} style={{padding:"10px 28px",borderRadius:99,fontSize:22,cursor:"pointer",border:"2px solid "+(feedback==="good"?"#16a34a":"rgba(0,0,0,0.1)"),background:feedback==="good"?"#f0fdf4":"#fff",transition:"all 0.2s"}}>
+                  👍
+                </button>
+                <button onClick={()=>submitFeedback("bad")} style={{padding:"10px 28px",borderRadius:99,fontSize:22,cursor:"pointer",border:"2px solid "+(feedback==="bad"?"#dc2626":"rgba(0,0,0,0.1)"),background:feedback==="bad"?"#fef2f2":"#fff",transition:"all 0.2s"}}>
+                  👎
+                </button>
+              </div>
+              {feedback && <div style={{marginTop:12,fontSize:13,color:feedback==="good"?"#16a34a":"#dc2626",fontWeight:500}}>
+                {feedback==="good"?"감사합니다! 계속 발전하겠습니다 🙌":"소중한 피드백 감사합니다. 더 개선하겠습니다 💪"}
+              </div>}
+            </>) : (
+              <div style={{fontSize:14,color:"#94a3b8"}}>✓ 피드백이 제출되었습니다. 감사합니다!</div>
+            )}
+          </div>
+
           <button onClick={reset} style={{display:"block",margin:"0 auto",padding:"10px 28px",border:"0.5px solid rgba(0,0,0,0.15)",borderRadius:8,background:"transparent",color:"#64748b",fontSize:13,cursor:"pointer"}}>↩ 새 영상 분석하기</button>
           </div>{/* end resultRef */}
 
