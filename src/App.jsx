@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.01-7";
+const VERSION = "ver 0.01-8";
 
 /* ── API ──────────────────────────────────────────────────── */
 async function apiCall(messages, system, apiKey) {
@@ -74,7 +74,7 @@ function captureFrames(vid, n=4) {
 }
 
 /* ── GIF-LIKE CLIP: capture ±1s frames around a timestamp ── */
-async function captureClip(vid, centerTime, subX, subY, fps=8) {
+async function captureClip(vid, centerTime, subX, subY, fps=20) {
   const dur = vid.duration || 0;
   if (!dur) return [];
   const start = Math.max(0, centerTime - 1.0);
@@ -128,7 +128,7 @@ function AnimatedClip({ frames, label }) {
       const img = imgs[idxRef.current % imgs.length];
       if (img.complete) ctx.drawImage(img, 0, 0, el.width, el.height);
       idxRef.current++;
-      timerRef.current = setTimeout(draw, 120); // ~8fps
+      timerRef.current = setTimeout(draw, 80); // ~12fps playback of 20fps = 0.6x slowmo
     };
     // wait for first image
     imgs[0].onload = draw;
@@ -304,7 +304,7 @@ function FrameCard({frame}){
       </div>
       <div style={{fontSize:13,fontWeight:500,marginBottom:5}}>{frame.title}</div>
       <div style={{fontSize:13,color:"#475569",lineHeight:1.7}}>{frame.desc}</div>
-      {hasGif&&showGif&&<AnimatedClip frames={frame.gifFrames} label={"±1초 구간 · "+frame.gifFrames.length+"프레임"}/>}
+      {hasGif&&showGif&&<AnimatedClip frames={frame.gifFrames} label={"±1초 구간 · 슬로우모션 · "+frame.gifFrames.length+"프레임"}/>}
     </div>
   </div>);
 }
