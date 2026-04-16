@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.01-8";
+const VERSION = "ver 0.02-0";
 
 /* ── API ──────────────────────────────────────────────────── */
 async function apiCall(messages, system, apiKey) {
@@ -25,52 +25,67 @@ function parseJSON(raw) {
 }
 
 /* ── FRAME CAPTURE ────────────────────────────────────────── */
-function captureFrames(vid, n=4) {
-  return new Promise(resolve => {
-    const frames=[];
-    function snap() {
-      try {
-        const vw=vid.videoWidth, vh=vid.videoHeight;
-        if (!vw||!vh) return null;
-        const W=800, c=document.createElement("canvas");
-        c.width=W; c.height=Math.round(W*vh/vw);
-        c.getContext("2d").drawImage(vid,0,0,c.width,c.height);
-        const px=c.getContext("2d").getImageData(0,0,30,30).data;
-        let s=0; for(let i=0;i<px.length;i+=4) s+=px[i]+px[i+1]+px[i+2];
-        if(s<500) return null;
-        const d=c.toDataURL("image/jpeg",0.88);
-        return d.length>4000?{data:d,time:parseFloat(vid.currentTime.toFixed(1)),w:c.width,h:c.height}:null;
-      } catch { return null; }
-    }
-    function waitMeta() {
-      return new Promise((ok,fail)=>{
-        if(vid.readyState>=1&&vid.duration>0){ok();return;}
-        const t=setTimeout(()=>fail(new Error("timeout")),12000);
-        const h=()=>{clearTimeout(t);ok();};
-        vid.addEventListener("loadedmetadata",h,{once:true});
-        vid.addEventListener("durationchange",h,{once:true});
-      });
-    }
-    function captureAt(t) {
-      return new Promise(res=>{
-        let done=false;
-        const finish=()=>{ if(done)return; done=true; requestAnimationFrame(()=>requestAnimationFrame(()=>res(snap()))); };
-        const guard=setTimeout(()=>{ if(!done){done=true;res(snap());} },4000);
-        vid.addEventListener("seeked",()=>{ clearTimeout(guard); setTimeout(finish,250); },{once:true});
-        try{ vid.currentTime=t; } catch{ clearTimeout(guard); done=true; res(null); }
-      });
-    }
-    (async()=>{
-      try{ await waitMeta(); } catch{ resolve([]); return; }
-      const dur=Math.max(vid.duration,1);
-      const targets=Array.from({length:n},(_,i)=>parseFloat(Math.min((i+0.5)*dur/n,dur-0.3).toFixed(1)));
-      for(const t of targets){
-        const f=await captureAt(t); if(f) frames.push(f);
-        await new Promise(r=>setTimeout(r,100));
-      }
-      vid.currentTime=0; resolve(frames);
-    })();
+/* ── single frame capture helper ─────────────────────────── */
+function waitMeta(vid) {
+  return new Promise((ok,fail)=>{
+    if(vid.readyState>=1&&vid.duration>0){ok();return;}
+    const t=setTimeout(()=>fail(new Error("timeout")),12000);
+    const h=()=>{clearTimeout(t);ok();};
+    vid.addEventListener("loadedmetadata",h,{once:true});
+    vid.addEventListener("durationchange",h,{once:true});
   });
+}
+function snapFrame(vid, W=800) {
+  try {
+    const vw=vid.videoWidth, vh=vid.videoHeight;
+    if(!vw||!vh) return null;
+    const c=document.createElement("canvas");
+    c.width=W; c.height=Math.round(W*vh/vw);
+    const ctx=c.getContext("2d");
+    ctx.drawImage(vid,0,0,c.width,c.height);
+    // Brightness check (skip dark/blank frames)
+    const px=ctx.getImageData(0,0,40,40).data;
+    let bright=0; for(let i=0;i<px.length;i+=4) bright+=px[i]+px[i+1]+px[i+2];
+    if(bright<600) return null;
+    // Blur/motion check via edge variance
+    const center=ctx.getImageData(c.width/2-30,c.height/2-30,60,60).data;
+    let variance=0, prev=center[0];
+    for(let i=4;i<center.length;i+=4){ const d=Math.abs(center[i]-prev); variance+=d; prev=center[i]; }
+    if(variance<200) return null; // too uniform = blank snow / blur
+    const d=c.toDataURL("image/jpeg",0.88);
+    return d.length>4000?{data:d,time:parseFloat(vid.currentTime.toFixed(2))}:null;
+  } catch { return null; }
+}
+function seekTo(vid, t) {
+  return new Promise(res=>{
+    let done=false;
+    const finish=()=>{ if(done)return; done=true; requestAnimationFrame(()=>requestAnimationFrame(()=>res(snapFrame(vid)))); };
+    const guard=setTimeout(()=>{ if(!done){done=true;res(snapFrame(vid));} },4000);
+    vid.addEventListener("seeked",()=>{ clearTimeout(guard); setTimeout(finish,250); },{once:true});
+    try{ vid.currentTime=t; } catch{ clearTimeout(guard); done=true; res(null); }
+  });
+}
+
+/* ── Smart candidate capture: skip first/last 10%, filter bad frames ──────── */
+async function captureFrames(vid, n=4) {
+  try { await waitMeta(vid); } catch { return []; }
+  const dur = Math.max(vid.duration, 1);
+  // Skip first 10% and last 10%
+  const start = dur * 0.10;
+  const end   = dur * 0.90;
+  const usable = end - start;
+  // Sample 10 candidates evenly across usable range
+  const CANDIDATES = 10;
+  const candidates = [];
+  for(let i=0; i<CANDIDATES; i++){
+    const t = parseFloat((start + (i+0.5)*usable/CANDIDATES).toFixed(2));
+    const f = await seekTo(vid, t);
+    if(f) candidates.push(f);
+    await new Promise(r=>setTimeout(r,80));
+  }
+  vid.currentTime=0;
+  console.log("candidates:", candidates.length, "of", CANDIDATES);
+  return candidates; // return all candidates — AI will pick best 4
 }
 
 /* ── GIF-LIKE CLIP: capture ±1s frames around a timestamp ── */
@@ -174,34 +189,6 @@ function buildAnnotatedCanvas(frame, subX, subY, anns) {
       ctx.beginPath(); ctx.moveTo(0,sy); ctx.lineTo(OUT,sy); ctx.stroke();
       ctx.setLineDash([]);
 
-      // Annotations remapped to cropped coords
-      (anns||[]).forEach(a=>{
-        const col=a.type==="good"?"#22c55e":"#ef4444";
-        const px=(a.x*W-x0)*scale, py=(a.y*H-y0)*scale;
-        if(px<-40||px>OUT+40||py<-40||py>OUT+40) return;
-        ctx.beginPath(); ctx.arc(px,py,18,0,Math.PI*2);
-        ctx.fillStyle=col+"28"; ctx.fill(); ctx.strokeStyle=col; ctx.lineWidth=3; ctx.stroke();
-        if(a.arrow){
-          const ax=(a.arrow.x*W-x0)*scale, ay=(a.arrow.y*H-y0)*scale;
-          const ang=Math.atan2(ay-py,ax-px);
-          ctx.beginPath(); ctx.moveTo(px,py); ctx.lineTo(ax,ay);
-          ctx.strokeStyle=col; ctx.lineWidth=3; ctx.setLineDash([7,3]); ctx.stroke(); ctx.setLineDash([]);
-          ctx.beginPath(); ctx.moveTo(ax,ay);
-          ctx.lineTo(ax-15*Math.cos(ang-0.4),ay-15*Math.sin(ang-0.4));
-          ctx.lineTo(ax-15*Math.cos(ang+0.4),ay-15*Math.sin(ang+0.4));
-          ctx.closePath(); ctx.fillStyle=col; ctx.fill();
-          const fs=14; ctx.font="bold "+fs+"px sans-serif";
-          const lbl=a.label||"", tw=ctx.measureText(lbl).width;
-          const lx=ax+12, ly=ay-6, bw=tw+16, bh=fs+10, bx=lx-4, by=ly-fs-2, br=5;
-          ctx.fillStyle="rgba(0,0,0,0.88)";
-          ctx.beginPath(); ctx.moveTo(bx+br,by); ctx.lineTo(bx+bw-br,by); ctx.arcTo(bx+bw,by,bx+bw,by+br,br);
-          ctx.lineTo(bx+bw,by+bh-br); ctx.arcTo(bx+bw,by+bh,bx+bw-br,by+bh,br);
-          ctx.lineTo(bx+br,by+bh); ctx.arcTo(bx,by+bh,bx,by+bh-br,br);
-          ctx.lineTo(bx,by+br); ctx.arcTo(bx,by,bx+br,by,br);
-          ctx.closePath(); ctx.fill(); ctx.strokeStyle=col; ctx.lineWidth=1; ctx.stroke();
-          ctx.fillStyle=col; ctx.fillText(lbl,lx+4,ly);
-        }
-      });
       res(c);
     };
     img.onerror=()=>res(null); img.src=frame.data;
@@ -328,7 +315,7 @@ function SubjectPicker({frames,onDone}){
       <span style={{fontSize:13,color:"#64748b",marginLeft:4}}>장면 {cur+1} / {frames.length}</span>
     </div>
     <div style={{fontSize:16,fontWeight:600,marginBottom:6,color:"#0f172a"}}>분석할 라이더를 클릭하세요</div>
-    <div style={{fontSize:13,color:"#64748b",marginBottom:14}}>사진에서 사람을 클릭하면 포인트가 찍힙니다. 정확히 클릭할수록 정밀한 분석이 가능합니다.</div>
+    <div style={{fontSize:13,color:"#64748b",marginBottom:14}}>AI가 선택한 장면입니다. 사진에서 라이더를 클릭하면 해당 위치를 중심으로 확대해서 보여드립니다.</div>
     <div style={{position:"relative",borderRadius:12,overflow:"hidden",cursor:"crosshair",marginBottom:14,border:"2px solid "+(pick?"#22c55e":"#e2e8f0")}}>
       <img ref={imgRef} src={frame.data} onClick={handleClick} alt="frame" style={{width:"100%",display:"block"}}/>
       {pick&&<div style={{position:"absolute",top:0,left:0,width:"100%",height:"100%",pointerEvents:"none"}}>
@@ -396,13 +383,13 @@ export default function App(){
       vid.src=urlRef.current; vid.load();
       await new Promise(r=>setTimeout(r,700));
 
-      setLoadMsg("프레임 캡처 중...");setPct(20);
+      setLoadMsg("후보 장면 추출 중...");setPct(20);
       const frames=await captureFrames(vid,4);
       vid.style.cssText="width:2px;height:2px;opacity:0.01;position:fixed;top:0";
       console.log("captured:",frames.length);
       setCapturedFrames(frames);
 
-      setLoadMsg("AI 코치 분석 중...");setPct(40);
+      setLoadMsg("AI가 최적 장면 선택 중...");setPct(40);
       const isSki=sport==="ski", sl=isSki?"스키":"스노보드";
       const termGuide=isSki
         ?"스키 용어+괄호설명: '카빙 턴(날 세워 도는 기술)','엣지(스키 측면 날)','전경 자세(앞으로 기울임)','패럴렐(양 스키 나란히)','플렉션(무릎·발목 굽히기)','폴 플랜팅(폴 눈에 찍기)','상체 선행(상체가 먼저 도는 현상)'"
@@ -410,23 +397,33 @@ export default function App(){
 
       const msgContent=[];
       if(frames.length>0){
-        msgContent.push({type:"text",text:"아래 "+frames.length+"개 이미지는 "+sl+" 라이딩 영상 캡처입니다. 각 이미지에서 라이더의 위치와 자세를 직접 분석하세요. annotations.x,y는 라이더 몸 중심, arrow.x,y는 분석할 신체부위 실제 위치(0.0=좌/위, 1.0=우/아래)입니다."});
+        msgContent.push({type:"text",text:
+          "아래 "+frames.length+"개 이미지는 "+sl+" 라이딩 영상에서 균등하게 추출한 후보 장면입니다. "+
+          "전문 "+sl+" 코치로서 다음을 수행하세요:\n"+
+          "1. 각 장면에서 라이더가 보이는지 확인하세요.\n"+
+          "2. 라이더 자세가 잘 된 장면 2개(frameIndex)와 개선이 필요한 장면 2개(frameIndex)를 직접 선택하세요.\n"+
+          "3. 선택한 4개 장면만 frames 배열에 포함하세요 (라이더가 없거나 흐린 장면은 제외).\n"+
+          "4. frameIndex는 0부터 시작하는 원본 이미지 번호입니다."
+        });
         frames.forEach((f,i)=>{
-          msgContent.push({type:"text",text:"[장면 "+(i+1)+"/"+frames.length+" — "+f.time+"초]"});
+          msgContent.push({type:"text",text:"[후보 "+i+" — "+f.time+"초]"});
           msgContent.push({type:"image",source:{type:"base64",media_type:"image/jpeg",data:f.data.split(",")[1]}});
         });
       }
+      const maxIdx = Math.max(frames.length-1, 0);
       msgContent.push({type:"text",text:
-        "전문 "+sl+" 코치로서 분석하세요. 설명: "+termGuide+
+        "전문 "+sl+" 코치로서 위 후보 장면 중 분석할 4개를 선택해 분석하세요. 설명 규칙: "+termGuide+
         "\n\nJSON으로만 응답(마크다운 없이):\n"+
         '{"scores":[{"label":"자세","value":75,"color":"#3b82f6"},{"label":"균형","value":70,"color":"#22c55e"},{"label":"기술","value":68,"color":"#f59e0b"}],'+
-        '"frames":[{"frameIndex":0,"type":"good","title":"제목10자","desc":"전문용어(설명) 2문장","annotations":[{"x":0.5,"y":0.5,"type":"good","label":"라벨","arrow":{"x":0.5,"y":0.6}}]},'+
-        '{"frameIndex":1,"type":"warn","title":"제목","desc":"전문용어(설명) 2문장","annotations":[{"x":0.5,"y":0.5,"type":"warn","label":"라벨","arrow":{"x":0.5,"y":0.6}}]},'+
-        '{"frameIndex":2,"type":"good","title":"제목","desc":"전문용어(설명) 2문장","annotations":[{"x":0.5,"y":0.5,"type":"good","label":"라벨","arrow":{"x":0.5,"y":0.6}}]},'+
-        '{"frameIndex":3,"type":"warn","title":"제목","desc":"전문용어(설명) 2문장","annotations":[{"x":0.5,"y":0.5,"type":"warn","label":"라벨","arrow":{"x":0.5,"y":0.6}}]}],'+
-        '"feedback":[{"type":"good","tag":"잘된 점","text":"2~3문장"},{"type":"warn","tag":"개선 포인트","text":"2~3문장"},{"type":"info","tag":"코치 조언","text":"2~3문장"}],'+
+        '"frames":['+
+        '{"frameIndex":0,"type":"good","title":"제목10자이내","desc":"전문용어(설명) 2문장. 잘된 이유 구체적으로"},'+
+        '{"frameIndex":3,"type":"warn","title":"제목","desc":"전문용어(설명) 2문장. 개선 필요 이유 구체적으로"},'+
+        '{"frameIndex":6,"type":"good","title":"제목","desc":"전문용어(설명) 2문장"},'+
+        '{"frameIndex":9,"type":"warn","title":"제목","desc":"전문용어(설명) 2문장"}'+
+        '],'+
+        '"feedback":[{"type":"good","tag":"잘된 점","text":"전문용어(설명) 2~3문장"},{"type":"warn","tag":"개선 포인트","text":"전문용어(설명) 2~3문장"},{"type":"info","tag":"코치 조언","text":"전문용어(설명) 2~3문장"}],'+
         '"tips":["팁1","팁2","팁3","팁4"]}'+
-        "\n규칙: value 60-95, good/warn 각2개, 한국어, 라이더 실제 위치로 x/y 지정"
+        "\n규칙: frameIndex는 0~"+maxIdx+" 중 실제 라이더가 보이는 장면 선택, value 60-95, good 2개+warn 2개, 한국어"
       });
 
       let data;
