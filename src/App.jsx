@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.03-3";
+const VERSION = "ver 0.03-4";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -899,7 +899,7 @@ export default function App(){
         {/* HEADER */}
         <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:24}}>
           <div style={{width:42,height:42,background:"#eff6ff",borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>⛷</div>
-          <div><div style={{fontSize:20,fontWeight:600,color:"#0f172a"}}>Snow Riding AI</div><div style={{fontSize:12,color:"#94a3b8"}}>Snow Riding AI Coaching Staff</div></div>
+          <div><div style={{fontSize:15,fontWeight:700,color:"#0f172a",lineHeight:1.3}}>Snow Riding AI<br/>Coaching Staff</div><div style={{fontSize:12,color:"#94a3b8"}}>스키·스노보드 AI 라이딩 코치</div></div>
           {!import.meta.env.VITE_ANTHROPIC_KEY && (
             <button onClick={()=>setShowKeyInput(v=>!v)} style={{marginLeft:"auto",padding:"6px 12px",borderRadius:8,border:"0.5px solid rgba(0,0,0,0.15)",background:apiKey?"#f0fdf4":"#fef2f2",color:apiKey?"#166534":"#991b1b",fontSize:12,cursor:"pointer"}}>
               {apiKey?"🔑 API 키 설정됨":"🔑 API 키 필요"}
