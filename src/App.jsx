@@ -575,9 +575,7 @@ export default function App(){
           const poseText = pd ? formatPoseData(pd, sport) : null;
           msgContent.push({type:"text",text:
             "[후보 "+i+" — "+f.time+"초]" +
-            (poseText ? "
-" + poseText : "
-[포즈 감지 실패 — 라이더가 잘 안 보이는 장면]")
+            (poseText ? "\n" + poseText : "\n[포즈 감지 실패 — 라이더가 잘 안 보이는 장면]")
           });
           msgContent.push({type:"image",source:{type:"base64",media_type:"image/jpeg",data:f.data.split(",")[1]}});
         });
