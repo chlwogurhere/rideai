@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.02-6";
+const VERSION = "ver 0.02-7";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -503,29 +503,40 @@ export default function App(){
   const [authed,setAuthed]=useState(()=>sessionStorage.getItem("rideai_auth")==="ok");
   const [saving,setSaving]=useState(false);
   const resultRef = useRef(null);
+  const shareRef = useRef(null);
+
+  // Build a share-optimized canvas: no video, both good+warn frames shown
+  const buildShareCanvas = async () => {
+    const h2c = await loadHtml2Canvas();
+    // Temporarily show both tabs by rendering share-specific element
+    const shareEl = shareRef.current;
+    if (!shareEl) throw new Error("shareRef not found");
+    shareEl.style.display = "block";
+    await new Promise(r => setTimeout(r, 100)); // wait for render
+    const canvas = await h2c(shareEl, {
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: "#f8fafc",
+      scale: 2,
+      logging: false,
+      ignoreElements: el => el.tagName === "VIDEO" || el.tagName === "CANVAS",
+    });
+    shareEl.style.display = "none";
+    return canvas;
+  };
 
   const saveAsImage = async () => {
     setSaving(true);
     try {
-      const h2c = await loadHtml2Canvas();
-      const el = resultRef.current;
-      if (!el) return;
-      const canvas = await h2c(el, {
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: "#f8fafc",
-        scale: 2, // retina quality
-        logging: false,
-        ignoreElements: el => el.tagName === "VIDEO",
-      });
-      // Download
+      const canvas = await buildShareCanvas();
       const link = document.createElement("a");
-      link.download = "RIDEAI_분석결과_" + new Date().toLocaleDateString("ko-KR").replace(/\./g,"").replace(/ /g,"") + ".png";
+      const today = new Date().toLocaleDateString("ko-KR").replace(/\. /g,"-").replace(".","");
+      link.download = "RIDEAI_분석결과_" + today + ".png";
       link.href = canvas.toDataURL("image/png");
       link.click();
     } catch(e) {
       console.error("save failed:", e);
-      alert("저장 중 오류가 발생했습니다.");
+      alert("저장 중 오류가 발생했습니다: " + e.message);
     }
     setSaving(false);
   };
@@ -533,27 +544,16 @@ export default function App(){
   const shareResult = async () => {
     setSaving(true);
     try {
-      const h2c = await loadHtml2Canvas();
-      const el = resultRef.current;
-      if (!el) return;
-      const canvas = await h2c(el, {
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: "#f8fafc",
-        scale: 2,
-        logging: false,
-        ignoreElements: el => el.tagName === "VIDEO",
-      });
+      const canvas = await buildShareCanvas();
       canvas.toBlob(async (blob) => {
         const file = new File([blob], "RIDEAI_분석결과.png", { type: "image/png" });
         if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
           await navigator.share({
             title: "RIDE AI 라이딩 분석 결과",
-            text: "AI가 분석한 내 라이딩 자세입니다 🎿",
+            text: "AI가 분석한 내 라이딩 자세입니다 🎿 rideai.vercel.app",
             files: [file],
           });
         } else {
-          // Fallback: download
           const link = document.createElement("a");
           link.download = "RIDEAI_분석결과.png";
           link.href = URL.createObjectURL(blob);
@@ -950,6 +950,86 @@ export default function App(){
           </div>
           <button onClick={reset} style={{display:"block",margin:"0 auto",padding:"10px 28px",border:"0.5px solid rgba(0,0,0,0.15)",borderRadius:8,background:"transparent",color:"#64748b",fontSize:13,cursor:"pointer"}}>↩ 새 영상 분석하기</button>
           </div>{/* end resultRef */}
+
+          {/* ── Hidden share panel: both tabs, no video ── */}
+          <div ref={shareRef} style={{display:"none",background:"#f8fafc",padding:"20px",fontFamily:"sans-serif"}}>
+            {/* Header */}
+            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16,paddingBottom:12,borderBottom:"1px solid rgba(0,0,0,0.08)"}}>
+              <div style={{fontSize:28}}>⛷</div>
+              <div>
+                <div style={{fontSize:18,fontWeight:700,color:"#0f172a"}}>RIDE AI 분석 결과</div>
+                <div style={{fontSize:12,color:"#94a3b8"}}>스키·스노보드 AI 라이딩 코치 · rideai.vercel.app</div>
+              </div>
+              <div style={{marginLeft:"auto",fontSize:12,color:"#94a3b8"}}>{new Date().toLocaleDateString("ko-KR")}</div>
+            </div>
+            {/* Scores */}
+            <div style={{background:"#fff",borderRadius:12,padding:"16px 18px",marginBottom:14,border:"0.5px solid rgba(0,0,0,0.08)"}}>
+              <div style={{fontSize:13,fontWeight:600,marginBottom:12}}>종합 점수</div>
+              {(result?.scores||[]).map((s,i)=>(
+                <div key={i} style={{marginBottom:10}}>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:4,fontSize:13}}>
+                    <span style={{color:"#475569"}}>{s.label}</span>
+                    <span style={{fontWeight:500}}>{s.value}점</span>
+                  </div>
+                  <div style={{height:6,background:"rgba(0,0,0,0.08)",borderRadius:99}}>
+                    <div style={{height:"100%",width:s.value+"%",background:s.color,borderRadius:99}}/>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* ALL frames — good + warn together */}
+            <div style={{marginBottom:14}}>
+              <div style={{fontSize:13,fontWeight:600,marginBottom:10}}>장면별 분석</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                {(result?.annotated||[]).map((f,i)=>{
+                  const isGood = f.type==="good";
+                  const col = isGood?"#166534":"#991b1b";
+                  const bg  = isGood?"#f0fdf4":"#fef2f2";
+                  const ref2 = useRef(null);
+                  // Draw canvas in share panel too
+                  useEffect(()=>{
+                    if(ref2.current&&f.canvas){
+                      const el=ref2.current;
+                      el.width=f.canvas.width; el.height=f.canvas.height;
+                      el.getContext("2d").drawImage(f.canvas,0,0);
+                    }
+                  },[f.canvas]);
+                  return(
+                    <div key={i} style={{background:"#fff",borderRadius:10,overflow:"hidden",border:"0.5px solid rgba(0,0,0,0.08)"}}>
+                      {f.canvas
+                        ? <canvas ref={ref2} style={{width:"100%",display:"block"}}/>
+                        : f.svg
+                          ? <div dangerouslySetInnerHTML={{__html:f.svg}} style={{width:"100%",display:"block",lineHeight:0}}/>
+                          : <div style={{aspectRatio:"1",background:"#f8fafc"}}/>
+                      }
+                      <div style={{padding:"8px 10px",background:bg}}>
+                        <div style={{fontSize:11,fontWeight:600,color:col,marginBottom:3}}>{isGood?"✅ 잘된 점":"⚠️ 개선 필요"}{f.time!=null?" · "+f.time.toFixed(1)+"초":""}</div>
+                        <div style={{fontSize:11,fontWeight:500,marginBottom:2}}>{f.title}</div>
+                        <div style={{fontSize:10,color:"#475569",lineHeight:1.5}}>{f.desc}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            {/* Feedback */}
+            <div style={{marginBottom:14}}>
+              <div style={{fontSize:13,fontWeight:600,marginBottom:10}}>코치 피드백</div>
+              {(result?.feedback||[]).map((f,i)=>{
+                const bc={good:"#16a34a",warn:"#dc2626",info:"#2563eb"}[f.type]||"#2563eb";
+                return(
+                  <div key={i} style={{background:"#fff",borderLeft:"3px solid "+bc,borderRadius:8,padding:"10px 12px",marginBottom:8,border:"0.5px solid rgba(0,0,0,0.06)",borderLeft:"3px solid "+bc}}>
+                    <div style={{fontSize:11,fontWeight:600,color:bc,marginBottom:4}}>{f.tag}</div>
+                    <div style={{fontSize:12,color:"#0f172a",lineHeight:1.6}}>{f.text}</div>
+                  </div>
+                );
+              })}
+            </div>
+            {/* Footer */}
+            <div style={{textAlign:"center",paddingTop:10,borderTop:"1px solid rgba(0,0,0,0.06)",fontSize:11,color:"#cbd5e1"}}>
+              RIDE AI {VERSION} · made by GP · rideai.vercel.app
+            </div>
+          </div>
         </div>)}
 
         <div style={{textAlign:"center",padding:"32px 0 4px",fontSize:11,color:"#cbd5e1"}}>RIDE AI {VERSION}</div>
