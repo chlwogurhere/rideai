@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.02-2";
+const VERSION = "ver 0.02-3";
 
 /* ── API ──────────────────────────────────────────────────── */
 async function apiCall(messages, system, apiKey) {
-  const key = apiKey || window.__RIDEAI_KEY__ || "";
+  const key = apiKey || window.__RIDEAI_KEY__ || import.meta.env.VITE_ANTHROPIC_KEY || "";
   if (!key) throw new Error("API 키가 없습니다.");
   const isLocal = window.location.hostname === "localhost";
   const url = isLocal ? "https://api.anthropic.com/v1/messages" : "/api/proxy";
@@ -582,7 +582,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>RIDE AI ver 0.02-2 · made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>RIDE AI ver 0.02-3 · made by GP</div>
           </div>
         </div>
       )}
@@ -593,12 +593,14 @@ export default function App(){
         <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:24}}>
           <div style={{width:42,height:42,background:"#eff6ff",borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>⛷</div>
           <div><div style={{fontSize:20,fontWeight:600,color:"#0f172a"}}>RIDE AI</div><div style={{fontSize:12,color:"#94a3b8"}}>스키·스노보드 AI 라이딩 코치</div></div>
-          <button onClick={()=>setShowKeyInput(v=>!v)} style={{marginLeft:"auto",padding:"6px 12px",borderRadius:8,border:"0.5px solid rgba(0,0,0,0.15)",background:apiKey?"#f0fdf4":"#fef2f2",color:apiKey?"#166534":"#991b1b",fontSize:12,cursor:"pointer"}}>
-            {apiKey?"🔑 API 키 설정됨":"🔑 API 키 필요"}
-          </button>
+          {!import.meta.env.VITE_ANTHROPIC_KEY && (
+            <button onClick={()=>setShowKeyInput(v=>!v)} style={{marginLeft:"auto",padding:"6px 12px",borderRadius:8,border:"0.5px solid rgba(0,0,0,0.15)",background:apiKey?"#f0fdf4":"#fef2f2",color:apiKey?"#166534":"#991b1b",fontSize:12,cursor:"pointer"}}>
+              {apiKey?"🔑 API 키 설정됨":"🔑 API 키 필요"}
+            </button>
+          )}
         </div>
 
-        {showKeyInput&&(<div style={{background:"#f8fafc",border:"0.5px solid rgba(0,0,0,0.1)",borderRadius:12,padding:16,marginBottom:20}}>
+        {showKeyInput&&!import.meta.env.VITE_ANTHROPIC_KEY&&(<div style={{background:"#f8fafc",border:"0.5px solid rgba(0,0,0,0.1)",borderRadius:12,padding:16,marginBottom:20}}>
           <div style={{fontSize:13,fontWeight:500,marginBottom:8}}>Anthropic API 키</div>
           <div style={{display:"flex",gap:8}}>
             <input type="password" placeholder="sk-ant-..." defaultValue={apiKey} id="apiKeyInput" style={{flex:1,padding:"9px 12px",borderRadius:8,border:"0.5px solid rgba(0,0,0,0.15)",fontSize:13,background:"#fff"}}/>
