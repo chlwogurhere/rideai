@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.03-0";
+const VERSION = "ver 0.03-1";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -158,7 +158,7 @@ async function apiCall(messages, system, apiKey) {
   const headers = { "Content-Type": "application/json", "x-api-key": key };
   if (isLocal) headers["anthropic-version"] = "2023-06-01";
   const r = await fetch(url, { method:"POST", headers,
-    body: JSON.stringify({ model:MODEL, max_tokens:3000, system, messages }) });
+    body: JSON.stringify({ model:MODEL, max_tokens:3000, temperature:0, system, messages }) });
   if (!r.ok) throw new Error("HTTP " + r.status);
   const j = await r.json();
   if (j.error) throw new Error(j.error.message || j.error.type);
@@ -224,7 +224,8 @@ async function captureFrames(vid, n=4) {
   const CANDIDATES = 8;
   const candidates = [];
   for(let i=0; i<CANDIDATES; i++){
-    const t = parseFloat((start + (i+0.5)*usable/CANDIDATES).toFixed(2));
+    const raw = start + (i+0.5)*usable/CANDIDATES;
+    const t = Math.round(raw*2)/2; // round to 0.5s — same video → same frames
     const f = await seekTo(vid, t);
     if(f) candidates.push(f);
     await new Promise(r=>setTimeout(r,80));
@@ -723,7 +724,8 @@ export default function App(){
         '],'+
         '"feedback":[{"type":"good","tag":"잘된 점","text":"전문용어(설명) 2~3문장"},{"type":"warn","tag":"개선 포인트","text":"전문용어(설명) 2~3문장"},{"type":"info","tag":"코치 조언","text":"전문용어(설명) 2~3문장"}],'+
         '"tips":["팁1","팁2","팁3","팁4"]}'+
-        "\n규칙: frameIndex는 0~"+maxIdx+" 중 실제 라이더가 보이는 장면 선택, value 60-95, good 2개+warn 2개, 한국어"
+        "\n규칙: frameIndex는 0~"+maxIdx+" 중 실제 라이더가 보이는 장면 선택, value 60-95, good 2개+warn 2개, 한국어."+
+        " 동일한 입력에 대해 항상 동일한 분석 결과를 출력하세요. 점수와 선택 장면이 일관되어야 합니다."
       });
 
       let data;
@@ -794,7 +796,7 @@ export default function App(){
           '{"frameIndex":3,"type":"warn","title":"제목","desc":"신체부위 구체적 분석 2문장","annotations":[{"x":0.5,"y":0.45,"type":"warn","label":"라벨","arrow":{"x":0.5,"y":0.58}}]}],'+
           '"feedback":[{"type":"good","tag":"잘된 점","text":"구체적 칭찬 2~3문장"},{"type":"warn","tag":"개선 포인트","text":"구체적 개선점 2~3문장"},{"type":"info","tag":"코치 조언","text":"실용적 훈련 조언 2~3문장"}],'+
           '"tips":["구체적 팁1","팁2","팁3","팁4"]}'+
-          "\n규칙: value 60-95, good/warn 각2개, 한국어, 크롭이미지 기준 x/y(0.3~0.7 범위에 라이더 있음)"
+          "\n규칙: value 60-95, good/warn 각2개, 한국어, 크롭이미지 기준 x/y(0.3~0.7 범위에 라이더 있음). 동일 입력에 항상 동일 결과를 출력하세요."
         });
         const raw2=await apiCall([{role:"user",content:msg2}],"You are a JSON API. Output ONLY a valid JSON object. No markdown. No code fences.",apiKey);
         refinedData=parseJSON(raw2);
