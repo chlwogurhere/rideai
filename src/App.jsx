@@ -1,7 +1,141 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.02-3";
+const VERSION = "ver 0.02-4";
+
+/* ── MediaPipe Pose Loader ────────────────────────────────── */
+let poseDetector = null;
+
+async function loadMediaPipe() {
+  if (poseDetector) return poseDetector;
+  // Load MediaPipe via CDN
+  await new Promise((res, rej) => {
+    if (window.Pose) { res(); return; }
+    const s = document.createElement("script");
+    s.src = "https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js";
+    s.onload = res; s.onerror = rej;
+    document.head.appendChild(s);
+  });
+  return new Promise((res) => {
+    const pose = new window.Pose({
+      locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${f}`
+    });
+    pose.setOptions({
+      modelComplexity: 1,
+      smoothLandmarks: true,
+      enableSegmentation: false,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5,
+    });
+    pose.initialize().then(() => {
+      poseDetector = pose;
+      res(pose);
+    });
+  });
+}
+
+/* ── Pose Analysis: extract joint angles from landmarks ───── */
+function calcAngle(a, b, c) {
+  // Angle at joint B between segments BA and BC
+  const rad = Math.atan2(c.y - b.y, c.x - b.x) - Math.atan2(a.y - b.y, a.x - b.x);
+  let deg = Math.abs(rad * 180 / Math.PI);
+  if (deg > 180) deg = 360 - deg;
+  return Math.round(deg);
+}
+
+function calcLean(a, b) {
+  // Angle from vertical
+  const dx = b.x - a.x, dy = b.y - a.y;
+  return Math.round(Math.abs(Math.atan2(dx, dy) * 180 / Math.PI));
+}
+
+async function extractPoseData(imageDataUrl) {
+  try {
+    const pose = await loadMediaPipe();
+    const img = await new Promise((res, rej) => {
+      const el = new Image(); el.onload = () => res(el); el.onerror = rej; el.src = imageDataUrl;
+    });
+    // Draw to offscreen canvas for MediaPipe
+    const c = document.createElement("canvas");
+    c.width = img.width; c.height = img.height;
+    c.getContext("2d").drawImage(img, 0, 0);
+
+    return await new Promise((res) => {
+      pose.onResults(results => {
+        if (!results.poseLandmarks) { res(null); return; }
+        const lm = results.poseLandmarks;
+        // Key landmark indices (MediaPipe Pose)
+        // 11=L shoulder, 12=R shoulder, 23=L hip, 24=R hip
+        // 25=L knee, 26=R knee, 27=L ankle, 28=R ankle
+        // 13=L elbow, 14=R elbow, 15=L wrist, 16=R wrist
+        const get = i => ({ x: lm[i].x, y: lm[i].y, z: lm[i].z, v: lm[i].visibility });
+        const lShoulder=get(11), rShoulder=get(12);
+        const lHip=get(23), rHip=get(24);
+        const lKnee=get(25), rKnee=get(26);
+        const lAnkle=get(27), rAnkle=get(28);
+        const lElbow=get(13), rElbow=get(14);
+        const nose=get(0);
+
+        // Mid points
+        const midShoulder = { x:(lShoulder.x+rShoulder.x)/2, y:(lShoulder.y+rShoulder.y)/2 };
+        const midHip = { x:(lHip.x+rHip.x)/2, y:(lHip.y+rHip.y)/2 };
+
+        const data = {
+          // Joint angles
+          leftKneeAngle:   calcAngle(lHip, lKnee, lAnkle),
+          rightKneeAngle:  calcAngle(rHip, rKnee, rAnkle),
+          leftHipAngle:    calcAngle(lShoulder, lHip, lKnee),
+          rightHipAngle:   calcAngle(rShoulder, rHip, rKnee),
+          leftElbowAngle:  calcAngle(lShoulder, lElbow, get(15)),
+          rightElbowAngle: calcAngle(rShoulder, rElbow, get(16)),
+          // Torso lean (degrees from vertical)
+          torsoLean: calcLean(midHip, midShoulder),
+          // Shoulder level difference (balance indicator)
+          shoulderDiff: Math.round(Math.abs(lShoulder.y - rShoulder.y) * 100),
+          // Hip level difference
+          hipDiff: Math.round(Math.abs(lHip.y - rHip.y) * 100),
+          // Head/gaze direction
+          headForward: lShoulder.x > 0 && rShoulder.x > 0,
+          // Visibility confidence
+          confidence: Math.round(((lKnee.v + rKnee.v + lHip.v + rHip.v) / 4) * 100),
+        };
+        res(data);
+      });
+      pose.send({ image: c });
+    });
+  } catch(e) {
+    console.warn("MediaPipe error:", e.message);
+    return null;
+  }
+}
+
+function formatPoseData(pose, sport) {
+  if (!pose || pose.confidence < 40) return null;
+  const isSki = sport === "ski";
+  const avgKnee = Math.round((pose.leftKneeAngle + pose.rightKneeAngle) / 2);
+  const avgHip  = Math.round((pose.leftHipAngle  + pose.rightHipAngle)  / 2);
+
+  // Ideal ranges for ski/snowboard
+  const kneeIdeal  = isSki ? [90, 120] : [95, 125];
+  const torsoIdeal = isSki ? [5, 20]   : [10, 25];
+
+  const kneeStatus  = avgKnee  < kneeIdeal[0]  ? "과굴곡(너무 많이 굽힘)" : avgKnee  > kneeIdeal[1]  ? "굴곡 부족(더 굽혀야 함)" : "적정 범위";
+  const torsoStatus = pose.torsoLean < torsoIdeal[0] ? "직립(더 앞으로 기울여야 함)" : pose.torsoLean > torsoIdeal[1] ? "과도한 전경" : "적정 범위";
+
+  return (
+    `[포즈 측정값 — 신뢰도 ${pose.confidence}%]
+` +
+    `• 무릎 굴곡: 왼쪽 ${pose.leftKneeAngle}° / 오른쪽 ${pose.rightKneeAngle}° (평균 ${avgKnee}°, 권장 ${kneeIdeal[0]}~${kneeIdeal[1]}°) → ${kneeStatus}
+` +
+    `• 상체 기울기: ${pose.torsoLean}° (권장 ${torsoIdeal[0]}~${torsoIdeal[1]}°) → ${torsoStatus}
+` +
+    `• 고관절 각도: 왼쪽 ${pose.leftHipAngle}° / 오른쪽 ${pose.rightHipAngle}°
+` +
+    `• 어깨 수평 차이: ${pose.shoulderDiff}% (0에 가까울수록 수평)
+` +
+    `• 팔꿈치 각도: 왼쪽 ${pose.leftElbowAngle}° / 오른쪽 ${pose.rightElbowAngle}°`
+  );
+}
 
 /* ── API ──────────────────────────────────────────────────── */
 async function apiCall(messages, system, apiKey) {
@@ -399,13 +533,28 @@ export default function App(){
       vid.src=urlRef.current; vid.load();
       await new Promise(r=>setTimeout(r,700));
 
-      setLoadMsg("후보 장면 추출 중...");setPct(20);
+      setLoadMsg("후보 장면 추출 중... (앞뒤 10% 제외)");setPct(15);
       const frames=await captureFrames(vid,4);
       vid.style.cssText="width:2px;height:2px;opacity:0.01;position:fixed;top:0";
       console.log("captured:",frames.length);
       setCapturedFrames(frames);
 
-      setLoadMsg("AI가 최적 장면 선택 중...");setPct(40);
+      // ── MediaPipe pose extraction for each candidate frame ──
+      setLoadMsg("관절 각도 측정 중...");setPct(30);
+      const poseDataList = [];
+      try {
+        await loadMediaPipe();
+        for (const f of frames) {
+          const pd = await extractPoseData(f.data);
+          poseDataList.push(pd);
+          console.log("pose at", f.time, pd);
+        }
+      } catch(e) {
+        console.warn("MediaPipe load failed:", e.message);
+        frames.forEach(() => poseDataList.push(null));
+      }
+
+      setLoadMsg("AI가 최적 장면 선택 중...");setPct(45);
       const isSki=sport==="ski", sl=isSki?"스키":"스노보드";
       const termGuide=isSki
         ?"스키 용어+괄호설명: '카빙 턴(날 세워 도는 기술)','엣지(스키 측면 날)','전경 자세(앞으로 기울임)','패럴렐(양 스키 나란히)','플렉션(무릎·발목 굽히기)','폴 플랜팅(폴 눈에 찍기)','상체 선행(상체가 먼저 도는 현상)'"
@@ -416,13 +565,20 @@ export default function App(){
         msgContent.push({type:"text",text:
           "아래 "+frames.length+"개 이미지는 "+sl+" 라이딩 영상에서 균등하게 추출한 후보 장면입니다. "+
           "전문 "+sl+" 코치로서 다음을 수행하세요:\n"+
-          "1. 각 장면에서 라이더가 보이는지 확인하세요.\n"+
-          "2. 라이더 자세가 잘 된 장면 2개(frameIndex)와 개선이 필요한 장면 2개(frameIndex)를 직접 선택하세요.\n"+
-          "3. 선택한 4개 장면만 frames 배열에 포함하세요 (라이더가 없거나 흐린 장면은 제외).\n"+
-          "4. frameIndex는 0부터 시작하는 원본 이미지 번호입니다."
+          "1. 각 장면에는 이미지와 함께 MediaPipe로 측정한 관절 각도 데이터가 제공됩니다.\n"+
+          "2. 포즈 측정값과 이미지를 함께 보고 자세를 판단하세요.\n"+
+          "3. 자세가 잘 된 장면 2개와 개선이 필요한 장면 2개를 선택하세요 (포즈 감지 실패 장면은 제외 우선).\n"+
+          "4. desc에는 반드시 측정된 각도 수치를 언급하세요. 예: '무릎 굴곡 110°로 적정 범위입니다', '상체 기울기 25°로 과도한 전경입니다'."
         });
         frames.forEach((f,i)=>{
-          msgContent.push({type:"text",text:"[후보 "+i+" — "+f.time+"초]"});
+          const pd = poseDataList[i];
+          const poseText = pd ? formatPoseData(pd, sport) : null;
+          msgContent.push({type:"text",text:
+            "[후보 "+i+" — "+f.time+"초]" +
+            (poseText ? "
+" + poseText : "
+[포즈 감지 실패 — 라이더가 잘 안 보이는 장면]")
+          });
           msgContent.push({type:"image",source:{type:"base64",media_type:"image/jpeg",data:f.data.split(",")[1]}});
         });
       }
