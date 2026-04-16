@@ -444,10 +444,7 @@ export default function App(){
           :"스노보드: 토사이드(발가락 쪽 엣지),힐사이드(뒤꿈치 쪽 엣지),앵귤레이션(관절 꺾어 엣지 각도),로테이션(어깨 방향 전환),스탠스(발 위치)";
         msg2.push({type:"text",text:
           "전문 "+sl+" 코치로서 위 크롭 이미지를 바탕으로 정밀 분석하세요. 설명: "+termGuide2+
-          "
-
-JSON으로만 응답(마크다운 없이):
-"+
+          "\n\nJSON으로만 응답(마크다운 없이):\n"+
           '{"scores":[{"label":"자세","value":78,"color":"#3b82f6"},{"label":"균형","value":72,"color":"#22c55e"},{"label":"기술","value":70,"color":"#f59e0b"}],'+
           '"frames":[{"frameIndex":0,"type":"good","title":"제목10자","desc":"신체부위 구체적 분석 2문장","annotations":[{"x":0.5,"y":0.45,"type":"good","label":"라벨","arrow":{"x":0.5,"y":0.6}}]},'+
           '{"frameIndex":1,"type":"warn","title":"제목","desc":"신체부위 구체적 분석 2문장","annotations":[{"x":0.5,"y":0.45,"type":"warn","label":"라벨","arrow":{"x":0.5,"y":0.58}}]},'+
@@ -455,8 +452,7 @@ JSON으로만 응답(마크다운 없이):
           '{"frameIndex":3,"type":"warn","title":"제목","desc":"신체부위 구체적 분석 2문장","annotations":[{"x":0.5,"y":0.45,"type":"warn","label":"라벨","arrow":{"x":0.5,"y":0.58}}]}],'+
           '"feedback":[{"type":"good","tag":"잘된 점","text":"구체적 칭찬 2~3문장"},{"type":"warn","tag":"개선 포인트","text":"구체적 개선점 2~3문장"},{"type":"info","tag":"코치 조언","text":"실용적 훈련 조언 2~3문장"}],'+
           '"tips":["구체적 팁1","팁2","팁3","팁4"]}'+
-          "
-규칙: value 60-95, good/warn 각2개, 한국어, 크롭이미지 기준 x/y(0.3~0.7 범위에 라이더 있음)"
+          "\n규칙: value 60-95, good/warn 각2개, 한국어, 크롭이미지 기준 x/y(0.3~0.7 범위에 라이더 있음)"
         });
         const raw2=await apiCall([{role:"user",content:msg2}],"You are a JSON API. Output ONLY a valid JSON object. No markdown. No code fences.",apiKey);
         refinedData=parseJSON(raw2);
