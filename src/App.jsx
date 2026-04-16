@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.02-9";
+const VERSION = "ver 0.03-0";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -500,21 +500,19 @@ function StepBar({current}){
 
 /* ── Share Frame Card (separate component — no hooks in map) ── */
 function ShareFrameCard({frame}){
-  const ref=useRef(null);
   const isGood=frame.type==="good";
   const col=isGood?"#166534":"#991b1b";
   const bg=isGood?"#f0fdf4":"#fef2f2";
-  useEffect(()=>{
-    if(ref.current&&frame.canvas){
-      const el=ref.current;
-      el.width=frame.canvas.width; el.height=frame.canvas.height;
-      el.getContext("2d").drawImage(frame.canvas,0,0);
-    }
-  },[frame.canvas]);
+
+  // Convert canvas to data URL so html2canvas can capture it as <img>
+  const imgSrc = frame.canvas
+    ? frame.canvas.toDataURL("image/jpeg", 0.9)
+    : null;
+
   return(
     <div style={{background:"#fff",borderRadius:10,overflow:"hidden",border:"0.5px solid rgba(0,0,0,0.08)"}}>
-      {frame.canvas
-        ? <canvas ref={ref} style={{width:"100%",display:"block"}}/>
+      {imgSrc
+        ? <img src={imgSrc} style={{width:"100%",display:"block"}} alt="분석장면"/>
         : frame.svg
           ? <div dangerouslySetInnerHTML={{__html:frame.svg}} style={{width:"100%",display:"block",lineHeight:0}}/>
           : <div style={{aspectRatio:"1",background:"#f8fafc"}}/>
@@ -575,7 +573,7 @@ export default function App(){
       backgroundColor: "#f8fafc",
       scale: 2,
       logging: false,
-      ignoreElements: el => el.tagName === "VIDEO" || el.tagName === "CANVAS",
+      ignoreElements: el => el.tagName === "VIDEO",
     });
     shareEl.style.display = "none";
     return canvas;
