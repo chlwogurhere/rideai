@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.03-4";
+const VERSION = "ver 0.03-5";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -870,8 +870,8 @@ export default function App(){
         <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}}>
           <div style={{background:"#fff",borderRadius:20,padding:"40px 32px",maxWidth:380,width:"100%",boxShadow:"0 4px 32px rgba(0,0,0,0.08)",textAlign:"center"}}>
             <div style={{fontSize:44,marginBottom:16}}>⛷</div>
-            <div style={{fontSize:22,fontWeight:700,color:"#0f172a",marginBottom:6}}>Snow Riding AI</div>
-            <div style={{fontSize:13,color:"#94a3b8",marginBottom:28}}>Snow Riding AI Coaching Staff</div>
+            <div style={{fontSize:22,fontWeight:700,color:"#0f172a",marginBottom:6}}>Snow Riding AI<br/>Coaching Staff</div>
+            <div style={{fontSize:13,color:"#94a3b8",marginBottom:28}}>스키·스노보드 AI 라이딩 코치</div>
             <div style={{background:"#f1f5f9",borderRadius:10,padding:"10px 14px",marginBottom:20,fontSize:13,color:"#64748b",lineHeight:1.7,textAlign:"left"}}>
               <div style={{fontWeight:600,color:"#475569",marginBottom:4}}>🔒 베타 서비스</div>
               <div>현재 초대된 사용자만 이용 가능합니다.</div>
