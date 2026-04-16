@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.01-6";
+const VERSION = "ver 0.01-7";
 
 /* ── API ──────────────────────────────────────────────────── */
 async function apiCall(messages, system, apiKey) {
@@ -73,6 +73,81 @@ function captureFrames(vid, n=4) {
   });
 }
 
+/* ── GIF-LIKE CLIP: capture ±1s frames around a timestamp ── */
+async function captureClip(vid, centerTime, subX, subY, fps=8) {
+  const dur = vid.duration || 0;
+  if (!dur) return [];
+  const start = Math.max(0, centerTime - 1.0);
+  const end   = Math.min(dur, centerTime + 1.0);
+  const step  = 1 / fps;
+  const times = [];
+  for (let t = start; t <= end + 0.001; t += step) times.push(parseFloat(t.toFixed(2)));
+
+  const W = 400; // output size (square)
+  const frames = [];
+
+  for (const t of times) {
+    const frame = await new Promise(res => {
+      let done = false;
+      const finish = () => {
+        if (done) return; done = true;
+        try {
+          const vw = vid.videoWidth, vh = vid.videoHeight;
+          if (!vw || !vh) { res(null); return; }
+          const side = Math.round(Math.min(vw, vh) * 0.52);
+          let x0 = Math.round(subX * vw - side/2), y0 = Math.round(subY * vh - side/2);
+          x0 = Math.max(0, Math.min(vw-side, x0)); y0 = Math.max(0, Math.min(vh-side, y0));
+          const c = document.createElement("canvas"); c.width = W; c.height = W;
+          c.getContext("2d").drawImage(vid, x0, y0, side, side, 0, 0, W, W);
+          res(c.toDataURL("image/jpeg", 0.75));
+        } catch { res(null); }
+      };
+      const guard = setTimeout(() => { if(!done){done=true;res(null);} }, 3000);
+      vid.addEventListener("seeked", () => { clearTimeout(guard); setTimeout(finish, 150); }, { once:true });
+      try { vid.currentTime = t; } catch { clearTimeout(guard); finish(); }
+    });
+    if (frame) frames.push({ data: frame, time: t });
+    await new Promise(r => setTimeout(r, 50));
+  }
+  vid.currentTime = centerTime;
+  return frames;
+}
+
+/* ── ANIMATED CANVAS COMPONENT ───────────────────────────── */
+function AnimatedClip({ frames, label }) {
+  const ref = useRef(null);
+  const idxRef = useRef(0);
+  const timerRef = useRef(null);
+
+  useEffect(() => {
+    if (!frames || frames.length === 0) return;
+    const imgs = frames.map(f => { const i = new Image(); i.src = f.data; return i; });
+    const draw = () => {
+      const el = ref.current; if (!el) return;
+      const ctx = el.getContext("2d");
+      const img = imgs[idxRef.current % imgs.length];
+      if (img.complete) ctx.drawImage(img, 0, 0, el.width, el.height);
+      idxRef.current++;
+      timerRef.current = setTimeout(draw, 120); // ~8fps
+    };
+    // wait for first image
+    imgs[0].onload = draw;
+    if (imgs[0].complete) draw();
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, [frames]);
+
+  if (!frames || frames.length === 0) return null;
+  return (
+    <div style={{ marginTop:10 }}>
+      <div style={{ fontSize:11, color:"#94a3b8", marginBottom:4, display:"flex", alignItems:"center", gap:6 }}>
+        <span style={{ background:"#f1f5f9", color:"#475569", fontSize:10, padding:"1px 6px", borderRadius:4, fontWeight:500 }}>GIF</span>
+        {label}
+      </div>
+      <canvas ref={ref} width={400} height={400} style={{ width:"100%", borderRadius:8, display:"block" }}/>
+    </div>
+  );
+}
+
 /* ── ANNOTATE CANVAS (crop square around subject click) ───── */
 function buildAnnotatedCanvas(frame, subX, subY, anns) {
   return new Promise(res=>{
@@ -98,45 +173,6 @@ function buildAnnotatedCanvas(frame, subX, subY, anns) {
       ctx.beginPath(); ctx.moveTo(sx,0); ctx.lineTo(sx,OUT); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(0,sy); ctx.lineTo(OUT,sy); ctx.stroke();
       ctx.setLineDash([]);
-
-      // ── Stick figure overlay (headless, thin lines, semi-transparent) ──
-      // Proportional to image size — figure height ~35% of canvas
-      const fh = OUT * 0.35;  // figure height
-      const fcx = sx, fcy = sy; // figure center = subject click point
-      // Joint positions (relative to center, torso = top 40%, legs = bottom 60%)
-      const neck  = [fcx,       fcy - fh*0.50];
-      const chest = [fcx,       fcy - fh*0.28];
-      const hip   = [fcx,       fcy];
-      const lSh   = [fcx-fh*0.22, fcy-fh*0.38];
-      const rSh   = [fcx+fh*0.22, fcy-fh*0.38];
-      const lEl   = [fcx-fh*0.28, fcy-fh*0.12];
-      const rEl   = [fcx+fh*0.28, fcy-fh*0.12];
-      const lWr   = [fcx-fh*0.22, fcy+fh*0.10];
-      const rWr   = [fcx+fh*0.22, fcy+fh*0.10];
-      const lKn   = [fcx-fh*0.13, fcy+fh*0.32];
-      const rKn   = [fcx+fh*0.13, fcy+fh*0.32];
-      const lFt   = [fcx-fh*0.10, fcy+fh*0.60];
-      const rFt   = [fcx+fh*0.10, fcy+fh*0.60];
-
-      const figColor = "rgba(255,255,255,0.65)";
-      ctx.strokeStyle = figColor; ctx.lineWidth = 2.5; ctx.lineCap = "round"; ctx.lineJoin = "round";
-
-      const line = (a,b) => { ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.stroke(); };
-      // Spine
-      line(neck, chest); line(chest, hip);
-      // Arms
-      line(lSh, lEl); line(lEl, lWr);
-      line(rSh, rEl); line(rEl, rWr);
-      // Legs
-      line(hip, lKn); line(lKn, lFt);
-      line(hip, rKn); line(rKn, rFt);
-      // Shoulder bar
-      line(lSh, rSh);
-      // Hip bar
-      line([fcx-fh*0.10,fcy], [fcx+fh*0.10,fcy]);
-      // Joint dots
-      const dot = (p,r) => { ctx.beginPath(); ctx.arc(p[0],p[1],r,0,Math.PI*2); ctx.fillStyle=figColor; ctx.fill(); };
-      [neck,lSh,rSh,lEl,rEl,hip,lKn,rKn].forEach(p=>dot(p,3.5));
 
       // Annotations remapped to cropped coords
       (anns||[]).forEach(a=>{
@@ -253,13 +289,22 @@ function FeedbackCard({type,tag,text}){const bc={good:"#16a34a",warn:"#dc2626",i
 
 function FrameCard({frame}){
   const ref=useRef(null);
+  const [showGif,setShowGif]=useState(false);
   useEffect(()=>{if(ref.current&&frame.canvas){const el=ref.current;el.width=frame.canvas.width;el.height=frame.canvas.height;el.getContext("2d").drawImage(frame.canvas,0,0);}},[frame.canvas]);
+  const hasGif = frame.gifFrames && frame.gifFrames.length > 0;
   return(<div style={{background:"#fff",border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:12,overflow:"hidden"}}>
     {frame.canvas?<canvas ref={ref} style={{width:"100%",display:"block"}}/>:frame.svg?<div dangerouslySetInnerHTML={{__html:frame.svg}} style={{width:"100%",display:"block",lineHeight:0}}/>:<div style={{aspectRatio:"1",background:"#f8fafc",display:"flex",alignItems:"center",justifyContent:"center",color:"#94a3b8",fontSize:13}}>준비 중...</div>}
     <div style={{padding:"12px 14px"}}>
-      <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:7}}><Tag type={frame.type}>{frame.type==="good"?"✅ 잘된 점":"⚠️ 개선 필요"}</Tag>{frame.time!=null&&<span style={{fontSize:11,color:"#94a3b8"}}>{frame.time.toFixed(1)}초</span>}</div>
+      <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:7,flexWrap:"wrap"}}>
+        <Tag type={frame.type}>{frame.type==="good"?"✅ 잘된 점":"⚠️ 개선 필요"}</Tag>
+        {frame.time!=null&&<span style={{fontSize:11,color:"#94a3b8"}}>{frame.time.toFixed(1)}초</span>}
+        {hasGif&&<button onClick={()=>setShowGif(v=>!v)} style={{marginLeft:"auto",fontSize:11,padding:"2px 9px",borderRadius:20,border:"0.5px solid rgba(0,0,0,0.15)",background:showGif?"#0f172a":"transparent",color:showGif?"#fff":"#64748b",cursor:"pointer"}}>
+          {showGif?"▶ 사진 보기":"🎞 동영상 보기"}
+        </button>}
+      </div>
       <div style={{fontSize:13,fontWeight:500,marginBottom:5}}>{frame.title}</div>
       <div style={{fontSize:13,color:"#475569",lineHeight:1.7}}>{frame.desc}</div>
+      {hasGif&&showGif&&<AnimatedClip frames={frame.gifFrames} label={"±1초 구간 · "+frame.gifFrames.length+"프레임"}/>}
     </div>
   </div>);
 }
@@ -473,7 +518,14 @@ export default function App(){
         const cy=anns.length>0?anns.reduce((s,a)=>s+a.y,0)/anns.length:0.5;
         canvas=await buildAnnotatedCanvas(frame,cx,cy,anns);
       }else{ svg=make3DFigureSVG(sport,fd.type,fd); }
-      annotated.push({...fd,canvas,svg,time:frame?.time??null});
+      // Capture ±1s clip for GIF preview
+      let gifFrames = [];
+      if (frame && pick) {
+        try {
+          gifFrames = await captureClip(vidRef.current, frame.time, pick.x, pick.y);
+        } catch(e) { console.warn("clip failed:", e.message); }
+      }
+      annotated.push({...fd,canvas,svg,time:frame?.time??null,gifFrames});
       setPct(72+Math.round((i+1)/fl.length*26));
     }
     setPct(100);setResult({...refinedData,annotated});setTab(annotated.some(f=>f.type==="good")?"good":"warn");setPhase("done");
