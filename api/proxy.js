@@ -8,7 +8,8 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const apiKey = req.headers["x-api-key"];
+  // Use client-provided key, or fall back to server env key
+  const apiKey = req.headers["x-api-key"] || process.env.ANTHROPIC_KEY || "";
   if (!apiKey) return res.status(400).json({ error: "API key required" });
 
   try {
