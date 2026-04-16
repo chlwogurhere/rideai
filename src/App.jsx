@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.03-2";
+const VERSION = "ver 0.03-3";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -213,13 +213,12 @@ function seekTo(vid, t) {
 }
 
 /* ── Smart candidate capture: skip first/last 10%, filter bad frames ──────── */
-async function captureFrames(vid, n=4, startPct=0.10, endPct=0.90) {
+async function captureFrames(vid, n=4) {
   try { await waitMeta(vid); } catch { return []; }
   const dur = Math.max(vid.duration, 1);
-  // Use provided range, with minimum 10% padding from edges if using full range
-  const start = startPct === 0.10 ? dur * 0.10 : dur * Math.max(startPct, 0);
-  const end   = endPct   === 0.90 ? dur * 0.90 : dur * Math.min(endPct, 1.0);
-  const usable = Math.max(end - start, 1);
+  const start = dur * 0.10;
+  const end   = dur * 0.90;
+  const usable = end - start;
   // Sample 10 candidates evenly across usable range
   const CANDIDATES = 8;
   const candidates = [];
@@ -483,7 +482,7 @@ function SubjectPicker({frames,onDone}){
 }
 
 /* ── STEP BAR ─────────────────────────────────────────────── */
-const STEPS=["종목 선택","영상·구간","분석","피사체 선택","피드백"];
+const STEPS=["종목 선택","영상 추가","분석","피사체 선택","피드백"];
 function StepBar({current}){
   const idx={sport:0,upload:1,loading:2,picking:3,done:4}[current]??0;
   return(<div style={{display:"flex",alignItems:"flex-start",marginBottom:28}}>
@@ -531,11 +530,7 @@ function ShareFrameCard({frame}){
 export default function App(){
   const [authed,setAuthed]=useState(()=>sessionStorage.getItem("rideai_auth")==="ok");
   const [saving,setSaving]=useState(false);
-  const [vidDuration,setVidDuration]=useState(0);
-  const [rangeStart,setRangeStart]=useState(0);
-  const [rangeEnd,setRangeEnd]=useState(100); // % of duration
-  const [previewTime,setPreviewTime]=useState(0);
-  const previewVidRef=useRef(null);
+
   const [feedback,setFeedback]=useState(null); // null | 'good' | 'bad'
   const [feedbackDone,setFeedbackDone]=useState(false);
   const analysisIdRef = useRef(null);
@@ -656,22 +651,7 @@ export default function App(){
   const fileTooLarge = file && file.size > 100*1024*1024;
 
   const saveKey=k=>{setApiKey(k);localStorage.setItem("rideai_key",k);window.__RIDEAI_KEY__=k;setShowKeyInput(false);};
-  const onFile=f=>{
-    if(!f||!f.type.startsWith("video/")) return;
-    if(f.size>100*1024*1024){ alert("파일 크기가 100MB를 초과합니다."); return; }
-    setFile(f); setRangeStart(0); setRangeEnd(100);
-    // Load preview to get duration
-    const url = URL.createObjectURL(f);
-    const tmp = document.createElement("video");
-    tmp.src = url; tmp.muted = true;
-    tmp.addEventListener("loadedmetadata", ()=>{
-      setVidDuration(Math.floor(tmp.duration));
-      setRangeEnd(100);
-      URL.revokeObjectURL(url);
-    }, {once:true});
-    tmp.load();
-    setPhase("upload");
-  };
+  const onFile=f=>{if(f&&f.type.startsWith("video/")){setFile(f);setPhase("upload");}};
   const onDrop=useCallback(e=>{e.preventDefault();onFile(e.dataTransfer.files[0]);;},[]);
 
   const runAnalysis=async()=>{
@@ -686,7 +666,7 @@ export default function App(){
 
       setLoadMsg("후보 장면 추출 중...");setPct(15);
       // Use user-selected range if set, otherwise full video
-      const frames=await captureFrames(vid, 4, rangeStart/100, rangeEnd/100);
+      const frames=await captureFrames(vid, 4);
       vid.style.cssText="width:2px;height:2px;opacity:0.01;position:fixed;top:0";
       console.log("captured:",frames.length);
       setCapturedFrames(frames);
@@ -867,17 +847,31 @@ export default function App(){
   const groups=result?{good:(result.annotated||[]).filter(f=>f.type==="good"),warn:(result.annotated||[]).filter(f=>f.type==="warn")}:{good:[],warn:[]};
 
   return(
-    <div style={{minHeight:"100vh",background:"#f8fafc"}}>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}*{box-sizing:border-box;margin:0;padding:0}`}</style>
+    <div style={{minHeight:"100vh",background:"#f0f2f5"}}>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}*{box-sizing:border-box;margin:0;padding:0}
+      .ad-banner{display:flex;flex-direction:column;gap:16px;padding:20px 8px;}
+      @media(max-width:1200px){.ad-left,.ad-right{display:none!important;}}
+      `}</style>
       <video ref={vidRef} muted playsInline style={{position:"fixed",right:0,bottom:0,width:2,height:2,opacity:0.01,pointerEvents:"none"}}/>
+
+      {/* ── 3-column layout: left ad | content | right ad ── */}
+      <div style={{display:"flex",justifyContent:"center",alignItems:"flex-start",minHeight:"100vh",gap:0}}>
+
+        {/* LEFT AD BANNER */}
+        <div className="ad-left" style={{width:160,flexShrink:0,position:"sticky",top:20,paddingTop:20}}>
+          <AdBanner side="left"/>
+        </div>
+
+        {/* MAIN CONTENT */}
+        <div style={{flex:1,maxWidth:720,minWidth:0,background:"#f8fafc",minHeight:"100vh"}}>
 
       {/* ── BETA PASSWORD GATE ── */}
       {!authed && (
         <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}}>
           <div style={{background:"#fff",borderRadius:20,padding:"40px 32px",maxWidth:380,width:"100%",boxShadow:"0 4px 32px rgba(0,0,0,0.08)",textAlign:"center"}}>
             <div style={{fontSize:44,marginBottom:16}}>⛷</div>
-            <div style={{fontSize:22,fontWeight:700,color:"#0f172a",marginBottom:6}}>RIDE AI</div>
-            <div style={{fontSize:13,color:"#94a3b8",marginBottom:28}}>스키·스노보드 AI 라이딩 코치</div>
+            <div style={{fontSize:22,fontWeight:700,color:"#0f172a",marginBottom:6}}>Snow Riding AI</div>
+            <div style={{fontSize:13,color:"#94a3b8",marginBottom:28}}>Snow Riding AI Coaching Staff</div>
             <div style={{background:"#f1f5f9",borderRadius:10,padding:"10px 14px",marginBottom:20,fontSize:13,color:"#64748b",lineHeight:1.7,textAlign:"left"}}>
               <div style={{fontWeight:600,color:"#475569",marginBottom:4}}>🔒 베타 서비스</div>
               <div>현재 초대된 사용자만 이용 가능합니다.</div>
@@ -895,7 +889,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>RIDE AI ver 0.02-3 · made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>Snow Riding AI ver 0.02-3 · made by GP</div>
           </div>
         </div>
       )}
@@ -905,7 +899,7 @@ export default function App(){
         {/* HEADER */}
         <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:24}}>
           <div style={{width:42,height:42,background:"#eff6ff",borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>⛷</div>
-          <div><div style={{fontSize:20,fontWeight:600,color:"#0f172a"}}>RIDE AI</div><div style={{fontSize:12,color:"#94a3b8"}}>스키·스노보드 AI 라이딩 코치</div></div>
+          <div><div style={{fontSize:20,fontWeight:600,color:"#0f172a"}}>Snow Riding AI</div><div style={{fontSize:12,color:"#94a3b8"}}>Snow Riding AI Coaching Staff</div></div>
           {!import.meta.env.VITE_ANTHROPIC_KEY && (
             <button onClick={()=>setShowKeyInput(v=>!v)} style={{marginLeft:"auto",padding:"6px 12px",borderRadius:8,border:"0.5px solid rgba(0,0,0,0.15)",background:apiKey?"#f0fdf4":"#fef2f2",color:apiKey?"#166534":"#991b1b",fontSize:12,cursor:"pointer"}}>
               {apiKey?"🔑 API 키 설정됨":"🔑 API 키 필요"}
@@ -966,71 +960,8 @@ export default function App(){
             <div>③ 남은 후보 장면 중 AI가 직접 보고 <strong>잘된 장면 2개 + 개선 필요 장면 2개</strong>를 선택합니다</div>
             <div style={{marginTop:5,color:"#a16207",fontSize:12}}>💡 라이더가 화면 중앙에 잘 보이는 영상을 사용하면 더 정확한 분석이 가능합니다.</div>
           </div>
-            {/* ── Range selector (shown after file selected) ── */}
-          {file && !fileTooLarge && vidDuration > 0 && (
-            <div style={{background:"#fff",border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:12,padding:"16px 18px",marginBottom:14}}>
-              <div style={{fontSize:13,fontWeight:600,color:"#0f172a",marginBottom:4}}>📍 분석 구간 선택</div>
-              <div style={{fontSize:12,color:"#64748b",marginBottom:14}}>
-                드래그로 분석할 구간을 선택하세요. 선택하지 않으면 전체 영상을 분석합니다.
-              </div>
-
-              {/* Timeline bar */}
-              <div style={{position:"relative",height:44,marginBottom:10}}>
-                {/* Track background */}
-                <div style={{position:"absolute",left:0,right:0,top:18,height:8,background:"#e2e8f0",borderRadius:99}}/>
-                {/* Selected range highlight */}
-                <div style={{position:"absolute",left:rangeStart+"%",width:(rangeEnd-rangeStart)+"%",top:18,height:8,background:"#0f172a",borderRadius:99,transition:"all 0.1s"}}/>
-                {/* Start handle */}
-                <input type="range" min={0} max={rangeEnd-5} value={rangeStart}
-                  onChange={e=>{ const v=Number(e.target.value); setRangeStart(v); }}
-                  style={{position:"absolute",top:0,left:0,width:"100%",appearance:"none",WebkitAppearance:"none",background:"transparent",height:44,cursor:"pointer",zIndex:2}}/>
-                {/* End handle */}
-                <input type="range" min={rangeStart+5} max={100} value={rangeEnd}
-                  onChange={e=>{ const v=Number(e.target.value); setRangeEnd(v); }}
-                  style={{position:"absolute",top:0,left:0,width:"100%",appearance:"none",WebkitAppearance:"none",background:"transparent",height:44,cursor:"pointer",zIndex:3}}/>
-              </div>
-
-              {/* Time labels */}
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <div style={{textAlign:"center"}}>
-                  <div style={{fontSize:10,color:"#94a3b8",marginBottom:2}}>시작</div>
-                  <div style={{fontSize:14,fontWeight:600,color:"#0f172a",background:"#f1f5f9",padding:"4px 10px",borderRadius:6}}>
-                    {Math.round(rangeStart/100*vidDuration)}초
-                  </div>
-                </div>
-                <div style={{fontSize:12,color:"#94a3b8"}}>
-                  ← {Math.round((rangeEnd-rangeStart)/100*vidDuration)}초 구간 →
-                </div>
-                <div style={{textAlign:"center"}}>
-                  <div style={{fontSize:10,color:"#94a3b8",marginBottom:2}}>끝</div>
-                  <div style={{fontSize:14,fontWeight:600,color:"#0f172a",background:"#f1f5f9",padding:"4px 10px",borderRadius:6}}>
-                    {Math.round(rangeEnd/100*vidDuration)}초
-                  </div>
-                </div>
-              </div>
-
-              {/* Reset button */}
-              <button onClick={()=>{setRangeStart(0);setRangeEnd(100);}}
-                style={{marginTop:10,width:"100%",padding:"7px 0",borderRadius:8,border:"0.5px solid rgba(0,0,0,0.1)",background:"transparent",color:"#94a3b8",fontSize:12,cursor:"pointer"}}>
-                전체 구간으로 초기화
-              </button>
-
-              <style>{`
-                input[type=range]::-webkit-slider-thumb{
-                  -webkit-appearance:none; width:22px; height:22px;
-                  background:#0f172a; border-radius:50%; border:3px solid #fff;
-                  box-shadow:0 1px 4px rgba(0,0,0,0.3); cursor:grab;
-                }
-                input[type=range]::-moz-range-thumb{
-                  width:22px; height:22px; background:#0f172a;
-                  border-radius:50%; border:3px solid #fff; cursor:grab;
-                }
-              `}</style>
-            </div>
-          )}
-
-          <button onClick={runAnalysis} disabled={!file||fileTooLarge} style={{width:"100%",padding:15,borderRadius:10,border:"none",background:(file&&!fileTooLarge)?"#0f172a":"#e2e8f0",color:(file&&!fileTooLarge)?"#fff":"#94a3b8",fontSize:15,fontWeight:600,cursor:(file&&!fileTooLarge)?"pointer":"not-allowed"}}>
-            {rangeStart===0&&rangeEnd===100 ? "AI 분석 시작 →" : `선택 구간 분석 (${Math.round(rangeStart/100*vidDuration)}초~${Math.round(rangeEnd/100*vidDuration)}초) →`}
+            <button onClick={runAnalysis} disabled={!file||fileTooLarge} style={{width:"100%",padding:15,borderRadius:10,border:"none",background:(file&&!fileTooLarge)?"#0f172a":"#e2e8f0",color:(file&&!fileTooLarge)?"#fff":"#94a3b8",fontSize:15,fontWeight:600,cursor:(file&&!fileTooLarge)?"pointer":"not-allowed"}}>
+            AI 분석 시작 →
           </button>
           {fileTooLarge&&<div style={{marginTop:10,textAlign:"center",fontSize:13,color:"#dc2626"}}>⚠️ 파일 크기가 100MB를 초과합니다. 더 작은 영상을 선택해주세요.</div>}
         </div>)}
@@ -1124,8 +1055,8 @@ export default function App(){
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16,paddingBottom:12,borderBottom:"1px solid rgba(0,0,0,0.08)"}}>
               <div style={{fontSize:28}}>⛷</div>
               <div>
-                <div style={{fontSize:18,fontWeight:700,color:"#0f172a"}}>RIDE AI 분석 결과</div>
-                <div style={{fontSize:12,color:"#94a3b8"}}>스키·스노보드 AI 라이딩 코치 · rideai.vercel.app</div>
+                <div style={{fontSize:18,fontWeight:700,color:"#0f172a"}}>Snow Riding AI Coaching Staff 분석 결과</div>
+                <div style={{fontSize:12,color:"#94a3b8"}}>Snow Riding AI Coaching Staff · rideai.vercel.app</div>
               </div>
               <div style={{marginLeft:"auto",fontSize:12,color:"#94a3b8"}}>{new Date().toLocaleDateString("ko-KR")}</div>
             </div>
@@ -1166,15 +1097,47 @@ export default function App(){
             </div>
             {/* Footer */}
             <div style={{textAlign:"center",paddingTop:10,borderTop:"1px solid rgba(0,0,0,0.06)",fontSize:11,color:"#cbd5e1"}}>
-              RIDE AI {VERSION} · made by GP · rideai.vercel.app
+              Snow Riding AI Coaching Staff {VERSION} · made by GP · rideai.vercel.app
             </div>
           </div>
         </div>)}
 
-        <div style={{textAlign:"center",padding:"32px 0 4px",fontSize:11,color:"#cbd5e1"}}>RIDE AI {VERSION}</div>
+        <div style={{textAlign:"center",padding:"32px 0 4px",fontSize:11,color:"#cbd5e1"}}>Snow Riding AI Coaching Staff {VERSION}</div>
         <div style={{textAlign:"center",padding:"0 0 12px",fontSize:11,color:"#cbd5e1"}}>made by GP</div>
       </div>}
 
+        </div>{/* end main content */}
+
+        {/* RIGHT AD BANNER */}
+        <div className="ad-right" style={{width:160,flexShrink:0,position:"sticky",top:20,paddingTop:20}}>
+          <AdBanner side="right"/>
+        </div>
+
+      </div>{/* end 3-col layout */}
+    </div>
+  );
+}
+
+/* ── Ad Banner Component ──────────────────────────────────── */
+function AdBanner({side}) {
+  const ads = [
+    { bg:"#e8f4fd", border:"#bfdbfe", text:"스키 장갑\n특가 세일", sub:"최대 40% 할인", emoji:"🧤", color:"#1d4ed8" },
+    { bg:"#fdf4e8", border:"#fed7aa", text:"스노보드\n렌탈 패키지", sub:"1일권 49,000원~", emoji:"🏂", color:"#c2410c" },
+    { bg:"#f0fdf4", border:"#bbf7d0", text:"스키복\n브랜드샵", sub:"시즌 신상 입고", emoji:"🎿", color:"#166534" },
+    { bg:"#fdf2f8", border:"#f5d0fe", text:"리조트\n시즌권", sub:"얼리버드 할인", emoji:"⛷", color:"#7e22ce" },
+  ];
+  return (
+    <div className="ad-banner">
+      {ads.map((ad,i)=>(
+        <div key={i} style={{background:ad.bg,border:"1px solid "+ad.border,borderRadius:12,padding:"14px 10px",textAlign:"center",cursor:"pointer",transition:"transform 0.15s"}}
+          onMouseEnter={e=>e.currentTarget.style.transform="scale(1.03)"}
+          onMouseLeave={e=>e.currentTarget.style.transform="scale(1)"}>
+          <div style={{fontSize:9,color:"#94a3b8",marginBottom:6,letterSpacing:1}}>광고</div>
+          <div style={{fontSize:26,marginBottom:6}}>{ad.emoji}</div>
+          <div style={{fontSize:12,fontWeight:700,color:ad.color,lineHeight:1.4,whiteSpace:"pre-line",marginBottom:4}}>{ad.text}</div>
+          <div style={{fontSize:10,color:"#64748b"}}>{ad.sub}</div>
+        </div>
+      ))}
     </div>
   );
 }
