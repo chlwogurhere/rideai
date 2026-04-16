@@ -1,7 +1,19 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.02-5";
+const VERSION = "ver 0.02-6";
+
+/* ── html2canvas loader ───────────────────────────────────── */
+function loadHtml2Canvas() {
+  return new Promise((res, rej) => {
+    if (window.html2canvas) { res(window.html2canvas); return; }
+    const s = document.createElement("script");
+    s.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+    s.onload = () => res(window.html2canvas);
+    s.onerror = rej;
+    document.head.appendChild(s);
+  });
+}
 
 /* ── MediaPipe Pose Loader ────────────────────────────────── */
 let poseDetector = null;
@@ -489,6 +501,70 @@ function StepBar({current}){
 /* ── MAIN APP ─────────────────────────────────────────────── */
 export default function App(){
   const [authed,setAuthed]=useState(()=>sessionStorage.getItem("rideai_auth")==="ok");
+  const [saving,setSaving]=useState(false);
+  const resultRef = useRef(null);
+
+  const saveAsImage = async () => {
+    setSaving(true);
+    try {
+      const h2c = await loadHtml2Canvas();
+      const el = resultRef.current;
+      if (!el) return;
+      const canvas = await h2c(el, {
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: "#f8fafc",
+        scale: 2, // retina quality
+        logging: false,
+        ignoreElements: el => el.tagName === "VIDEO",
+      });
+      // Download
+      const link = document.createElement("a");
+      link.download = "RIDEAI_분석결과_" + new Date().toLocaleDateString("ko-KR").replace(/\./g,"").replace(/ /g,"") + ".png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    } catch(e) {
+      console.error("save failed:", e);
+      alert("저장 중 오류가 발생했습니다.");
+    }
+    setSaving(false);
+  };
+
+  const shareResult = async () => {
+    setSaving(true);
+    try {
+      const h2c = await loadHtml2Canvas();
+      const el = resultRef.current;
+      if (!el) return;
+      const canvas = await h2c(el, {
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: "#f8fafc",
+        scale: 2,
+        logging: false,
+        ignoreElements: el => el.tagName === "VIDEO",
+      });
+      canvas.toBlob(async (blob) => {
+        const file = new File([blob], "RIDEAI_분석결과.png", { type: "image/png" });
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            title: "RIDE AI 라이딩 분석 결과",
+            text: "AI가 분석한 내 라이딩 자세입니다 🎿",
+            files: [file],
+          });
+        } else {
+          // Fallback: download
+          const link = document.createElement("a");
+          link.download = "RIDEAI_분석결과.png";
+          link.href = URL.createObjectURL(blob);
+          link.click();
+        }
+      }, "image/png");
+    } catch(e) {
+      console.error("share failed:", e);
+    }
+    setSaving(false);
+  };
   const [pwInput,setPwInput]=useState("");
   const [pwError,setPwError]=useState(false);
 
@@ -828,6 +904,16 @@ export default function App(){
 
         {/* STEP 5: DONE */}
         {phase==="done"&&result&&(<div style={{animation:"fadeUp 0.4s ease"}}>
+          {/* Save/Share buttons */}
+          <div style={{display:"flex",gap:8,marginBottom:16}}>
+            <button onClick={shareResult} disabled={saving} style={{flex:1,padding:"11px 0",borderRadius:10,border:"0.5px solid rgba(0,0,0,0.15)",background:"#0f172a",color:"#fff",fontSize:14,fontWeight:500,cursor:saving?"not-allowed":"pointer",opacity:saving?0.6:1}}>
+              {saving?"처리 중...":"📤 공유하기"}
+            </button>
+            <button onClick={saveAsImage} disabled={saving} style={{flex:1,padding:"11px 0",borderRadius:10,border:"0.5px solid rgba(0,0,0,0.15)",background:"#fff",color:"#0f172a",fontSize:14,fontWeight:500,cursor:saving?"not-allowed":"pointer",opacity:saving?0.6:1}}>
+              {saving?"저장 중...":"💾 이미지 저장"}
+            </button>
+          </div>
+          <div ref={resultRef}>
           {error&&<div style={{background:"#fffbeb",color:"#92400e",padding:"10px 14px",borderRadius:8,fontSize:13,marginBottom:16}}>⚠️ {error}</div>}
           <div style={{background:"#000",borderRadius:12,overflow:"hidden",aspectRatio:"16/9",marginBottom:20}}>
             <video src={urlRef.current} controls playsInline style={{width:"100%",height:"100%",objectFit:"contain",display:"block"}}/>
@@ -863,6 +949,7 @@ export default function App(){
             ))}
           </div>
           <button onClick={reset} style={{display:"block",margin:"0 auto",padding:"10px 28px",border:"0.5px solid rgba(0,0,0,0.15)",borderRadius:8,background:"transparent",color:"#64748b",fontSize:13,cursor:"pointer"}}>↩ 새 영상 분석하기</button>
+          </div>{/* end resultRef */}
         </div>)}
 
         <div style={{textAlign:"center",padding:"32px 0 4px",fontSize:11,color:"#cbd5e1"}}>RIDE AI {VERSION}</div>
