@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.03-1";
+const VERSION = "ver 0.03-2";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -213,13 +213,13 @@ function seekTo(vid, t) {
 }
 
 /* ── Smart candidate capture: skip first/last 10%, filter bad frames ──────── */
-async function captureFrames(vid, n=4) {
+async function captureFrames(vid, n=4, startPct=0.10, endPct=0.90) {
   try { await waitMeta(vid); } catch { return []; }
   const dur = Math.max(vid.duration, 1);
-  // Skip first 10% and last 10%
-  const start = dur * 0.10;
-  const end   = dur * 0.90;
-  const usable = end - start;
+  // Use provided range, with minimum 10% padding from edges if using full range
+  const start = startPct === 0.10 ? dur * 0.10 : dur * Math.max(startPct, 0);
+  const end   = endPct   === 0.90 ? dur * 0.90 : dur * Math.min(endPct, 1.0);
+  const usable = Math.max(end - start, 1);
   // Sample 10 candidates evenly across usable range
   const CANDIDATES = 8;
   const candidates = [];
@@ -483,7 +483,7 @@ function SubjectPicker({frames,onDone}){
 }
 
 /* ── STEP BAR ─────────────────────────────────────────────── */
-const STEPS=["종목 선택","영상 추가","분석","피사체 선택","피드백"];
+const STEPS=["종목 선택","영상·구간","분석","피사체 선택","피드백"];
 function StepBar({current}){
   const idx={sport:0,upload:1,loading:2,picking:3,done:4}[current]??0;
   return(<div style={{display:"flex",alignItems:"flex-start",marginBottom:28}}>
@@ -531,6 +531,11 @@ function ShareFrameCard({frame}){
 export default function App(){
   const [authed,setAuthed]=useState(()=>sessionStorage.getItem("rideai_auth")==="ok");
   const [saving,setSaving]=useState(false);
+  const [vidDuration,setVidDuration]=useState(0);
+  const [rangeStart,setRangeStart]=useState(0);
+  const [rangeEnd,setRangeEnd]=useState(100); // % of duration
+  const [previewTime,setPreviewTime]=useState(0);
+  const previewVidRef=useRef(null);
   const [feedback,setFeedback]=useState(null); // null | 'good' | 'bad'
   const [feedbackDone,setFeedbackDone]=useState(false);
   const analysisIdRef = useRef(null);
@@ -651,7 +656,22 @@ export default function App(){
   const fileTooLarge = file && file.size > 100*1024*1024;
 
   const saveKey=k=>{setApiKey(k);localStorage.setItem("rideai_key",k);window.__RIDEAI_KEY__=k;setShowKeyInput(false);};
-  const onFile=f=>{if(f&&f.type.startsWith("video/")){setFile(f);setPhase("upload");}};
+  const onFile=f=>{
+    if(!f||!f.type.startsWith("video/")) return;
+    if(f.size>100*1024*1024){ alert("파일 크기가 100MB를 초과합니다."); return; }
+    setFile(f); setRangeStart(0); setRangeEnd(100);
+    // Load preview to get duration
+    const url = URL.createObjectURL(f);
+    const tmp = document.createElement("video");
+    tmp.src = url; tmp.muted = true;
+    tmp.addEventListener("loadedmetadata", ()=>{
+      setVidDuration(Math.floor(tmp.duration));
+      setRangeEnd(100);
+      URL.revokeObjectURL(url);
+    }, {once:true});
+    tmp.load();
+    setPhase("upload");
+  };
   const onDrop=useCallback(e=>{e.preventDefault();onFile(e.dataTransfer.files[0]);;},[]);
 
   const runAnalysis=async()=>{
@@ -664,8 +684,9 @@ export default function App(){
       vid.src=urlRef.current; vid.load();
       await new Promise(r=>setTimeout(r,700));
 
-      setLoadMsg("후보 장면 추출 중... (앞뒤 10% 제외)");setPct(15);
-      const frames=await captureFrames(vid,4);
+      setLoadMsg("후보 장면 추출 중...");setPct(15);
+      // Use user-selected range if set, otherwise full video
+      const frames=await captureFrames(vid, 4, rangeStart/100, rangeEnd/100);
       vid.style.cssText="width:2px;height:2px;opacity:0.01;position:fixed;top:0";
       console.log("captured:",frames.length);
       setCapturedFrames(frames);
@@ -945,8 +966,71 @@ export default function App(){
             <div>③ 남은 후보 장면 중 AI가 직접 보고 <strong>잘된 장면 2개 + 개선 필요 장면 2개</strong>를 선택합니다</div>
             <div style={{marginTop:5,color:"#a16207",fontSize:12}}>💡 라이더가 화면 중앙에 잘 보이는 영상을 사용하면 더 정확한 분석이 가능합니다.</div>
           </div>
+            {/* ── Range selector (shown after file selected) ── */}
+          {file && !fileTooLarge && vidDuration > 0 && (
+            <div style={{background:"#fff",border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:12,padding:"16px 18px",marginBottom:14}}>
+              <div style={{fontSize:13,fontWeight:600,color:"#0f172a",marginBottom:4}}>📍 분석 구간 선택</div>
+              <div style={{fontSize:12,color:"#64748b",marginBottom:14}}>
+                드래그로 분석할 구간을 선택하세요. 선택하지 않으면 전체 영상을 분석합니다.
+              </div>
+
+              {/* Timeline bar */}
+              <div style={{position:"relative",height:44,marginBottom:10}}>
+                {/* Track background */}
+                <div style={{position:"absolute",left:0,right:0,top:18,height:8,background:"#e2e8f0",borderRadius:99}}/>
+                {/* Selected range highlight */}
+                <div style={{position:"absolute",left:rangeStart+"%",width:(rangeEnd-rangeStart)+"%",top:18,height:8,background:"#0f172a",borderRadius:99,transition:"all 0.1s"}}/>
+                {/* Start handle */}
+                <input type="range" min={0} max={rangeEnd-5} value={rangeStart}
+                  onChange={e=>{ const v=Number(e.target.value); setRangeStart(v); }}
+                  style={{position:"absolute",top:0,left:0,width:"100%",appearance:"none",WebkitAppearance:"none",background:"transparent",height:44,cursor:"pointer",zIndex:2}}/>
+                {/* End handle */}
+                <input type="range" min={rangeStart+5} max={100} value={rangeEnd}
+                  onChange={e=>{ const v=Number(e.target.value); setRangeEnd(v); }}
+                  style={{position:"absolute",top:0,left:0,width:"100%",appearance:"none",WebkitAppearance:"none",background:"transparent",height:44,cursor:"pointer",zIndex:3}}/>
+              </div>
+
+              {/* Time labels */}
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div style={{textAlign:"center"}}>
+                  <div style={{fontSize:10,color:"#94a3b8",marginBottom:2}}>시작</div>
+                  <div style={{fontSize:14,fontWeight:600,color:"#0f172a",background:"#f1f5f9",padding:"4px 10px",borderRadius:6}}>
+                    {Math.round(rangeStart/100*vidDuration)}초
+                  </div>
+                </div>
+                <div style={{fontSize:12,color:"#94a3b8"}}>
+                  ← {Math.round((rangeEnd-rangeStart)/100*vidDuration)}초 구간 →
+                </div>
+                <div style={{textAlign:"center"}}>
+                  <div style={{fontSize:10,color:"#94a3b8",marginBottom:2}}>끝</div>
+                  <div style={{fontSize:14,fontWeight:600,color:"#0f172a",background:"#f1f5f9",padding:"4px 10px",borderRadius:6}}>
+                    {Math.round(rangeEnd/100*vidDuration)}초
+                  </div>
+                </div>
+              </div>
+
+              {/* Reset button */}
+              <button onClick={()=>{setRangeStart(0);setRangeEnd(100);}}
+                style={{marginTop:10,width:"100%",padding:"7px 0",borderRadius:8,border:"0.5px solid rgba(0,0,0,0.1)",background:"transparent",color:"#94a3b8",fontSize:12,cursor:"pointer"}}>
+                전체 구간으로 초기화
+              </button>
+
+              <style>{`
+                input[type=range]::-webkit-slider-thumb{
+                  -webkit-appearance:none; width:22px; height:22px;
+                  background:#0f172a; border-radius:50%; border:3px solid #fff;
+                  box-shadow:0 1px 4px rgba(0,0,0,0.3); cursor:grab;
+                }
+                input[type=range]::-moz-range-thumb{
+                  width:22px; height:22px; background:#0f172a;
+                  border-radius:50%; border:3px solid #fff; cursor:grab;
+                }
+              `}</style>
+            </div>
+          )}
+
           <button onClick={runAnalysis} disabled={!file||fileTooLarge} style={{width:"100%",padding:15,borderRadius:10,border:"none",background:(file&&!fileTooLarge)?"#0f172a":"#e2e8f0",color:(file&&!fileTooLarge)?"#fff":"#94a3b8",fontSize:15,fontWeight:600,cursor:(file&&!fileTooLarge)?"pointer":"not-allowed"}}>
-            AI 분석 시작 →
+            {rangeStart===0&&rangeEnd===100 ? "AI 분석 시작 →" : `선택 구간 분석 (${Math.round(rangeStart/100*vidDuration)}초~${Math.round(rangeEnd/100*vidDuration)}초) →`}
           </button>
           {fileTooLarge&&<div style={{marginTop:10,textAlign:"center",fontSize:13,color:"#dc2626"}}>⚠️ 파일 크기가 100MB를 초과합니다. 더 작은 영상을 선택해주세요.</div>}
         </div>)}
