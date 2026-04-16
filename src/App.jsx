@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.02-1";
+const VERSION = "ver 0.02-2";
 
 /* ── API ──────────────────────────────────────────────────── */
 async function apiCall(messages, system, apiKey) {
@@ -354,6 +354,22 @@ function StepBar({current}){
 
 /* ── MAIN APP ─────────────────────────────────────────────── */
 export default function App(){
+  const [authed,setAuthed]=useState(()=>sessionStorage.getItem("rideai_auth")==="ok");
+  const [pwInput,setPwInput]=useState("");
+  const [pwError,setPwError]=useState(false);
+
+  const BETA_PW = "gompang2"; // 비밀번호 변경 시 여기만 수정
+
+  const tryAuth = () => {
+    if(pwInput.trim()===BETA_PW){
+      sessionStorage.setItem("rideai_auth","ok");
+      setAuthed(true); setPwError(false);
+    } else {
+      setPwError(true);
+      setTimeout(()=>setPwError(false),2000);
+    }
+  };
+
   const [sport,setSport]=useState("ski");
   const [file,setFile]=useState(null);
   const [phase,setPhase]=useState("sport");
@@ -539,9 +555,39 @@ export default function App(){
 
   return(
     <div style={{minHeight:"100vh",background:"#f8fafc"}}>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}*{box-sizing:border-box;margin:0;padding:0}`}</style>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}*{box-sizing:border-box;margin:0;padding:0}`}</style>
       <video ref={vidRef} muted playsInline style={{position:"fixed",right:0,bottom:0,width:2,height:2,opacity:0.01,pointerEvents:"none"}}/>
-      <div style={{padding:"1.5rem 20px 60px",maxWidth:720,margin:"0 auto"}}>
+
+      {/* ── BETA PASSWORD GATE ── */}
+      {!authed && (
+        <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}}>
+          <div style={{background:"#fff",borderRadius:20,padding:"40px 32px",maxWidth:380,width:"100%",boxShadow:"0 4px 32px rgba(0,0,0,0.08)",textAlign:"center"}}>
+            <div style={{fontSize:44,marginBottom:16}}>⛷</div>
+            <div style={{fontSize:22,fontWeight:700,color:"#0f172a",marginBottom:6}}>RIDE AI</div>
+            <div style={{fontSize:13,color:"#94a3b8",marginBottom:28}}>스키·스노보드 AI 라이딩 코치</div>
+            <div style={{background:"#f1f5f9",borderRadius:10,padding:"10px 14px",marginBottom:20,fontSize:13,color:"#64748b",lineHeight:1.7,textAlign:"left"}}>
+              <div style={{fontWeight:600,color:"#475569",marginBottom:4}}>🔒 베타 서비스</div>
+              <div>현재 초대된 사용자만 이용 가능합니다.</div>
+              <div>베타 참여를 원하시면 운영자에게 문의하세요.</div>
+            </div>
+            <input
+              type="password"
+              placeholder="베타 접근 코드 입력"
+              value={pwInput}
+              onChange={e=>setPwInput(e.target.value)}
+              onKeyDown={e=>e.key==="Enter"&&tryAuth()}
+              style={{width:"100%",padding:"12px 16px",borderRadius:10,border:"1.5px solid "+(pwError?"#ef4444":"rgba(0,0,0,0.12)"),fontSize:15,marginBottom:10,outline:"none",textAlign:"center",letterSpacing:2,animation:pwError?"shake 0.4s ease":"none",background:pwError?"#fef2f2":"#fff"}}
+            />
+            {pwError && <div style={{fontSize:12,color:"#ef4444",marginBottom:8}}>접근 코드가 올바르지 않습니다.</div>}
+            <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
+              입장하기
+            </button>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>RIDE AI ver 0.02-2 · made by GP</div>
+          </div>
+        </div>
+      )}
+
+      {authed && <div style={{padding:"1.5rem 20px 60px",maxWidth:720,margin:"0 auto"}}>
 
         {/* HEADER */}
         <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:24}}>
@@ -665,7 +711,8 @@ export default function App(){
 
         <div style={{textAlign:"center",padding:"32px 0 4px",fontSize:11,color:"#cbd5e1"}}>RIDE AI {VERSION}</div>
         <div style={{textAlign:"center",padding:"0 0 12px",fontSize:11,color:"#cbd5e1"}}>made by GP</div>
-      </div>
+      </div>}
+
     </div>
   );
 }
