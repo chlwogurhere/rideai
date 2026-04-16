@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.02-0";
+const VERSION = "ver 0.02-1";
 
 /* ── API ──────────────────────────────────────────────────── */
 async function apiCall(messages, system, apiKey) {
@@ -591,12 +591,19 @@ export default function App(){
             <div style={{fontSize:15,fontWeight:500,marginBottom:6,color:"#0f172a"}}>{file?"✓ "+file.name:"라이딩 영상을 업로드하세요"}</div>
             <div style={{fontSize:13,color:"#94a3b8"}}>{file?(file.size/1024/1024).toFixed(1)+" MB · 분석 준비 완료":"클릭하거나 드래그 · MP4, MOV, AVI"}</div>
           </div>
-          <div style={{background:"#f8fafc",border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:10,padding:"12px 14px",marginBottom:14,fontSize:13,color:"#64748b",lineHeight:1.7}}>
+          <div style={{background:"#f8fafc",border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:10,padding:"12px 14px",marginBottom:10,fontSize:13,color:"#64748b",lineHeight:1.7}}>
             <div style={{fontWeight:500,color:"#475569",marginBottom:3}}>📋 업로드 안내</div>
             <div>• 최대 파일 용량: <strong>100MB</strong></div>
             <div>• 지원 형식: MP4, MOV, AVI</div>
             <div>• 라이더가 화면에 잘 보이는 영상일수록 분석 정확도가 높아집니다</div>
             <div>• 영상이 길수록 분석 시간이 다소 걸릴 수 있습니다</div>
+          </div>
+          <div style={{background:"#fffbeb",border:"1px solid #fde68a",borderRadius:10,padding:"12px 14px",marginBottom:14,fontSize:13,color:"#78350f",lineHeight:1.8}}>
+            <div style={{fontWeight:600,color:"#92400e",marginBottom:5}}>★ 주의사항 — AI 스마트 프레임 선택</div>
+            <div>① 영상 앞뒤 <strong>각 10%</strong> 구간은 자동으로 제외됩니다 (출발 준비·도착 정지 구간)</div>
+            <div>② 너무 어둡거나 라이더가 보이지 않는 장면은 자동으로 걸러집니다</div>
+            <div>③ 남은 후보 장면 중 AI가 직접 보고 <strong>잘된 장면 2개 + 개선 필요 장면 2개</strong>를 선택합니다</div>
+            <div style={{marginTop:5,color:"#a16207",fontSize:12}}>💡 라이더가 화면 중앙에 잘 보이는 영상을 사용하면 더 정확한 분석이 가능합니다.</div>
           </div>
           <button onClick={runAnalysis} disabled={!file||fileTooLarge} style={{width:"100%",padding:15,borderRadius:10,border:"none",background:(file&&!fileTooLarge)?"#0f172a":"#e2e8f0",color:(file&&!fileTooLarge)?"#fff":"#94a3b8",fontSize:15,fontWeight:600,cursor:(file&&!fileTooLarge)?"pointer":"not-allowed"}}>
             AI 분석 시작 →
@@ -656,7 +663,8 @@ export default function App(){
           <button onClick={reset} style={{display:"block",margin:"0 auto",padding:"10px 28px",border:"0.5px solid rgba(0,0,0,0.15)",borderRadius:8,background:"transparent",color:"#64748b",fontSize:13,cursor:"pointer"}}>↩ 새 영상 분석하기</button>
         </div>)}
 
-        <div style={{textAlign:"center",padding:"32px 0 8px",fontSize:11,color:"#cbd5e1"}}>RIDE AI {VERSION}</div>
+        <div style={{textAlign:"center",padding:"32px 0 4px",fontSize:11,color:"#cbd5e1"}}>RIDE AI {VERSION}</div>
+        <div style={{textAlign:"center",padding:"0 0 12px",fontSize:11,color:"#cbd5e1"}}>made by GP</div>
       </div>
     </div>
   );
