@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.02-4";
+const VERSION = "ver 0.02-5";
 
 /* ── MediaPipe Pose Loader ────────────────────────────────── */
 let poseDetector = null;
@@ -169,7 +169,7 @@ function waitMeta(vid) {
     vid.addEventListener("durationchange",h,{once:true});
   });
 }
-function snapFrame(vid, W=800) {
+function snapFrame(vid, W=420) {
   try {
     const vw=vid.videoWidth, vh=vid.videoHeight;
     if(!vw||!vh) return null;
@@ -186,7 +186,7 @@ function snapFrame(vid, W=800) {
     let variance=0, prev=center[0];
     for(let i=4;i<center.length;i+=4){ const d=Math.abs(center[i]-prev); variance+=d; prev=center[i]; }
     if(variance<200) return null; // too uniform = blank snow / blur
-    const d=c.toDataURL("image/jpeg",0.88);
+    const d=c.toDataURL("image/jpeg",0.72);
     return d.length>4000?{data:d,time:parseFloat(vid.currentTime.toFixed(2))}:null;
   } catch { return null; }
 }
@@ -209,7 +209,7 @@ async function captureFrames(vid, n=4) {
   const end   = dur * 0.90;
   const usable = end - start;
   // Sample 10 candidates evenly across usable range
-  const CANDIDATES = 10;
+  const CANDIDATES = 8;
   const candidates = [];
   for(let i=0; i<CANDIDATES; i++){
     const t = parseFloat((start + (i+0.5)*usable/CANDIDATES).toFixed(2));
@@ -633,9 +633,9 @@ export default function App(){
           const W=img.width,H=img.height,side=Math.round(Math.min(W,H)*0.52);
           let x0=Math.round(pick.x*W-side/2),y0=Math.round(pick.y*H-side/2);
           x0=Math.max(0,Math.min(W-side,x0)); y0=Math.max(0,Math.min(H-side,y0));
-          const c=document.createElement("canvas"); c.width=500; c.height=500;
+          const c=document.createElement("canvas"); c.width=320; c.height=320;
           c.getContext("2d").drawImage(img,x0,y0,side,side,0,0,500,500);
-          res(c.toDataURL("image/jpeg",0.88));
+          res(c.toDataURL("image/jpeg",0.65));
         }; img.src=frame.data;
       });
       pickedFrames.push({data:cropped,time:frame.time,frameIdx:i});
