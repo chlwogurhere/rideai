@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.04-0";
+const VERSION = "ver 0.04-1";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -482,6 +482,30 @@ function SubjectPicker({frames,onDone}){
 }
 
 /* ── STEP BAR ─────────────────────────────────────────────── */
+/* ── History helpers (localStorage, max 5, 7-day TTL) ────── */
+const HISTORY_KEY = "rideai_history";
+const MAX_HISTORY = 5;
+const TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7일
+
+function loadHistory() {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if (!raw) return [];
+    const all = JSON.parse(raw);
+    const now = Date.now();
+    return all.filter(h => now - h.savedAt < TTL_MS);
+  } catch { return []; }
+}
+
+function saveHistory(entry) {
+  try {
+    let all = loadHistory();
+    all.unshift(entry);
+    if (all.length > MAX_HISTORY) all = all.slice(0, MAX_HISTORY);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(all));
+  } catch(e) { console.warn("history save failed:", e); }
+}
+
 const STEPS=["종목 선택","영상 추가","분석","피사체 선택","피드백"];
 function StepBar({current}){
   const idx={sport:0,upload:1,loading:2,picking:3,done:4}[current]??0;
@@ -659,7 +683,9 @@ export default function App(){
 
   const [sport,setSport]=useState("ski");
   const [file,setFile]=useState(null);
-  const [phase,setPhase]=useState("sport");
+  const [phase,setPhase]=useState("sport"); // sport | upload | loading | picking | done | history
+  const [history,setHistory]=useState(()=>loadHistory());
+  const [selectedHistory,setSelectedHistory]=useState(null);
   const [loadMsg,setLoadMsg]=useState("");
   const [pct,setPct]=useState(0);
   const [capturedFrames,setCapturedFrames]=useState([]);
@@ -867,10 +893,25 @@ export default function App(){
     setPct(100);
     const aid = Date.now().toString(36) + Math.random().toString(36).slice(2,6);
     analysisIdRef.current = aid;
-    // Check if already feedbacked (shouldn't be for new analysis)
-    setFeedback(null);
+    setFeedback(null); setStars(0); setComment(""); setStarDone(false);
     setFeedbackDone(localStorage.getItem("rideai_fb_"+aid)==="done");
-    setResult({...refinedData,annotated});setTab(annotated.some(f=>f.type==="good")?"good":"warn");setPhase("done");
+    const finalResult = {...refinedData, annotated};
+    setResult(finalResult);
+    setTab(annotated.some(f=>f.type==="good")?"good":"warn");
+    setPhase("done");
+    // Save to localStorage history (text only, no images)
+    saveHistory({
+      id: aid,
+      savedAt: Date.now(),
+      sport,
+      scores: refinedData.scores || [],
+      feedback: refinedData.feedback || [],
+      tips: refinedData.tips || [],
+      frames: (refinedData.frames||[]).map(f=>({
+        type: f.type, title: f.title, desc: f.desc, time: null
+      })),
+    });
+    setHistory(loadHistory());
   };
 
   const reset=()=>{
@@ -957,7 +998,7 @@ export default function App(){
         {phase==="sport"&&(<div style={{animation:"fadeUp 0.3s ease"}}>
           <div style={{fontSize:18,fontWeight:600,marginBottom:6,color:"#0f172a"}}>종목을 선택하세요</div>
           <div style={{fontSize:14,color:"#64748b",marginBottom:24}}>선택한 종목에 맞는 전문 용어로 분석해드립니다.</div>
-          <div style={{display:"flex",gap:12}}>
+          <div style={{display:"flex",gap:12,marginBottom:14}}>
             {[["ski","🎿","스키","#2563eb","#dbeafe","#1d4ed8"],["snowboard","🏂","스노보드","#7c3aed","#ede9fe","#6d28d9"]].map(([s,icon,lbl,ac,bg,bc])=>(
               <button key={s} onClick={()=>{setSport(s);setPhase("upload");}} style={{flex:1,padding:"28px 16px",borderRadius:16,border:"2px solid "+ac,background:bg,color:bc,cursor:"pointer",textAlign:"center",boxShadow:"0 2px 12px "+ac+"22"}}>
                 <div style={{fontSize:40,marginBottom:10}}>{icon}</div>
@@ -965,6 +1006,17 @@ export default function App(){
                 <div style={{fontSize:12,color:ac,marginTop:4,opacity:0.8}}>선택 →</div>
               </button>
             ))}
+          </div>
+
+          {/* 이전 기록 확인 버튼 */}
+          <button onClick={()=>{setSelectedHistory(null);setPhase("history");}}
+            style={{width:"100%",padding:"12px 0",borderRadius:10,border:"0.5px solid rgba(0,0,0,0.12)",background:"#fff",color:"#0f172a",fontSize:14,fontWeight:500,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginBottom:10}}>
+            <span style={{fontSize:16}}>📋</span>
+            이전 분석 기록 보기
+            {history.length>0&&<span style={{background:"#0f172a",color:"#fff",fontSize:11,fontWeight:600,padding:"1px 7px",borderRadius:99}}>{history.length}</span>}
+          </button>
+          <div style={{fontSize:11,color:"#94a3b8",lineHeight:1.8,padding:"0 2px"}}>
+            ⚠ 기록 안내: 최근 5개까지 보관 · 7일 후 자동 삭제 · 같은 기기/브라우저에서만 확인 가능 · 이미지는 저장되지 않습니다
           </div>
 
           {/* ── 서비스 안내 ── */}
@@ -1046,6 +1098,128 @@ export default function App(){
 
         {/* STEP 4: PICKING */}
         {phase==="picking"&&capturedFrames.length>0&&(<div style={{animation:"fadeUp 0.3s ease"}}><SubjectPicker frames={capturedFrames} onDone={onPicksDone}/></div>)}
+
+        {/* HISTORY VIEW */}
+        {phase==="history"&&(
+          <div style={{animation:"fadeUp 0.3s ease"}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:20}}>
+              <button onClick={()=>setPhase("sport")} style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"#64748b",padding:0}}>←</button>
+              <div style={{fontSize:16,fontWeight:600,color:"#0f172a"}}>이전 분석 기록</div>
+            </div>
+
+            {history.length===0 ? (
+              <div style={{textAlign:"center",padding:"56px 0",color:"#94a3b8"}}>
+                <div style={{fontSize:40,marginBottom:12}}>📋</div>
+                <div style={{fontSize:14}}>아직 분석 기록이 없습니다</div>
+                <div style={{fontSize:12,marginTop:6}}>분석을 완료하면 여기에 기록이 남습니다</div>
+              </div>
+            ) : (
+              <div>
+                {selectedHistory ? (
+                  /* 선택된 기록 상세 */
+                  <div style={{animation:"fadeUp 0.2s ease"}}>
+                    <button onClick={()=>setSelectedHistory(null)}
+                      style={{background:"none",border:"none",fontSize:13,color:"#64748b",cursor:"pointer",marginBottom:16,padding:0,display:"flex",alignItems:"center",gap:4}}>
+                      ← 목록으로
+                    </button>
+                    <div style={{background:"#fff",border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:12,padding:"16px 18px",marginBottom:12}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
+                        <span style={{fontSize:20}}>{selectedHistory.sport==="ski"?"🎿":"🏂"}</span>
+                        <div>
+                          <div style={{fontSize:14,fontWeight:600,color:"#0f172a"}}>{selectedHistory.sport==="ski"?"스키":"스노보드"} 분석</div>
+                          <div style={{fontSize:11,color:"#94a3b8"}}>{new Date(selectedHistory.savedAt).toLocaleString("ko-KR")}</div>
+                        </div>
+                      </div>
+                      <div style={{fontSize:13,fontWeight:500,color:"#475569",marginBottom:10}}>종합 점수</div>
+                      {(selectedHistory.scores||[]).map((s,i)=>(
+                        <div key={i} style={{marginBottom:10}}>
+                          <div style={{display:"flex",justifyContent:"space-between",marginBottom:4,fontSize:13}}>
+                            <span style={{color:"#475569"}}>{s.label}</span>
+                            <span style={{fontWeight:500}}>{s.value}점</span>
+                          </div>
+                          <div style={{height:6,background:"rgba(0,0,0,0.08)",borderRadius:99}}>
+                            <div style={{height:"100%",width:s.value+"%",background:s.color,borderRadius:99}}/>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{background:"#fff",border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:12,padding:"16px 18px",marginBottom:12}}>
+                      <div style={{fontSize:13,fontWeight:500,color:"#475569",marginBottom:10}}>장면별 분석</div>
+                      {(selectedHistory.frames||[]).map((f,i)=>(
+                        <div key={i} style={{marginBottom:12,paddingBottom:12,borderBottom:i<(selectedHistory.frames.length-1)?"0.5px solid rgba(0,0,0,0.06)":"none"}}>
+                          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
+                            <span style={{fontSize:11,background:f.type==="good"?"#f0fdf4":"#fef2f2",color:f.type==="good"?"#166534":"#991b1b",padding:"2px 8px",borderRadius:99,fontWeight:500}}>
+                              {f.type==="good"?"✅ 잘된 점":"⚠️ 개선 필요"}
+                            </span>
+                          </div>
+                          <div style={{fontSize:13,fontWeight:500,marginBottom:3}}>{f.title}</div>
+                          <div style={{fontSize:12,color:"#64748b",lineHeight:1.6}}>{f.desc}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{background:"#fff",border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:12,padding:"16px 18px",marginBottom:12}}>
+                      <div style={{fontSize:13,fontWeight:500,color:"#475569",marginBottom:10}}>코치 피드백</div>
+                      {(selectedHistory.feedback||[]).map((f,i)=>{
+                        const bc={good:"#16a34a",warn:"#dc2626",info:"#2563eb"}[f.type]||"#2563eb";
+                        return(<div key={i} style={{borderLeft:"3px solid "+bc,paddingLeft:10,marginBottom:10}}>
+                          <div style={{fontSize:11,fontWeight:600,color:bc,marginBottom:3}}>{f.tag}</div>
+                          <div style={{fontSize:12,color:"#0f172a",lineHeight:1.6}}>{f.text}</div>
+                        </div>);
+                      })}
+                    </div>
+                    {(selectedHistory.tips||[]).length>0&&(
+                      <div style={{background:"#fff",border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:12,padding:"16px 18px"}}>
+                        <div style={{fontSize:13,fontWeight:500,color:"#475569",marginBottom:10}}>연습 팁 💡</div>
+                        {selectedHistory.tips.map((t,i)=>(
+                          <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:8}}>
+                            <span style={{minWidth:20,height:20,background:"#eff6ff",borderRadius:99,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:600,color:"#1e40af",flexShrink:0}}>{i+1}</span>
+                            <span style={{fontSize:12,color:"#475569",lineHeight:1.6}}>{t}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  /* 기록 목록 */
+                  <div>
+                    {history.map((h,i)=>{
+                      const daysLeft = Math.ceil((TTL_MS-(Date.now()-h.savedAt))/(1000*60*60*24));
+                      const avgScore = h.scores.length>0 ? Math.round(h.scores.reduce((s,sc)=>s+sc.value,0)/h.scores.length) : 0;
+                      return(
+                        <button key={h.id} onClick={()=>setSelectedHistory(h)}
+                          style={{width:"100%",background:"#fff",border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:12,padding:"14px 16px",marginBottom:10,cursor:"pointer",textAlign:"left",display:"block"}}>
+                          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+                            <div style={{display:"flex",alignItems:"center",gap:8}}>
+                              <span style={{fontSize:20}}>{h.sport==="ski"?"🎿":"🏂"}</span>
+                              <div>
+                                <div style={{fontSize:13,fontWeight:600,color:"#0f172a"}}>{h.sport==="ski"?"스키":"스노보드"} 분석</div>
+                                <div style={{fontSize:11,color:"#94a3b8"}}>{new Date(h.savedAt).toLocaleDateString("ko-KR")}</div>
+                              </div>
+                            </div>
+                            <div style={{textAlign:"right"}}>
+                              <div style={{fontSize:18,fontWeight:700,color:"#0f172a"}}>{avgScore}점</div>
+                              <div style={{fontSize:10,color:"#94a3b8"}}>{daysLeft}일 후 삭제</div>
+                            </div>
+                          </div>
+                          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                            {h.scores.map((s,j)=>(
+                              <span key={j} style={{fontSize:11,background:"#f8fafc",color:"#475569",padding:"2px 8px",borderRadius:99,border:"0.5px solid rgba(0,0,0,0.08)"}}>
+                                {s.label} {s.value}점
+                              </span>
+                            ))}
+                          </div>
+                        </button>
+                      );
+                    })}
+                    <div style={{fontSize:11,color:"#94a3b8",textAlign:"center",marginTop:8,lineHeight:1.8}}>
+                      최근 {history.length}개 기록 · 최대 5개 보관 · 7일 후 자동 삭제
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* STEP 5: DONE */}
         {phase==="done"&&result&&(<div style={{animation:"fadeUp 0.4s ease"}}>
