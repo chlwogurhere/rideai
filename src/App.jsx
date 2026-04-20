@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.04-3";
+const VERSION = "ver 0.04-5";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -923,7 +923,19 @@ export default function App(){
     setResult(finalResult);
     setTab(annotated.some(f=>f.type==="good")?"good":"warn");
     setPhase("done");
-    // Save to localStorage history (text only, no images)
+    // Save thumbnails: one per frame, very small (100x100, low quality)
+    const thumbs = [];
+    for (const af of annotated) {
+      if (af.canvas) {
+        try {
+          const tc = document.createElement("canvas");
+          tc.width = 120; tc.height = 120;
+          tc.getContext("2d").drawImage(af.canvas, 0, 0, af.canvas.width, af.canvas.height, 0, 0, 120, 120);
+          thumbs.push(tc.toDataURL("image/jpeg", 0.45));
+        } catch { thumbs.push(null); }
+      } else { thumbs.push(null); }
+    }
+    // Save to localStorage history
     saveHistory({
       id: aid,
       savedAt: Date.now(),
@@ -931,8 +943,9 @@ export default function App(){
       scores: refinedData.scores || [],
       feedback: refinedData.feedback || [],
       tips: refinedData.tips || [],
-      frames: (refinedData.frames||[]).map(f=>({
-        type: f.type, title: f.title, desc: f.desc, time: null
+      frames: (refinedData.frames||[]).map((f,i)=>({
+        type: f.type, title: f.title, desc: f.desc, time: annotated[i]?.time ?? null,
+        thumb: thumbs[i] || null,
       })),
     });
     setHistory(loadHistory());
@@ -1167,20 +1180,43 @@ export default function App(){
                         </div>
                       ))}
                     </div>
-                    <div style={{background:"#fff",border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:12,padding:"16px 18px",marginBottom:12}}>
-                      <div style={{fontSize:13,fontWeight:500,color:"#475569",marginBottom:10}}>장면별 분석</div>
-                      {(selectedHistory.frames||[]).map((f,i)=>(
-                        <div key={i} style={{marginBottom:12,paddingBottom:12,borderBottom:i<(selectedHistory.frames.length-1)?"0.5px solid rgba(0,0,0,0.06)":"none"}}>
-                          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
-                            <span style={{fontSize:11,background:f.type==="good"?"#f0fdf4":"#fef2f2",color:f.type==="good"?"#166534":"#991b1b",padding:"2px 8px",borderRadius:99,fontWeight:500}}>
-                              {f.type==="good"?"✅ 잘된 점":"⚠️ 개선 필요"}
+                    {(()=>{
+                      const goodF=(selectedHistory.frames||[]).filter(f=>f.type==="good");
+                      const warnF=(selectedHistory.frames||[]).filter(f=>f.type==="warn");
+                      const renderFrames=(frames,type)=>(
+                        <div style={{marginBottom:12}}>
+                          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
+                            <span style={{fontSize:12,fontWeight:500,color:type==="good"?"#166534":"#991b1b"}}>
+                              {type==="good"?"✅ 잘된 장면":"⚠️ 고쳐볼 장면"}
                             </span>
+                            <span style={{fontSize:11,color:"#94a3b8"}}>({frames.length})</span>
                           </div>
-                          <div style={{fontSize:13,fontWeight:500,marginBottom:3}}>{f.title}</div>
-                          <div style={{fontSize:12,color:"#64748b",lineHeight:1.6}}>{f.desc}</div>
+                          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                          {frames.map((f,i)=>(
+                            <div key={i} style={{background:"#fff",borderRadius:8,overflow:"hidden",border:"0.5px solid "+(type==="good"?"#bbf7d0":"#fecaca")}}>
+                              {f.thumb
+                                ? <img src={f.thumb} alt="" style={{width:"100%",aspectRatio:"1",objectFit:"cover",display:"block"}}/>
+                                : <div style={{width:"100%",aspectRatio:"1",background:type==="good"?"#f0fdf4":"#fef2f2",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>
+                                    {type==="good"?"✅":"⚠️"}
+                                  </div>
+                              }
+                              <div style={{padding:"8px 10px",background:type==="good"?"#f0fdf4":"#fef2f2"}}>
+                                <div style={{fontSize:12,fontWeight:500,color:type==="good"?"#166534":"#991b1b",marginBottom:3}}>{f.title}</div>
+                                <div style={{fontSize:11,color:"#374151",lineHeight:1.5}}>{f.desc}</div>
+                              </div>
+                            </div>
+                          ))}
+                          </div>
                         </div>
-                      ))}
-                    </div>
+                      );
+                      return(
+                        <div style={{background:"#fff",border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:12,padding:"16px 18px",marginBottom:12}}>
+                          <div style={{fontSize:13,fontWeight:500,color:"#475569",marginBottom:12}}>장면별 분석</div>
+                          {goodF.length>0&&renderFrames(goodF,"good")}
+                          {warnF.length>0&&renderFrames(warnF,"warn")}
+                        </div>
+                      );
+                    })()}
                     <div style={{background:"#fff",border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:12,padding:"16px 18px",marginBottom:12}}>
                       <div style={{fontSize:13,fontWeight:500,color:"#475569",marginBottom:10}}>코치 피드백</div>
                       {(selectedHistory.feedback||[]).map((f,i)=>{
@@ -1226,29 +1262,29 @@ export default function App(){
                   <div>
                     {history.map((h,i)=>{
                       const daysLeft = Math.ceil((TTL_MS-(Date.now()-h.savedAt))/(1000*60*60*24));
-                      const avgScore = h.scores.length>0 ? Math.round(h.scores.reduce((s,sc)=>s+sc.value,0)/h.scores.length) : 0;
-                      return(
+                        const firstThumb = (h.frames||[]).find(f=>f.thumb)?.thumb || null;
+                        return(
                         <button key={h.id} onClick={()=>setSelectedHistory(h)}
-                          style={{width:"100%",background:"#fff",border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:12,padding:"14px 16px",marginBottom:10,cursor:"pointer",textAlign:"left",display:"block"}}>
-                          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
-                            <div style={{display:"flex",alignItems:"center",gap:8}}>
-                              <span style={{fontSize:20}}>{h.sport==="ski"?"🎿":"🏂"}</span>
+                          style={{width:"100%",background:"#fff",border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:12,overflow:"hidden",marginBottom:10,cursor:"pointer",textAlign:"left",display:"flex"}}>
+                          {firstThumb
+                            ? <img src={firstThumb} alt="" style={{width:72,flexShrink:0,objectFit:"cover"}}/>
+                            : <div style={{width:72,background:"#f1f5f9",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0}}>{h.sport==="ski"?"🎿":"🏂"}</div>
+                          }
+                          <div style={{flex:1,padding:"12px 14px"}}>
+                            <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:6}}>
                               <div>
                                 <div style={{fontSize:13,fontWeight:600,color:"#0f172a"}}>{h.sport==="ski"?"스키":"스노보드"} 분석</div>
-                                <div style={{fontSize:11,color:"#94a3b8"}}>{new Date(h.savedAt).toLocaleDateString("ko-KR")}</div>
+                                <div style={{fontSize:11,color:"#94a3b8"}}>{new Date(h.savedAt).toLocaleDateString("ko-KR")} · {daysLeft}일 후 삭제</div>
                               </div>
+                              <div style={{fontSize:17,fontWeight:700,color:"#0f172a"}}>{avgScore}점</div>
                             </div>
-                            <div style={{textAlign:"right"}}>
-                              <div style={{fontSize:18,fontWeight:700,color:"#0f172a"}}>{avgScore}점</div>
-                              <div style={{fontSize:10,color:"#94a3b8"}}>{daysLeft}일 후 삭제</div>
+                            <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+                              {h.scores.map((s,j)=>(
+                                <span key={j} style={{fontSize:11,background:"#f8fafc",color:"#475569",padding:"2px 7px",borderRadius:99,border:"0.5px solid rgba(0,0,0,0.08)"}}>
+                                  {s.label} {s.value}점
+                                </span>
+                              ))}
                             </div>
-                          </div>
-                          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                            {h.scores.map((s,j)=>(
-                              <span key={j} style={{fontSize:11,background:"#f8fafc",color:"#475569",padding:"2px 8px",borderRadius:99,border:"0.5px solid rgba(0,0,0,0.08)"}}>
-                                {s.label} {s.value}점
-                              </span>
-                            ))}
                           </div>
                         </button>
                       );
