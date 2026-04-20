@@ -716,7 +716,6 @@ export default function App(){
           "3. 각도 수치(°)는 절대 언급하지 마세요.\\n"+
           "4. KSIA 기준으로 코치가 슬로프에서 직접 말하듯 자연스럽게 설명하세요."
         });
-        });
         frames.forEach((f,i)=>{
           const pd = poseDataList[i];
           const poseText = pd ? formatPoseData(pd, sport) : null;
