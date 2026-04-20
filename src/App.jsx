@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.03-7";
+const VERSION = "ver 0.03-8";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -944,6 +944,30 @@ export default function App(){
               </button>
             ))}
           </div>
+
+          {/* ── 서비스 안내 ── */}
+          <div style={{borderRadius:12,border:"0.5px solid rgba(0,0,0,0.08)",overflow:"hidden",marginTop:8}}>
+            <div style={{background:"#f8fafc",padding:"9px 14px",borderBottom:"0.5px solid rgba(0,0,0,0.06)"}}>
+              <span style={{fontSize:12,fontWeight:500,color:"#64748b"}}>서비스 안내</span>
+            </div>
+            <div style={{background:"#fff"}}>
+              <div style={{display:"flex",alignItems:"flex-start",gap:12,padding:"13px 16px",borderBottom:"0.5px solid rgba(0,0,0,0.06)"}}>
+                <div style={{width:24,height:24,borderRadius:"50%",background:"#fef9c3",border:"0.5px solid #ca8a04",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1,fontSize:13}}>⚠</div>
+                <div>
+                  <div style={{fontSize:13,fontWeight:500,color:"#0f172a",marginBottom:3}}>AI 분석이며 실수할 수 있습니다</div>
+                  <div style={{fontSize:13,color:"#64748b",lineHeight:1.65}}>분석 결과는 참고용이며 정확하지 않을 수 있습니다. 이용 후 피드백 버튼을 꼭 눌러주세요. 더 나은 서비스를 만드는 데 큰 도움이 됩니다.</div>
+                </div>
+              </div>
+              <div style={{display:"flex",alignItems:"flex-start",gap:12,padding:"13px 16px"}}>
+                <div style={{width:24,height:24,borderRadius:"50%",background:"#fef2f2",border:"0.5px solid #dc2626",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1,fontSize:13}}>💰</div>
+                <div>
+                  <div style={{fontSize:13,fontWeight:500,color:"#0f172a",marginBottom:3}}>분석 1회당 100~200원의 비용이 제작자에게 발생합니다</div>
+                  <div style={{fontSize:13,color:"#64748b",lineHeight:1.65}}>서버 운영 및 AI 사용 비용이 발생하므로 무분별한 분석은 자제 부탁드립니다. 감사합니다.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>)}
 
         {/* STEP 2: UPLOAD */}
