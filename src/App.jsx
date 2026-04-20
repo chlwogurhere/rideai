@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.04-1";
+const VERSION = "ver 0.04-2";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -418,7 +418,31 @@ ${L(rS[0],rS[1],rEl[0],rEl[1]+6,14,"url(#ag)",hl.arm)}${L(rEl[0],rEl[1]+6,rW[0]-
 /* ── UI COMPONENTS ────────────────────────────────────────── */
 function Tag({type,children}){const m={good:["#f0fdf4","#166534"],warn:["#fef2f2","#991b1b"],info:["#eff6ff","#1e40af"]};const[bg,col]=m[type]||m.info;return <span style={{background:bg,color:col,fontSize:11,padding:"2px 10px",borderRadius:99,fontWeight:500}}>{children}</span>;}
 function ScoreBar({label,value,color}){return(<div style={{marginBottom:14}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:6,fontSize:14}}><span style={{color:"#475569"}}>{label}</span><span style={{fontWeight:500}}>{value}점</span></div><div style={{height:7,background:"rgba(0,0,0,0.08)",borderRadius:99}}><div style={{height:"100%",width:value+"%",background:color,borderRadius:99,transition:"width 1.2s ease"}}/></div></div>);}
-function FeedbackCard({type,tag,text}){const bc={good:"#16a34a",warn:"#dc2626",info:"#2563eb"}[type]||"#2563eb";return(<div style={{background:"#fff",border:"0.5px solid rgba(0,0,0,0.08)",borderLeft:"2.5px solid "+bc,borderRadius:8,padding:"14px 16px",marginBottom:10}}><div style={{marginBottom:8}}><Tag type={type}>{tag}</Tag></div><p style={{fontSize:14,color:"#0f172a",lineHeight:1.75,margin:0}}>{text}</p></div>);}
+function FeedbackCard({type,tag,text,actionSteps}){
+  const bc={good:"#16a34a",warn:"#dc2626",info:"#2563eb"}[type]||"#2563eb";
+  const steps = Array.isArray(actionSteps) ? actionSteps : [];
+  return(
+    <div style={{background:"#fff",border:"0.5px solid rgba(0,0,0,0.08)",borderLeft:"2.5px solid "+bc,borderRadius:8,padding:"14px 16px",marginBottom:10}}>
+      <div style={{marginBottom:8}}><Tag type={type}>{tag}</Tag></div>
+      <p style={{fontSize:14,color:"#0f172a",lineHeight:1.75,margin:0}}>{text}</p>
+      {steps.length>0&&(
+        <div style={{borderTop:"0.5px solid rgba(0,0,0,0.07)",marginTop:12,paddingTop:10}}>
+          <div style={{fontSize:11,fontWeight:500,color:"#64748b",marginBottom:8,display:"flex",alignItems:"center",gap:4}}>
+            <span style={{fontSize:13}}>💡</span> 이렇게 해보세요
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:7}}>
+            {steps.map((s,i)=>(
+              <div key={i} style={{display:"flex",alignItems:"flex-start",gap:8}}>
+                <span style={{minWidth:18,height:18,borderRadius:"50%",background:"#f1f5f9",border:"0.5px solid rgba(0,0,0,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:500,color:"#475569",flexShrink:0,marginTop:1}}>{i+1}</span>
+                <span style={{fontSize:13,color:"#475569",lineHeight:1.65}}>{s}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function FrameCard({frame}){
   const ref=useRef(null);
@@ -785,10 +809,10 @@ export default function App(){
         '{"frameIndex":6,"type":"good","title":"제목","desc":"전문용어(설명) 2문장"},'+
         '{"frameIndex":9,"type":"warn","title":"제목","desc":"전문용어(설명) 2문장"}'+
         '],'+
-        '"feedback":[{"type":"good","tag":"잘된 점","text":"KSIA 기준 자연스러운 코칭 말투 2~3문장"},{"type":"warn","tag":"개선 포인트","text":"KSIA 기준 자연스러운 코칭 말투 2~3문장"},{"type":"info","tag":"코치 조언","text":"KSIA 기준 자연스러운 코칭 말투 2~3문장"}],'+
-        '"tips":["팁1","팁2","팁3","팁4"]}'+
+        '"feedback":[{"type":"good","tag":"잘된 점","text":"KSIA 기준 잘된 부분 2~3문장","actionSteps":["구체적 동작1","동작2"]},{"type":"warn","tag":"개선 포인트","text":"개선방법 2~3문장","actionSteps":["언제어떻게 구체동작1","구체동작2"]},{"type":"info","tag":"코치 조언","text":"코칭 2~3문장","actionSteps":["구체동작1","구체동작2"]}],'+
+        '"tips":[{"text":"드릴팁1","detail":"구체적으로 어떻게 하는지 2문장"},{"text":"팁2","detail":"구체적 설명"},{"text":"팁3","detail":"구체적 설명"},{"text":"팁4","detail":"구체적 설명"}]}'+
         "\n규칙: frameIndex는 0~"+maxIdx+" 중 실제 라이더가 보이는 장면 선택, value 60-95, good 2개+warn 2개, 한국어."+
-        " 동일한 입력에 대해 항상 동일한 분석 결과를 출력하세요. 점수와 선택 장면이 일관되어야 합니다."
+        " 동일한 입력에 대해 항상 동일한 분석 결과를 출력하세요. 점수와 선택 장면이 일관되어야 합니다. 스노보드 종목일 경우 폴(pole)이 없으므로 폴 관련 언급 절대 금지."
       });
 
       let data;
@@ -1256,16 +1280,28 @@ export default function App(){
           </div>
           <div style={{marginBottom:16}}>
             <div style={{fontSize:14,fontWeight:600,marginBottom:12}}>코치 피드백</div>
-            {(result.feedback||[]).map((f,i)=><FeedbackCard key={i} {...f}/>)}
+            {(result.feedback||[]).map((f,i)=><FeedbackCard key={i} type={f.type} tag={f.tag} text={f.text} actionSteps={f.actionSteps}/>)}
           </div>
           <div style={{background:"#fff",border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:12,padding:"18px 20px",marginBottom:24}}>
             <div style={{fontSize:14,fontWeight:600,marginBottom:14}}>이렇게 연습해보세요 💡</div>
-            {(result.tips||[]).map((t,i)=>(
-              <div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",marginBottom:12}}>
-                <span style={{minWidth:24,height:24,background:"#eff6ff",borderRadius:99,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:600,color:"#1e40af",flexShrink:0}}>{i+1}</span>
-                <span style={{fontSize:14,lineHeight:1.65}}>{t}</span>
-              </div>
-            ))}
+            {(result.tips||[]).map((tip,i)=>{
+              const text = typeof tip==="object" ? tip.text : tip;
+              const detail = typeof tip==="object" ? tip.detail : null;
+              return(
+                <div key={i} style={{border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:8,overflow:"hidden",marginBottom:10}}>
+                  <div style={{padding:"11px 14px",display:"flex",gap:10,alignItems:"flex-start"}}>
+                    <span style={{minWidth:22,height:22,background:"#0f172a",borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:600,color:"#fff",flexShrink:0,marginTop:1}}>{i+1}</span>
+                    <span style={{fontSize:14,color:"#0f172a",lineHeight:1.65}}>{text}</span>
+                  </div>
+                  {detail&&(
+                    <div style={{background:"#f8fafc",borderTop:"0.5px solid rgba(0,0,0,0.07)",padding:"9px 14px 9px 46px"}}>
+                      <div style={{fontSize:11,fontWeight:500,color:"#64748b",marginBottom:4}}>구체적으로는</div>
+                      <div style={{fontSize:12,color:"#64748b",lineHeight:1.7}}>{detail}</div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
           {/* ── Star Feedback ── */}
           <div style={{background:"#fff",border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:12,padding:"18px 20px",marginBottom:16}}>
