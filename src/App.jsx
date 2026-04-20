@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.03-8";
+const VERSION = "ver 0.03-9";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -958,12 +958,18 @@ export default function App(){
                   <div style={{fontSize:13,color:"#64748b",lineHeight:1.65}}>분석 결과는 참고용이며 정확하지 않을 수 있습니다. 이용 후 피드백 버튼을 꼭 눌러주세요. 더 나은 서비스를 만드는 데 큰 도움이 됩니다.</div>
                 </div>
               </div>
-              <div style={{display:"flex",alignItems:"flex-start",gap:12,padding:"13px 16px"}}>
+              <div style={{display:"flex",alignItems:"flex-start",gap:12,padding:"13px 16px",borderBottom:"0.5px solid rgba(0,0,0,0.06)"}}>
                 <div style={{width:24,height:24,borderRadius:"50%",background:"#fef2f2",border:"0.5px solid #dc2626",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1,fontSize:13}}>💰</div>
                 <div>
                   <div style={{fontSize:13,fontWeight:500,color:"#0f172a",marginBottom:3}}>분석 1회당 100~200원의 비용이 제작자에게 발생합니다</div>
                   <div style={{fontSize:13,color:"#64748b",lineHeight:1.65}}>서버 운영 및 AI 사용 비용이 발생하므로 무분별한 분석은 자제 부탁드립니다. 감사합니다.</div>
                 </div>
+              </div>
+              <div style={{padding:"13px 16px",textAlign:"center"}}>
+                <a href="https://qr.kakaopay.com/FFxgVyI0s" target="_blank" rel="noopener noreferrer"
+                  style={{display:"inline-flex",alignItems:"center",gap:7,padding:"9px 20px",borderRadius:99,background:"#FEE500",color:"#3A1D1D",fontSize:13,fontWeight:600,cursor:"pointer",textDecoration:"none"}}>
+                  <span style={{fontSize:15}}>💛</span> 카카오페이로 후원하기
+                </a>
               </div>
             </div>
           </div>
@@ -1082,6 +1088,16 @@ export default function App(){
             </>) : (
               <div style={{fontSize:14,color:"#94a3b8"}}>✓ 피드백이 제출되었습니다. 감사합니다!</div>
             )}
+          </div>
+
+          {/* 후원하기 */}
+          <div style={{background:"#fff",border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:12,padding:"16px 20px",marginBottom:16,textAlign:"center"}}>
+            <div style={{fontSize:14,fontWeight:500,color:"#0f172a",marginBottom:4}}>☕ 제작자에게 커피 한 잔 후원하기</div>
+            <div style={{fontSize:12,color:"#94a3b8",marginBottom:14}}>서비스 운영에 큰 힘이 됩니다. 감사합니다 🙏</div>
+            <a href="https://qr.kakaopay.com/FFxgVyI0s" target="_blank" rel="noopener noreferrer"
+              style={{display:"inline-flex",alignItems:"center",gap:8,padding:"10px 24px",borderRadius:99,border:"none",background:"#FEE500",color:"#3A1D1D",fontSize:14,fontWeight:600,cursor:"pointer",textDecoration:"none"}}>
+              <span style={{fontSize:16}}>💛</span> 카카오페이로 후원하기
+            </a>
           </div>
 
           <button onClick={reset} style={{display:"block",margin:"0 auto",padding:"10px 28px",border:"0.5px solid rgba(0,0,0,0.15)",borderRadius:8,background:"transparent",color:"#64748b",fontSize:13,cursor:"pointer"}}>↩ 새 영상 분석하기</button>
