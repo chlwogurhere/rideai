@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.05-0";
+const VERSION = "ver 0.05-1";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -1021,7 +1021,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>Snow Riding AI ver 0.05-0 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>Snow Riding AI ver 0.05-1 made by GP</div>
           </div>
         </div>
       )}
@@ -1117,13 +1117,19 @@ export default function App(){
             </div>
             <div style={{fontSize:13,color:"#64748b",marginBottom:18}}>현재 실력 수준을 선택해주세요. 수준에 맞는 코칭을 드립니다.</div>
             <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:18}}>
-              {[
+              {(sport==="ski"?[
                 ["lv1","🌱","레벨 1","스노우플라우 · 스템턴 · 베이직 롱/숏턴"],
                 ["lv2","🔥","레벨 2","패러렐 롱/숏턴 · 카빙 · 게이트 · 모글"],
                 ["lv3","⭐","레벨 3","고급 기술 · 어떤 사면에서도 완벽한 표현"],
                 ["demon","👑","데몬스트레이터","최상위 · 국가대표 기술스키어 수준"],
                 ["unknown","❓","잘 모르겠어요","AI가 영상 보고 판단해 드립니다"],
-              ].map(([val,icon,title,desc])=>(
+              ]:[
+                ["lv1","🌱","레벨 1","기본 힐/토 사이드 엣지 전환 · 사이드슬리핑"],
+                ["lv2","🔥","레벨 2","카빙 롱턴 · 숏턴 · 제한활강"],
+                ["lv3","⭐","레벨 3","고급 기술 · 정교한 엣지 전환 · 어떤 사면에서도 안정"],
+                ["demon","👑","데몬스트레이터","최상위 · 국가대표 기술스노보더 수준"],
+                ["unknown","❓","잘 모르겠어요","AI가 영상 보고 판단해 드립니다"],
+              ]).map(([val,icon,title,desc])=>(
                 <button key={val} onClick={()=>setLevel(val)}
                   style={{width:"100%",padding:"12px 14px",borderRadius:12,border:level===val?"2px solid "+(sport==="ski"?"#2563eb":"#7c3aed"):"0.5px solid rgba(0,0,0,0.1)",background:level===val?(sport==="ski"?"#dbeafe":"#ede9fe"):"#fff",textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",gap:12}}>
                   <div style={{width:34,height:34,borderRadius:8,background:level===val?(sport==="ski"?"#2563eb":"#7c3aed"):"#f1f5f9",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>{icon}</div>
@@ -1289,10 +1295,30 @@ export default function App(){
                 {selectedHistory ? (
                   /* 선택된 기록 상세 */
                   <div style={{animation:"fadeUp 0.2s ease"}}>
-                    <button onClick={()=>setSelectedHistory(null)}
-                      style={{background:"none",border:"none",fontSize:13,color:"#64748b",cursor:"pointer",marginBottom:16,padding:0,display:"flex",alignItems:"center",gap:4}}>
-                      ← 목록으로
-                    </button>
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+                      <button onClick={()=>setSelectedHistory(null)}
+                        style={{background:"none",border:"none",fontSize:13,color:"#64748b",cursor:"pointer",padding:0,display:"flex",alignItems:"center",gap:4}}>
+                        ← 목록으로
+                      </button>
+                      <button onClick={()=>{
+                        if(!window.Kakao) return;
+                        if(!window.Kakao.isInitialized()) window.Kakao.init("c36b2a5e9a3466d999feca6a2ca957d9");
+                        const avg = selectedHistory?.scores?.length>0 ? Math.round(selectedHistory.scores.reduce((s,sc)=>s+sc.value,0)/selectedHistory.scores.length) : 0;
+                        window.Kakao.Share.sendDefault({
+                          objectType:"feed",
+                          content:{
+                            title:"Snow Riding AI 분석 결과",
+                            description:(selectedHistory.sport==="ski"?"스키":"스노보드")+" 분석 평균 "+avg+"점! AI 라이딩 코치에게 자세 분석받아보세요.",
+                            imageUrl:"https://rideai.vercel.app/og.png",
+                            link:{mobileWebUrl:"https://rideai.vercel.app",webUrl:"https://rideai.vercel.app"},
+                          },
+                          buttons:[{title:"무료로 분석받기",link:{mobileWebUrl:"https://rideai.vercel.app",webUrl:"https://rideai.vercel.app"}}],
+                        });
+                      }} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",borderRadius:99,background:"#FEE500",border:"none",color:"#3A1D1D",fontSize:12,fontWeight:600,cursor:"pointer"}}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="#3A1D1D"><path d="M12 2C6.477 2 2 5.918 2 10.773c0 3.11 1.964 5.843 4.928 7.406L5.94 22l5.04-2.67c.33.046.666.07 1.02.07 5.523 0 10-3.918 10-8.773C22 5.918 17.523 2 12 2z"/></svg>
+                        카카오 공유
+                      </button>
+                    </div>
                     <div style={{background:"#fff",border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:12,padding:"16px 18px",marginBottom:12}}>
                       <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
                         <span style={{fontSize:20}}>{selectedHistory.sport==="ski"?"🎿":"🏂"}</span>
