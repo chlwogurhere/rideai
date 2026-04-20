@@ -1009,7 +1009,6 @@ export default function App(){
               <div style={{fontWeight:600,color:"#475569",marginBottom:2}}>🔒 베타 서비스</div>
               <div>현재 초대된 사용자만 이용 가능합니다. 베타 참여는 운영자에게 문의하세요.</div>
             </div>
-            </div>
             <input
               type="password"
               placeholder="베타 접근 코드 입력"
@@ -1022,7 +1021,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>Snow Riding AI ver 0.02-3 · made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>Snow Riding AI ver 0.05-0 made by GP</div>
           </div>
         </div>
       )}
