@@ -705,7 +705,7 @@ export default function App(){
 잘된 자세 포인트: 엣지 전환이 부드럽고 리듬이 일정, 상체가 안정적이며 불필요한 움직임 없음, 양발에 균형 있는 체중 분배
 개선 필요 포인트: 엣지 전환 시 상체가 먼저 돌거나 뒤로 빠짐, 힐사이드·토사이드 한쪽이 불안정, 리듬이 깨지거나 속도 조절이 안됨`;
 
-      const termGuide = ksiaRef";
+      const termGuide = ksiaRef;
 
       const msgContent=[];
       if(frames.length>0){
