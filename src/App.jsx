@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.03-9";
+const VERSION = "ver 0.04-0";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -533,11 +533,33 @@ export default function App(){
 
   const [feedback,setFeedback]=useState(null); // null | 'good' | 'bad'
   const [feedbackDone,setFeedbackDone]=useState(false);
+  const [stars,setStars]=useState(0);
+  const [comment,setComment]=useState("");
+  const [starDone,setStarDone]=useState(false);
   const analysisIdRef = useRef(null);
   const resultRef = useRef(null);
   const shareRef = useRef(null);
 
   // Build a share-optimized canvas: no video, both good+warn frames shown
+  const submitStarFeedback = async () => {
+    if (starDone || stars === 0) return;
+    setStarDone(true);
+    try {
+      await fetch("https://script.google.com/macros/s/AKfycbz812_V3-2MKcMKetwBuGLNcsr7Rd5ofOT-2V8VdpSjZZYlJfbc9QLOOnwHKYkpgKg96g/exec", {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sport,
+          stars,
+          comment,
+          score_pose:    result?.scores?.[0]?.value || "",
+          score_balance: result?.scores?.[1]?.value || "",
+        }),
+      });
+    } catch(e) { console.warn("sheet feedback failed:", e.message); }
+  };
+
   const submitFeedback = async (type) => {
     if (feedbackDone) return;
     setFeedback(type);
@@ -967,9 +989,11 @@ export default function App(){
               </div>
               <div style={{padding:"13px 16px",textAlign:"center"}}>
                 <a href="https://qr.kakaopay.com/FFxgVyI0s" target="_blank" rel="noopener noreferrer"
-                  style={{display:"inline-flex",alignItems:"center",gap:7,padding:"9px 20px",borderRadius:99,background:"#FEE500",color:"#3A1D1D",fontSize:13,fontWeight:600,cursor:"pointer",textDecoration:"none"}}>
+                  style={{display:"inline-flex",alignItems:"center",gap:7,padding:"9px 20px",borderRadius:99,background:"#FEE500",color:"#3A1D1D",fontSize:13,fontWeight:600,textDecoration:"none",marginBottom:10}}>
                   <span style={{fontSize:15}}>💛</span> 카카오페이로 후원하기
                 </a>
+                <div style={{fontSize:12,fontWeight:500,color:"#0f172a",marginBottom:2}}>소중한 후원 감사합니다 🙇</div>
+                <div style={{fontSize:11,color:"#94a3b8"}}>후원금은 서버 비용과 AI 개선에 사용됩니다.</div>
               </div>
             </div>
           </div>
@@ -1069,35 +1093,55 @@ export default function App(){
               </div>
             ))}
           </div>
-          {/* ── Feedback ── */}
-          <div style={{background:"#fff",border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:12,padding:"18px 20px",marginBottom:16,textAlign:"center"}}>
-            {!feedbackDone ? (<>
-              <div style={{fontSize:14,fontWeight:500,color:"#0f172a",marginBottom:6}}>이 분석이 도움이 됐나요?</div>
-              <div style={{fontSize:12,color:"#94a3b8",marginBottom:14}}>피드백은 AI 코치 개선에 사용됩니다</div>
-              <div style={{display:"flex",gap:10,justifyContent:"center"}}>
-                <button onClick={()=>submitFeedback("good")} style={{padding:"10px 28px",borderRadius:99,fontSize:22,cursor:"pointer",border:"2px solid "+(feedback==="good"?"#16a34a":"rgba(0,0,0,0.1)"),background:feedback==="good"?"#f0fdf4":"#fff",transition:"all 0.2s"}}>
-                  👍
-                </button>
-                <button onClick={()=>submitFeedback("bad")} style={{padding:"10px 28px",borderRadius:99,fontSize:22,cursor:"pointer",border:"2px solid "+(feedback==="bad"?"#dc2626":"rgba(0,0,0,0.1)"),background:feedback==="bad"?"#fef2f2":"#fff",transition:"all 0.2s"}}>
-                  👎
-                </button>
+          {/* ── Star Feedback ── */}
+          <div style={{background:"#fff",border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:12,padding:"18px 20px",marginBottom:16}}>
+            {!starDone ? (<>
+              <div style={{fontSize:14,fontWeight:500,color:"#0f172a",marginBottom:4,textAlign:"center"}}>분석이 도움이 됐나요?</div>
+              <div style={{fontSize:12,color:"#94a3b8",marginBottom:14,textAlign:"center"}}>별점과 의견을 남겨주시면 AI 코치 개선에 활용됩니다</div>
+              {/* Stars */}
+              <div style={{display:"flex",justifyContent:"center",gap:8,marginBottom:14}}>
+                {[1,2,3,4,5].map(s=>(
+                  <button key={s} onClick={()=>setStars(s)}
+                    style={{fontSize:28,background:"none",border:"none",cursor:"pointer",opacity:s<=stars?1:0.25,transition:"all 0.15s",padding:"2px 4px"}}>
+                    ⭐
+                  </button>
+                ))}
               </div>
-              {feedback && <div style={{marginTop:12,fontSize:13,color:feedback==="good"?"#16a34a":"#dc2626",fontWeight:500}}>
-                {feedback==="good"?"감사합니다! 계속 발전하겠습니다 🙌":"소중한 피드백 감사합니다. 더 개선하겠습니다 💪"}
+              {/* Comment */}
+              <textarea
+                value={comment}
+                onChange={e=>setComment(e.target.value)}
+                placeholder="어떤 점이 좋았나요? 또는 아쉬웠나요? (선택)"
+                style={{width:"100%",padding:"10px 12px",borderRadius:8,border:"0.5px solid rgba(0,0,0,0.15)",fontSize:13,resize:"none",height:72,fontFamily:"inherit",boxSizing:"border-box",outline:"none",color:"#0f172a",background:"#f8fafc"}}
+              />
+              <button onClick={submitStarFeedback} disabled={stars===0}
+                style={{width:"100%",marginTop:10,padding:"11px 0",borderRadius:8,border:"none",background:stars>0?"#0f172a":"#e2e8f0",color:stars>0?"#fff":"#94a3b8",fontSize:14,fontWeight:500,cursor:stars>0?"pointer":"not-allowed"}}>
+                피드백 제출
+              </button>
+              {stars>0&&<div style={{marginTop:8,textAlign:"center",fontSize:12,color:"#94a3b8"}}>
+                {["","아쉬웠어요 😢","조금 아쉬워요 😕","괜찮았어요 😊","좋았어요 😄","최고예요 🤩"][stars]}
               </div>}
             </>) : (
-              <div style={{fontSize:14,color:"#94a3b8"}}>✓ 피드백이 제출되었습니다. 감사합니다!</div>
+              <div style={{textAlign:"center",padding:"8px 0"}}>
+                <div style={{fontSize:22,marginBottom:6}}>{"⭐".repeat(stars)}</div>
+                <div style={{fontSize:14,fontWeight:500,color:"#0f172a",marginBottom:3}}>소중한 피드백 감사합니다 🙇</div>
+                <div style={{fontSize:12,color:"#94a3b8"}}>더 나은 서비스로 보답하겠습니다!</div>
+              </div>
             )}
           </div>
 
           {/* 후원하기 */}
-          <div style={{background:"#fff",border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:12,padding:"16px 20px",marginBottom:16,textAlign:"center"}}>
+          <div style={{background:"#fff",border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:12,padding:"18px 20px",marginBottom:16,textAlign:"center"}}>
             <div style={{fontSize:14,fontWeight:500,color:"#0f172a",marginBottom:4}}>☕ 제작자에게 커피 한 잔 후원하기</div>
-            <div style={{fontSize:12,color:"#94a3b8",marginBottom:14}}>서비스 운영에 큰 힘이 됩니다. 감사합니다 🙏</div>
+            <div style={{fontSize:12,color:"#94a3b8",marginBottom:16}}>서비스 운영에 큰 힘이 됩니다. 감사합니다 🙏</div>
             <a href="https://qr.kakaopay.com/FFxgVyI0s" target="_blank" rel="noopener noreferrer"
-              style={{display:"inline-flex",alignItems:"center",gap:8,padding:"10px 24px",borderRadius:99,border:"none",background:"#FEE500",color:"#3A1D1D",fontSize:14,fontWeight:600,cursor:"pointer",textDecoration:"none"}}>
+              style={{display:"inline-flex",alignItems:"center",gap:7,padding:"11px 24px",borderRadius:99,background:"#FEE500",color:"#3A1D1D",fontSize:14,fontWeight:600,textDecoration:"none",marginBottom:14}}>
               <span style={{fontSize:16}}>💛</span> 카카오페이로 후원하기
             </a>
+            <div style={{borderTop:"0.5px solid rgba(0,0,0,0.08)",paddingTop:13}}>
+              <div style={{fontSize:13,fontWeight:500,color:"#0f172a",marginBottom:3}}>소중한 후원 감사합니다 🙇</div>
+              <div style={{fontSize:12,color:"#94a3b8",lineHeight:1.6}}>후원해주신 금액은 서버 비용과 AI 개선에 사용됩니다.</div>
+            </div>
           </div>
 
           <button onClick={reset} style={{display:"block",margin:"0 auto",padding:"10px 28px",border:"0.5px solid rgba(0,0,0,0.15)",borderRadius:8,background:"transparent",color:"#64748b",fontSize:13,cursor:"pointer"}}>↩ 새 영상 분석하기</button>
