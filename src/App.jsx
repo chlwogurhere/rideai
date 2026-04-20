@@ -1262,6 +1262,7 @@ export default function App(){
                   <div>
                     {history.map((h,i)=>{
                       const daysLeft = Math.ceil((TTL_MS-(Date.now()-h.savedAt))/(1000*60*60*24));
+                      const avgScore = h.scores.length>0 ? Math.round(h.scores.reduce((s,sc)=>s+sc.value,0)/h.scores.length) : 0;
                         const firstThumb = (h.frames||[]).find(f=>f.thumb)?.thumb || null;
                         return(
                         <button key={h.id} onClick={()=>setSelectedHistory(h)}
