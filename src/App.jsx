@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.04-5";
+const VERSION = "ver 0.05-0";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -530,9 +530,9 @@ function saveHistory(entry) {
   } catch(e) { console.warn("history save failed:", e); }
 }
 
-const STEPS=["종목 선택","영상 추가","분석","피사체 선택","피드백"];
+const STEPS=["종목 선택","레벨 선택","영상 추가","분석","피사체 선택","피드백"];
 function StepBar({current}){
-  const idx={sport:0,upload:1,loading:2,picking:3,done:4}[current]??0;
+  const idx={sport:0,level:1,upload:2,loading:3,picking:4,done:5,error:0,history:0}[current]??0;
   return(<div style={{display:"flex",alignItems:"flex-start",marginBottom:28}}>
     {STEPS.map((s,i)=>(
       <div key={i} style={{display:"flex",alignItems:"center",flex:i<STEPS.length-1?1:"none"}}>
@@ -706,8 +706,9 @@ export default function App(){
   };
 
   const [sport,setSport]=useState("ski");
+  const [level,setLevel]=useState(""); // "lv1"|"lv2"|"lv3"|"demon"|"unknown" 
   const [file,setFile]=useState(null);
-  const [phase,setPhase]=useState("sport"); // sport | upload | loading | picking | done | history
+  const [phase,setPhase]=useState("sport"); // sport | upload | loading | picking | done | history | error
   const [history,setHistory]=useState(()=>loadHistory());
   const [selectedHistory,setSelectedHistory]=useState(null);
   const [loadMsg,setLoadMsg]=useState("");
@@ -760,6 +761,9 @@ export default function App(){
 
       setLoadMsg("AI가 최적 장면 선택 중...");setPct(45);
       const isSki=sport==="ski", sl=isSki?"스키":"스노보드";
+      const levelMap={"lv1":"레벨1","lv2":"레벨2","lv3":"레벨3","demon":"데몬스트레이터","unknown":"","":""}; 
+      const levelStr = levelMap[level]||"";
+      const levelGuide = levelStr ? `[분석 기준: 응시자는 KSIA ${levelStr} 수준입니다. 이 수준에 맞는 기술 기준으로 분석하고 피드백하세요.]` : "";
       // KSIA 기반 코칭 기준
       const ksiaRef = isSki ? `
 [KSIA 스키 등급별 핵심 기준 — 대한스키지도자연맹]
@@ -830,10 +834,9 @@ export default function App(){
       }
       try{vid.currentTime=0;}catch(e){}
     }catch(outerErr){
-      console.error("run:",outerErr.message);setError(outerErr.message);
-      const data=defaultData(sport);
-      const annotated=(data.frames||[]).map(fd=>({...fd,canvas:null,svg:make3DFigureSVG(sport,fd.type,fd),time:null}));
-      setResult({...data,annotated});setTab("good");setPhase("done");
+      console.error("run:",outerErr.message);
+      setError(outerErr.message);
+      setPhase("error");
     }
   };
 
@@ -962,7 +965,7 @@ export default function App(){
 
   return(
     <div style={{minHeight:"100vh",background:"#f0f2f5"}}>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}*{box-sizing:border-box;margin:0;padding:0}
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}*{box-sizing:border-box;margin:0;padding:0}
       .ad-banner{display:flex;flex-direction:column;gap:16px;padding:20px 8px;}
       @media(max-width:1200px){.ad-left,.ad-right{display:none!important;}}
       `}</style>
@@ -982,14 +985,30 @@ export default function App(){
       {/* ── BETA PASSWORD GATE ── */}
       {!authed && (
         <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}}>
-          <div style={{background:"#fff",borderRadius:20,padding:"40px 32px",maxWidth:380,width:"100%",boxShadow:"0 4px 32px rgba(0,0,0,0.08)",textAlign:"center"}}>
-            <div style={{fontSize:44,marginBottom:16}}>⛷</div>
-            <div style={{fontSize:22,fontWeight:700,color:"#0f172a",marginBottom:6}}>Snow Riding AI<br/>Coaching Staff</div>
-            <div style={{fontSize:13,color:"#94a3b8",marginBottom:28}}>스키·스노보드 AI 라이딩 코치</div>
-            <div style={{background:"#f1f5f9",borderRadius:10,padding:"10px 14px",marginBottom:20,fontSize:13,color:"#64748b",lineHeight:1.7,textAlign:"left"}}>
-              <div style={{fontWeight:600,color:"#475569",marginBottom:4}}>🔒 베타 서비스</div>
-              <div>현재 초대된 사용자만 이용 가능합니다.</div>
-              <div>베타 참여를 원하시면 운영자에게 문의하세요.</div>
+          <div style={{background:"#fff",borderRadius:20,padding:"32px 24px",maxWidth:380,width:"100%",boxShadow:"0 4px 32px rgba(0,0,0,0.08)"}}>
+            <div style={{textAlign:"center",marginBottom:22}}>
+              <div style={{fontSize:44,marginBottom:10}}>⛷</div>
+              <div style={{fontSize:20,fontWeight:700,color:"#0f172a",lineHeight:1.3,marginBottom:4}}>Snow Riding AI<br/>Coaching Staff</div>
+              <div style={{fontSize:13,color:"#94a3b8"}}>스키·스노보드 AI 라이딩 코치</div>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
+              {[["🎬","영상 업로드","라이딩 영상을 올리면 AI가 자동으로 핵심 장면을 선택해요"],
+                ["🤖","AI 정밀 분석","KSIA 기준으로 자세·균형·기술을 코치처럼 분석해드려요"],
+                ["📊","맞춤 피드백","잘된 점과 개선 포인트를 슬로우모션과 함께 확인하세요"]
+              ].map(([icon,title,desc],i)=>(
+                <div key={i} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"10px 12px",background:"#f8fafc",borderRadius:10,border:"0.5px solid rgba(0,0,0,0.07)"}}>
+                  <span style={{fontSize:18,flexShrink:0,marginTop:1}}>{icon}</span>
+                  <div>
+                    <div style={{fontSize:12,fontWeight:500,color:"#0f172a",marginBottom:1}}>{title}</div>
+                    <div style={{fontSize:11,color:"#64748b",lineHeight:1.5}}>{desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{background:"#f1f5f9",borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:12,color:"#64748b",lineHeight:1.6}}>
+              <div style={{fontWeight:600,color:"#475569",marginBottom:2}}>🔒 베타 서비스</div>
+              <div>현재 초대된 사용자만 이용 가능합니다. 베타 참여는 운영자에게 문의하세요.</div>
+            </div>
             </div>
             <input
               type="password"
@@ -1037,7 +1056,7 @@ export default function App(){
           <div style={{fontSize:14,color:"#64748b",marginBottom:24}}>선택한 종목에 맞는 전문 용어로 분석해드립니다.</div>
           <div style={{display:"flex",gap:12,marginBottom:14}}>
             {[["ski","🎿","스키","#2563eb","#dbeafe","#1d4ed8"],["snowboard","🏂","스노보드","#7c3aed","#ede9fe","#6d28d9"]].map(([s,icon,lbl,ac,bg,bc])=>(
-              <button key={s} onClick={()=>{setSport(s);setPhase("upload");}} style={{flex:1,padding:"28px 16px",borderRadius:16,border:"2px solid "+ac,background:bg,color:bc,cursor:"pointer",textAlign:"center",boxShadow:"0 2px 12px "+ac+"22"}}>
+              <button key={s} onClick={()=>{setSport(s);setLevel("");setPhase("level");}} style={{flex:1,padding:"28px 16px",borderRadius:16,border:"2px solid "+ac,background:bg,color:bc,cursor:"pointer",textAlign:"center",boxShadow:"0 2px 12px "+ac+"22"}}>
                 <div style={{fontSize:40,marginBottom:10}}>{icon}</div>
                 <div style={{fontSize:17,fontWeight:600}}>{lbl}</div>
                 <div style={{fontSize:12,color:ac,marginTop:4,opacity:0.8}}>선택 →</div>
@@ -1089,6 +1108,41 @@ export default function App(){
 
         </div>)}
 
+        {/* LEVEL SELECT */}
+        {phase==="level"&&(
+          <div style={{animation:"fadeUp 0.3s ease"}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+              <span style={{fontSize:22}}>{sport==="ski"?"🎿":"🏂"}</span>
+              <span style={{fontSize:15,fontWeight:600,color:sport==="ski"?"#1d4ed8":"#6d28d9"}}>{sport==="ski"?"스키":"스노보드"} 레벨 선택</span>
+              <button onClick={()=>setPhase("sport")} style={{marginLeft:"auto",fontSize:12,color:"#94a3b8",background:"none",border:"none",cursor:"pointer"}}>← 종목 변경</button>
+            </div>
+            <div style={{fontSize:13,color:"#64748b",marginBottom:18}}>현재 실력 수준을 선택해주세요. 수준에 맞는 코칭을 드립니다.</div>
+            <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:18}}>
+              {[
+                ["lv1","🌱","레벨 1","스노우플라우 · 스템턴 · 베이직 롱/숏턴"],
+                ["lv2","🔥","레벨 2","패러렐 롱/숏턴 · 카빙 · 게이트 · 모글"],
+                ["lv3","⭐","레벨 3","고급 기술 · 어떤 사면에서도 완벽한 표현"],
+                ["demon","👑","데몬스트레이터","최상위 · 국가대표 기술스키어 수준"],
+                ["unknown","❓","잘 모르겠어요","AI가 영상 보고 판단해 드립니다"],
+              ].map(([val,icon,title,desc])=>(
+                <button key={val} onClick={()=>setLevel(val)}
+                  style={{width:"100%",padding:"12px 14px",borderRadius:12,border:level===val?"2px solid "+(sport==="ski"?"#2563eb":"#7c3aed"):"0.5px solid rgba(0,0,0,0.1)",background:level===val?(sport==="ski"?"#dbeafe":"#ede9fe"):"#fff",textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",gap:12}}>
+                  <div style={{width:34,height:34,borderRadius:8,background:level===val?(sport==="ski"?"#2563eb":"#7c3aed"):"#f1f5f9",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>{icon}</div>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:13,fontWeight:600,color:level===val?(sport==="ski"?"#1d4ed8":"#6d28d9"):"#0f172a"}}>{title}</div>
+                    <div style={{fontSize:11,color:"#64748b"}}>{desc}</div>
+                  </div>
+                  {level===val&&<div style={{width:18,height:18,borderRadius:"50%",background:sport==="ski"?"#2563eb":"#7c3aed",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"#fff",flexShrink:0}}>✓</div>}
+                </button>
+              ))}
+            </div>
+            <button onClick={()=>{if(level)setPhase("upload");}} disabled={!level}
+              style={{width:"100%",padding:14,borderRadius:10,border:"none",background:level?"#0f172a":"#e2e8f0",color:level?"#fff":"#94a3b8",fontSize:15,fontWeight:600,cursor:level?"pointer":"not-allowed"}}>
+              다음 →
+            </button>
+          </div>
+        )}
+
         {/* STEP 2: UPLOAD */}
         {phase==="upload"&&(<div style={{animation:"fadeUp 0.3s ease"}}>
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:20}}>
@@ -1121,20 +1175,101 @@ export default function App(){
             AI 분석 시작 →
           </button>
           {fileTooLarge&&<div style={{marginTop:10,textAlign:"center",fontSize:13,color:"#dc2626"}}>⚠️ 파일 크기가 100MB를 초과합니다. 더 작은 영상을 선택해주세요.</div>}
+
+          {/* 촬영 가이드 */}
+          <div style={{border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:10,overflow:"hidden",marginTop:14}}>
+            <div style={{background:"#f8fafc",padding:"9px 14px",borderBottom:"0.5px solid rgba(0,0,0,0.06)",display:"flex",alignItems:"center",gap:6}}>
+              <span style={{fontSize:14}}>📷</span>
+              <span style={{fontSize:12,fontWeight:500,color:"#0f172a"}}>잘 찍는 법 — 분석 정확도가 올라가요</span>
+            </div>
+            <div style={{padding:"12px 14px",display:"flex",flexDirection:"column",gap:9}}>
+              {[
+                ["#dbeafe","🎯","라이더를 화면 중앙에","라이더가 화면 가장자리로 벗어나면 포즈 감지가 어려워요"],
+                ["#dcfce7","📐","전신이 보이게 촬영","머리부터 발끝까지 보여야 자세 분석이 정확해요"],
+                ["#fef9c3","☀️","밝은 환경에서 촬영","역광이나 어두운 환경에서는 장면이 자동으로 제외돼요"],
+                ["#fce7f3","📏","너무 멀지 않게","라이더가 너무 작으면 관절 분석이 어려워요. 10~20m 이내 권장"],
+              ].map(([bg,icon,title,desc],i)=>(
+                <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start"}}>
+                  <div style={{width:28,height:28,borderRadius:8,background:bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>{icon}</div>
+                  <div>
+                    <div style={{fontSize:12,fontWeight:500,color:"#0f172a",marginBottom:1}}>{title}</div>
+                    <div style={{fontSize:11,color:"#64748b",lineHeight:1.5}}>{desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>)}
 
         {/* STEP 3: LOADING */}
-        {phase==="loading"&&(<div style={{textAlign:"center",padding:"56px 0",animation:"fadeUp 0.3s ease"}}>
-          <div style={{width:52,height:52,border:"3px solid rgba(0,0,0,0.08)",borderTopColor:"#0f172a",borderRadius:"50%",animation:"spin 0.85s linear infinite",margin:"0 auto 20px"}}/>
-          <div style={{fontSize:16,fontWeight:500,color:"#0f172a",marginBottom:8}}>{loadMsg}</div>
-          <div style={{fontSize:13,color:"#94a3b8",marginBottom:22}}>잠시만 기다려주세요...</div>
-          <div style={{maxWidth:260,margin:"0 auto",background:"rgba(0,0,0,0.06)",borderRadius:99,height:5,overflow:"hidden"}}>
+        {phase==="loading"&&(<div style={{animation:"fadeUp 0.3s ease",padding:"32px 0"}}>
+          <div style={{textAlign:"center",marginBottom:24}}>
+            <div style={{width:48,height:48,border:"3px solid rgba(0,0,0,0.08)",borderTopColor:"#0f172a",borderRadius:"50%",animation:"spin 0.85s linear infinite",margin:"0 auto 14px"}}/>
+            <div style={{fontSize:15,fontWeight:500,color:"#0f172a",marginBottom:4}}>{loadMsg}</div>
+            <div style={{fontSize:12,color:"#94a3b8"}}>잠시만 기다려주세요</div>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:7,marginBottom:20}}>
+            {[
+              ["영상 불러오기","영상 파일 처리 중",15],
+              ["후보 장면 추출","앞뒤 10% 제외 · 8장 분석",30],
+              ["관절 각도 측정","MediaPipe 포즈 분석",50],
+              ["AI 장면 선택 · 분석","잘된 2개 + 개선 필요 2개",70],
+              ["피드백 이미지 생성","장면 크롭 · 슬로우모션",90],
+            ].map(([title,desc,threshold],i)=>{
+              const done = pct>threshold+10;
+              const active = pct>=threshold && pct<=threshold+20;
+              return(
+                <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 12px",borderRadius:10,border: active?"1.5px solid #0f172a":"0.5px solid rgba(0,0,0,0.08)",background: done?"#f0fdf4": active?"#f8fafc":"#fff",opacity: (!done&&!active)?0.4:1,transition:"all 0.3s"}}>
+                  <div style={{width:22,height:22,borderRadius:"50%",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",background:done?"#16a34a":active?"transparent":"transparent",border:done?"none":active?"2px solid #0f172a":"1.5px solid rgba(0,0,0,0.2)",fontSize:11,color:done?"#fff":"#64748b",fontWeight:500}}>
+                    {done?"✓":i+1}
+                  </div>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:12,fontWeight:500,color:done?"#166534":active?"#0f172a":"#0f172a"}}>{title}</div>
+                    {active&&<div style={{fontSize:10,color:"#64748b",marginTop:1}}>{desc}</div>}
+                  </div>
+                  {active&&<div style={{width:6,height:6,borderRadius:"50%",background:"#0f172a",animation:"pulse 1s ease-in-out infinite"}}/>}
+                </div>
+              );
+            })}
+          </div>
+          <div style={{maxWidth:280,margin:"0 auto",background:"rgba(0,0,0,0.06)",borderRadius:99,height:4,overflow:"hidden"}}>
             <div style={{height:"100%",width:pct+"%",background:"#0f172a",borderRadius:99,transition:"width 0.5s"}}/>
           </div>
         </div>)}
 
         {/* STEP 4: PICKING */}
         {phase==="picking"&&capturedFrames.length>0&&(<div style={{animation:"fadeUp 0.3s ease"}}><SubjectPicker frames={capturedFrames} onDone={onPicksDone}/></div>)}
+
+        {/* ERROR PHASE */}
+        {phase==="error"&&(
+          <div style={{animation:"fadeUp 0.3s ease",padding:"24px 0"}}>
+            <div style={{textAlign:"center",marginBottom:22}}>
+              <div style={{width:56,height:56,borderRadius:"50%",background:"#fef2f2",border:"0.5px solid #fecaca",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px",fontSize:26}}>⚠️</div>
+              <div style={{fontSize:17,fontWeight:500,color:"#0f172a",marginBottom:6}}>분석 중 오류가 발생했어요</div>
+              <div style={{fontSize:13,color:"#64748b",lineHeight:1.7}}>AI 서버 응답이 없거나 영상 처리 중<br/>문제가 생겼습니다.</div>
+            </div>
+            <div style={{background:"#f8fafc",borderRadius:10,padding:"12px 16px",marginBottom:18,border:"0.5px solid rgba(0,0,0,0.08)"}}>
+              <div style={{fontSize:12,fontWeight:500,color:"#475569",marginBottom:8}}>이렇게 해보세요</div>
+              {["잠시 후 다시 시도해주세요","영상 파일이 100MB 이하인지 확인해주세요","크롬 브라우저에서 다시 시도해주세요"].map((t,i)=>(
+                <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:5}}>
+                  <span style={{fontSize:12,color:"#94a3b8",flexShrink:0}}>{i+1}.</span>
+                  <span style={{fontSize:12,color:"#64748b",lineHeight:1.6}}>{t}</span>
+                </div>
+              ))}
+            </div>
+            {error&&<div style={{background:"#fffbeb",borderRadius:8,padding:"8px 12px",marginBottom:16,border:"0.5px solid #fde68a"}}>
+              <div style={{fontSize:11,color:"#92400e",lineHeight:1.6}}>오류 내용: {error}</div>
+            </div>}
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              <button onClick={runAnalysis} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:14,fontWeight:500,cursor:"pointer"}}>
+                🔄 다시 시도하기
+              </button>
+              <button onClick={reset} style={{width:"100%",padding:"12px 0",borderRadius:10,border:"0.5px solid rgba(0,0,0,0.12)",background:"transparent",color:"#64748b",fontSize:14,cursor:"pointer"}}>
+                ↩ 처음으로 돌아가기
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* HISTORY VIEW */}
         {phase==="history"&&(
@@ -1303,13 +1438,33 @@ export default function App(){
         {/* STEP 5: DONE */}
         {phase==="done"&&result&&(<div style={{animation:"fadeUp 0.4s ease"}}>
           {/* Save/Share buttons */}
-          <div style={{display:"flex",gap:8,marginBottom:16}}>
-            <button onClick={shareResult} disabled={saving} style={{flex:1,padding:"11px 0",borderRadius:10,border:"0.5px solid rgba(0,0,0,0.15)",background:"#0f172a",color:"#fff",fontSize:14,fontWeight:500,cursor:saving?"not-allowed":"pointer",opacity:saving?0.6:1}}>
-              {saving?"처리 중...":"📤 공유하기"}
+          <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
+            <button onClick={()=>{
+              if(!window.Kakao) return alert("카카오 SDK 로딩 중입니다. 잠시 후 다시 시도해주세요.");
+              if(!window.Kakao.isInitialized()) window.Kakao.init("c36b2a5e9a3466d999feca6a2ca957d9");
+              const avg = result?.scores?.length>0 ? Math.round(result.scores.reduce((s,sc)=>s+sc.value,0)/result.scores.length) : 0;
+              window.Kakao.Share.sendDefault({
+                objectType:"feed",
+                content:{
+                  title:"Snow Riding AI 분석 결과 🎿",
+                  description:`${sport==="ski"?"스키":"스노보드"} 라이딩 분석 완료! 평균 ${avg}점\nAI가 분석한 내 라이딩 자세 확인해보세요!`,
+                  imageUrl:"https://rideai.vercel.app/og.png",
+                  link:{mobileWebUrl:"https://rideai.vercel.app",webUrl:"https://rideai.vercel.app"},
+                },
+                buttons:[{title:"무료로 분석받기 →",link:{mobileWebUrl:"https://rideai.vercel.app",webUrl:"https://rideai.vercel.app"}}],
+              });
+            }} style={{width:"100%",padding:"12px 0",borderRadius:10,border:"none",background:"#FEE500",color:"#3A1D1D",fontSize:14,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="#3A1D1D"><path d="M12 2C6.477 2 2 5.918 2 10.773c0 3.11 1.964 5.843 4.928 7.406L5.94 22l5.04-2.67c.33.046.666.07 1.02.07 5.523 0 10-3.918 10-8.773C22 5.918 17.523 2 12 2z"/></svg>
+              카카오톡으로 공유하기
             </button>
-            <button onClick={saveAsImage} disabled={saving} style={{flex:1,padding:"11px 0",borderRadius:10,border:"0.5px solid rgba(0,0,0,0.15)",background:"#fff",color:"#0f172a",fontSize:14,fontWeight:500,cursor:saving?"not-allowed":"pointer",opacity:saving?0.6:1}}>
-              {saving?"저장 중...":"💾 이미지 저장"}
-            </button>
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={shareResult} disabled={saving} style={{flex:1,padding:"11px 0",borderRadius:10,border:"0.5px solid rgba(0,0,0,0.15)",background:"#fff",color:"#0f172a",fontSize:13,fontWeight:500,cursor:saving?"not-allowed":"pointer",opacity:saving?0.6:1}}>
+                {saving?"처리 중...":"📤 기타 공유"}
+              </button>
+              <button onClick={saveAsImage} disabled={saving} style={{flex:1,padding:"11px 0",borderRadius:10,border:"0.5px solid rgba(0,0,0,0.15)",background:"#fff",color:"#0f172a",fontSize:13,fontWeight:500,cursor:saving?"not-allowed":"pointer",opacity:saving?0.6:1}}>
+                {saving?"저장 중...":"💾 이미지 저장"}
+              </button>
+            </div>
           </div>
           <div ref={resultRef}>
           {error&&<div style={{background:"#fffbeb",color:"#92400e",padding:"10px 14px",borderRadius:8,fontSize:13,marginBottom:16}}>⚠️ {error}</div>}
