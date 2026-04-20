@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.03-5";
+const VERSION = "ver 0.03-7";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -688,19 +688,34 @@ export default function App(){
 
       setLoadMsg("AI가 최적 장면 선택 중...");setPct(45);
       const isSki=sport==="ski", sl=isSki?"스키":"스노보드";
-      const termGuide=isSki
-        ?"스키 용어+괄호설명: '카빙 턴(날 세워 도는 기술)','엣지(스키 측면 날)','전경 자세(앞으로 기울임)','패럴렐(양 스키 나란히)','플렉션(무릎·발목 굽히기)','폴 플랜팅(폴 눈에 찍기)','상체 선행(상체가 먼저 도는 현상)'"
-        :"스노보드 용어+괄호설명: '토사이드(발가락 쪽 엣지)','힐사이드(뒤꿈치 쪽 엣지)','앵귤레이션(관절 꺾어 엣지 각도)','로테이션(어깨 방향 전환)','스탠스(발 위치와 넓이)','카빙(엣지로 정밀하게 도는 기술)'";
+      // KSIA 기반 코칭 기준
+      const ksiaRef = isSki ? `
+[KSIA 스키 등급별 핵심 기준 — 대한스키지도자연맹]
+레벨1 수준: 스노우플라우턴(V자 형태로 속도 조절하며 방향 전환), 스템턴(한쪽 스키를 벌려 시작하는 턴), 베이직 롱턴(큰 반경으로 리드미컬하게 내려오기), 베이직 숏턴(짧은 반경으로 연속 방향 전환)
+레벨2 수준: 패러렐 롱턴(양 스키 나란히 유지하며 카빙), 패러렐 숏턴(빠른 리듬으로 연속 패러렐 턴), 종합활강(다양한 기술 자연스럽게 연결)
+레벨3/데몬 수준: 모든 기술을 어느 사면에서나 완벽하게 표현, 상체와 하체의 분리가 명확, 엣지 체인지 타이밍과 압력 이동이 정교함
+
+잘된 자세 공통 포인트: 상체가 안정적이고 진행 방향을 향함, 무릎이 자연스럽게 굽혀져 충격을 흡수, 리듬감 있게 연속 동작, 양 스키(보드)에 균형 있는 압력
+개선 필요 공통 포인트: 상체가 먼저 돌아가거나 뒤로 빠짐, 무릎이 너무 펴지거나 안쪽으로 쏠림, 턴 리듬이 일정하지 않음, 한쪽에만 체중이 쏠림` :
+`[KSIA 스노보드 등급별 핵심 기준 — 대한스키지도자연맹]
+레벨1 수준: 힐사이드·토사이드 기본 엣지 전환, 가로지르기와 방향 전환의 기초
+레벨2 수준: 카빙 롱턴(엣지를 세워 정밀하게 호를 그리며 도는 기술), 숏턴(짧은 리듬으로 연속 방향 전환), 제한활강
+레벨3/데몬 수준: 토사이드·힐사이드 전환이 부드럽고 리듬감 있음, 상체 로테이션 타이밍이 정교, 어떤 설면에서도 안정적
+
+잘된 자세 포인트: 엣지 전환이 부드럽고 리듬이 일정, 상체가 안정적이며 불필요한 움직임 없음, 양발에 균형 있는 체중 분배
+개선 필요 포인트: 엣지 전환 시 상체가 먼저 돌거나 뒤로 빠짐, 힐사이드·토사이드 한쪽이 불안정, 리듬이 깨지거나 속도 조절이 안됨`;
+
+      const termGuide = ksiaRef";
 
       const msgContent=[];
       if(frames.length>0){
         msgContent.push({type:"text",text:
           "아래 "+frames.length+"개 이미지는 "+sl+" 라이딩 영상에서 균등하게 추출한 후보 장면입니다. "+
-          "전문 "+sl+" 코치로서 다음을 수행하세요:\n"+
-          "1. 각 장면에는 이미지와 함께 MediaPipe로 측정한 관절 각도 데이터가 제공됩니다.\n"+
-          "2. 포즈 측정값과 이미지를 함께 보고 자세를 판단하세요.\n"+
-          "3. 자세가 잘 된 장면 2개와 개선이 필요한 장면 2개를 선택하세요 (포즈 감지 실패 장면은 제외 우선).\n"+
-          "4. desc에는 반드시 측정된 각도 수치를 언급하세요. 예: '무릎 굴곡 110°로 적정 범위입니다', '상체 기울기 25°로 과도한 전경입니다'."
+          "1. MediaPipe 포즈 데이터는 참고만 하고, 이미지를 직접 보고 자세를 판단하세요.\\n"+
+          "2. 라이더가 잘 보이는 장면 중 잘된 2개, 개선 필요 2개를 선택하세요.\\n"+
+          "3. 각도 수치(°)는 절대 언급하지 마세요.\\n"+
+          "4. KSIA 기준으로 코치가 슬로프에서 직접 말하듯 자연스럽게 설명하세요."
+        });
         });
         frames.forEach((f,i)=>{
           const pd = poseDataList[i];
@@ -714,16 +729,16 @@ export default function App(){
       }
       const maxIdx = Math.max(frames.length-1, 0);
       msgContent.push({type:"text",text:
-        "전문 "+sl+" 코치로서 위 후보 장면 중 분석할 4개를 선택해 분석하세요. 설명 규칙: "+termGuide+
+        "당신은 KSIA(대한스키지도자연맹) 기준의 전문 "+sl+" 코치입니다.\n"+termGuide+"\n\n[코칭 언어 규칙] 각도 수치 언급 금지. 슬로프 옆에서 직접 코칭하듯 자연스럽게. 잘된 점은 구체적 칭찬, 개선점은 방법 제시.\n"+"위 후보 장면 중 라이더가 잘 보이는 4개를 선택하세요. "+
         "\n\nJSON으로만 응답(마크다운 없이):\n"+
         '{"scores":[{"label":"자세","value":75,"color":"#3b82f6"},{"label":"균형","value":70,"color":"#22c55e"},{"label":"기술","value":68,"color":"#f59e0b"}],'+
         '"frames":['+
-        '{"frameIndex":0,"type":"good","title":"제목10자이내","desc":"전문용어(설명) 2문장. 잘된 이유 구체적으로"},'+
-        '{"frameIndex":3,"type":"warn","title":"제목","desc":"전문용어(설명) 2문장. 개선 필요 이유 구체적으로"},'+
+        '{"frameIndex":0,"type":"good","title":"제목10자이내","desc":"코칭 말투로 2문장. 잘된 이유 구체적으로"},'+
+        '{"frameIndex":3,"type":"warn","title":"제목","desc":"코칭 말투로 2문장. 어떻게 고치면 좋을지 방법까지"},'+
         '{"frameIndex":6,"type":"good","title":"제목","desc":"전문용어(설명) 2문장"},'+
         '{"frameIndex":9,"type":"warn","title":"제목","desc":"전문용어(설명) 2문장"}'+
         '],'+
-        '"feedback":[{"type":"good","tag":"잘된 점","text":"전문용어(설명) 2~3문장"},{"type":"warn","tag":"개선 포인트","text":"전문용어(설명) 2~3문장"},{"type":"info","tag":"코치 조언","text":"전문용어(설명) 2~3문장"}],'+
+        '"feedback":[{"type":"good","tag":"잘된 점","text":"KSIA 기준 자연스러운 코칭 말투 2~3문장"},{"type":"warn","tag":"개선 포인트","text":"KSIA 기준 자연스러운 코칭 말투 2~3문장"},{"type":"info","tag":"코치 조언","text":"KSIA 기준 자연스러운 코칭 말투 2~3문장"}],'+
         '"tips":["팁1","팁2","팁3","팁4"]}'+
         "\n규칙: frameIndex는 0~"+maxIdx+" 중 실제 라이더가 보이는 장면 선택, value 60-95, good 2개+warn 2개, 한국어."+
         " 동일한 입력에 대해 항상 동일한 분석 결과를 출력하세요. 점수와 선택 장면이 일관되어야 합니다."
@@ -784,19 +799,19 @@ export default function App(){
           msg2.push({type:"text",text:"[정밀 장면 "+(i+1)+" — "+f.time+"초]"});
           msg2.push({type:"image",source:{type:"base64",media_type:"image/jpeg",data:f.data.split(",")[1]}});
         });
-        const termGuide2=isSki
-          ?"스키: 카빙 턴(날 세워 도는 기술),엣지(측면 날),전경 자세(앞으로 기울임),플렉션(무릎굽히기),상체 선행(상체가 먼저 도는 현상)"
-          :"스노보드: 토사이드(발가락 쪽 엣지),힐사이드(뒤꿈치 쪽 엣지),앵귤레이션(관절 꺾어 엣지 각도),로테이션(어깨 방향 전환),스탠스(발 위치)";
+        const termGuide2 = termGuide; // KSIA 기준 동일 적용
         msg2.push({type:"text",text:
-          "전문 "+sl+" 코치로서 위 크롭 이미지를 바탕으로 정밀 분석하세요. 설명: "+termGuide2+
-          "\n\nJSON으로만 응답(마크다운 없이):\n"+
+          "당신은 KSIA 기준의 전문 "+sl+" 코치입니다. 라이더를 가까이서 본 이 장면을 바탕으로 정밀 코칭을 해주세요.\n"+
+          "각도 수치 없이, 슬로프에서 직접 코칭하듯 자연스럽게 설명하세요.\n"+
+          "잘된 점은 구체적으로 칭찬하고, 개선점은 '이렇게 해보세요' 식으로 방법을 제시하세요.\n\n"+
+          "JSON으로만 응답(마크다운 없이):\n"+
           '{"scores":[{"label":"자세","value":78,"color":"#3b82f6"},{"label":"균형","value":72,"color":"#22c55e"},{"label":"기술","value":70,"color":"#f59e0b"}],'+
-          '"frames":[{"frameIndex":0,"type":"good","title":"제목10자","desc":"신체부위 구체적 분석 2문장","annotations":[{"x":0.5,"y":0.45,"type":"good","label":"라벨","arrow":{"x":0.5,"y":0.6}}]},'+
-          '{"frameIndex":1,"type":"warn","title":"제목","desc":"신체부위 구체적 분석 2문장","annotations":[{"x":0.5,"y":0.45,"type":"warn","label":"라벨","arrow":{"x":0.5,"y":0.58}}]},'+
-          '{"frameIndex":2,"type":"good","title":"제목","desc":"신체부위 구체적 분석 2문장","annotations":[{"x":0.5,"y":0.45,"type":"good","label":"라벨","arrow":{"x":0.5,"y":0.6}}]},'+
-          '{"frameIndex":3,"type":"warn","title":"제목","desc":"신체부위 구체적 분석 2문장","annotations":[{"x":0.5,"y":0.45,"type":"warn","label":"라벨","arrow":{"x":0.5,"y":0.58}}]}],'+
-          '"feedback":[{"type":"good","tag":"잘된 점","text":"구체적 칭찬 2~3문장"},{"type":"warn","tag":"개선 포인트","text":"구체적 개선점 2~3문장"},{"type":"info","tag":"코치 조언","text":"실용적 훈련 조언 2~3문장"}],'+
-          '"tips":["구체적 팁1","팁2","팁3","팁4"]}'+
+          '"frames":[{"frameIndex":0,"type":"good","title":"제목10자","desc":"KSIA 기준 자연스러운 코칭 말투 2문장","annotations":[{"x":0.5,"y":0.45,"type":"good","label":"라벨","arrow":{"x":0.5,"y":0.6}}]},'+
+          '{"frameIndex":1,"type":"warn","title":"제목","desc":"KSIA 기준 자연스러운 코칭 말투 2문장","annotations":[{"x":0.5,"y":0.45,"type":"warn","label":"라벨","arrow":{"x":0.5,"y":0.58}}]},'+
+          '{"frameIndex":2,"type":"good","title":"제목","desc":"KSIA 기준 자연스러운 코칭 말투 2문장","annotations":[{"x":0.5,"y":0.45,"type":"good","label":"라벨","arrow":{"x":0.5,"y":0.6}}]},'+
+          '{"frameIndex":3,"type":"warn","title":"제목","desc":"KSIA 기준 자연스러운 코칭 말투 2문장","annotations":[{"x":0.5,"y":0.45,"type":"warn","label":"라벨","arrow":{"x":0.5,"y":0.58}}]}],'+
+          '"feedback":[{"type":"good","tag":"잘된 점","text":"KSIA 기준 잘된 부분 코칭 말투 2~3문장"},{"type":"warn","tag":"개선 포인트","text":"KSIA 기준 개선방법 코칭 말투 2~3문장"},{"type":"info","tag":"코치 조언","text":"슬로프에서 바로 해볼 수 있는 팁 2~3문장"}],'+
+          '"tips":["슬로프에서 바로 해볼 드릴 팁1","팁2","팁3","팁4"]}'+
           "\n규칙: value 60-95, good/warn 각2개, 한국어, 크롭이미지 기준 x/y(0.3~0.7 범위에 라이더 있음). 동일 입력에 항상 동일 결과를 출력하세요."
         });
         const raw2=await apiCall([{role:"user",content:msg2}],"You are a JSON API. Output ONLY a valid JSON object. No markdown. No code fences.",apiKey);
