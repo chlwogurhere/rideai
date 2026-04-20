@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.04-2";
+const VERSION = "ver 0.04-3";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -1185,21 +1185,39 @@ export default function App(){
                       <div style={{fontSize:13,fontWeight:500,color:"#475569",marginBottom:10}}>코치 피드백</div>
                       {(selectedHistory.feedback||[]).map((f,i)=>{
                         const bc={good:"#16a34a",warn:"#dc2626",info:"#2563eb"}[f.type]||"#2563eb";
+                        const steps = Array.isArray(f.actionSteps) ? f.actionSteps : [];
                         return(<div key={i} style={{borderLeft:"3px solid "+bc,paddingLeft:10,marginBottom:10}}>
                           <div style={{fontSize:11,fontWeight:600,color:bc,marginBottom:3}}>{f.tag}</div>
-                          <div style={{fontSize:12,color:"#0f172a",lineHeight:1.6}}>{f.text}</div>
+                          <div style={{fontSize:12,color:"#0f172a",lineHeight:1.6,marginBottom:steps.length>0?7:0}}>{f.text}</div>
+                          {steps.length>0&&<div style={{borderTop:"0.5px solid rgba(0,0,0,0.07)",paddingTop:7}}>
+                            <div style={{fontSize:10,fontWeight:500,color:"#64748b",marginBottom:5}}>💡 이렇게 해보세요</div>
+                            {steps.map((s,j)=>(<div key={j} style={{display:"flex",gap:6,alignItems:"flex-start",marginBottom:4}}>
+                              <span style={{minWidth:16,height:16,borderRadius:"50%",background:"#f1f5f9",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,color:"#475569",flexShrink:0,marginTop:1}}>{j+1}</span>
+                              <span style={{fontSize:11,color:"#475569",lineHeight:1.6}}>{s}</span>
+                            </div>))}
+                          </div>}
                         </div>);
                       })}
                     </div>
                     {(selectedHistory.tips||[]).length>0&&(
                       <div style={{background:"#fff",border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:12,padding:"16px 18px"}}>
                         <div style={{fontSize:13,fontWeight:500,color:"#475569",marginBottom:10}}>연습 팁 💡</div>
-                        {selectedHistory.tips.map((t,i)=>(
-                          <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:8}}>
-                            <span style={{minWidth:20,height:20,background:"#eff6ff",borderRadius:99,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:600,color:"#1e40af",flexShrink:0}}>{i+1}</span>
-                            <span style={{fontSize:12,color:"#475569",lineHeight:1.6}}>{t}</span>
-                          </div>
-                        ))}
+                        {selectedHistory.tips.map((tip,i)=>{
+                          const txt = typeof tip==="object" ? tip.text : tip;
+                          const det = typeof tip==="object" ? tip.detail : null;
+                          return(
+                            <div key={i} style={{border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:8,overflow:"hidden",marginBottom:8}}>
+                              <div style={{padding:"9px 12px",display:"flex",gap:9,alignItems:"flex-start"}}>
+                                <span style={{minWidth:20,height:20,background:"#0f172a",borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:600,color:"#fff",flexShrink:0,marginTop:1}}>{i+1}</span>
+                                <span style={{fontSize:13,color:"#0f172a",lineHeight:1.6}}>{txt}</span>
+                              </div>
+                              {det&&<div style={{background:"#f8fafc",borderTop:"0.5px solid rgba(0,0,0,0.07)",padding:"7px 12px 7px 41px"}}>
+                                <div style={{fontSize:10,fontWeight:500,color:"#64748b",marginBottom:3}}>구체적으로는</div>
+                                <div style={{fontSize:11,color:"#64748b",lineHeight:1.65}}>{det}</div>
+                              </div>}
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
