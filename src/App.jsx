@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.05-5";
+const VERSION = "ver 0.05-6";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -518,8 +518,8 @@ function SubjectPicker({frames,onDone}){
 /* ── STEP BAR ─────────────────────────────────────────────── */
 /* ── History helpers (localStorage, max 5, 7-day TTL) ────── */
 const HISTORY_KEY = "rideai_history";
-const MAX_HISTORY = 5;
-const TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7일
+const MAX_HISTORY = 10;
+const TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30일
 
 function loadHistory() {
   try {
@@ -717,7 +717,8 @@ export default function App(){
 
   const [sport,setSport]=useState("ski");
   const [level,setLevel]=useState(""); // "lv1"|"lv2"|"lv3"|"demon"|"unknown"
-  const [stance,setStance]=useState("regular"); // "regular"|"goofy" (보드 전용) 
+  const [stance,setStance]=useState("regular"); // "regular"|"goofy" (보드 전용)
+  const [focusSkill,setFocusSkill]=useState("전체"); // 집중 분석 기술 
   const [file,setFile]=useState(null);
   const [phase,setPhase]=useState("sport"); // sport | upload | loading | picking | done | history | error
   const [history,setHistory]=useState(()=>loadHistory());
@@ -776,6 +777,9 @@ export default function App(){
       const levelStr = levelMap[level]||"";
       const stanceGuide = !isSki ? `[스탠스: ${stance==="goofy"?"구피(오른발 앞)":"레귤러(왼발 앞)"}]` : "";
       const levelGuide = levelStr ? `[분석 기준: 응시자는 KSIA ${levelStr} 수준입니다. 이 수준에 맞는 기술 기준으로 분석하고 피드백하세요.] ${stanceGuide}` : stanceGuide;
+      const focusGuide = focusSkill && focusSkill !== "전체"
+        ? `[집중 분석 기술: ${focusSkill}. 이 기술에 관련된 부분을 가장 중점적으로 분석하고, 피드백과 팁도 이 기술 위주로 작성하세요.]`
+        : "";
       // KSIA 기반 코칭 기준
       const ksiaRef = isSki ? `
 [KSIA 스키 등급별 핵심 기준 — 대한스키지도자연맹]
@@ -955,6 +959,7 @@ export default function App(){
       id: aid,
       savedAt: Date.now(),
       sport,
+      focusSkill: focusSkill||"전체",
       scores: refinedData.scores || [],
       feedback: refinedData.feedback || [],
       tips: refinedData.tips || [],
@@ -1033,7 +1038,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-5 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-6 made by GP</div>
           </div>
         </div>
       )}
@@ -1083,7 +1088,7 @@ export default function App(){
             {history.length>0&&<span style={{background:"#0f172a",color:"#fff",fontSize:11,fontWeight:600,padding:"1px 7px",borderRadius:99}}>{history.length}</span>}
           </button>
           <div style={{fontSize:11,color:"#94a3b8",lineHeight:1.8,padding:"0 2px"}}>
-            ⚠ 기록 안내: 최근 5개까지 보관 · 7일 후 자동 삭제 · 같은 기기/브라우저에서만 확인 가능 · GIF/동영상은 저장되지 않습니다
+            ⚠ 기록 안내: 최근 10개까지 보관 · 30일 후 자동 삭제 · 같은 기기/브라우저에서만 확인 가능 · GIF/동영상은 저장되지 않습니다
           </div>
 
           {/* ── 서비스 안내 ── */}
@@ -1153,6 +1158,25 @@ export default function App(){
                 </button>
               ))}
             </div>
+            {/* 집중 기술 선택 */}
+            <div style={{marginBottom:16}}>
+              <div style={{fontSize:13,fontWeight:500,color:"#0f172a",marginBottom:8}}>오늘 집중할 기술 <span style={{fontSize:11,color:"#94a3b8",fontWeight:400}}>(선택)</span></div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                {(sport==="ski"
+                  ? ["전체","카빙 턴","숏턴","롱턴","균형·중심","상체 안정"]
+                  : ["전체","카빙 턴","숏턴","엣지 전환","균형·중심","로테이션"]
+                ).map(sk=>(
+                  <button key={sk} onClick={()=>setFocusSkill(sk)}
+                    style={{padding:"7px 14px",borderRadius:99,border:focusSkill===sk?"1.5px solid "+(sport==="ski"?"#2563eb":"#7c3aed"):"0.5px solid rgba(0,0,0,0.1)",
+                      background:focusSkill===sk?(sport==="ski"?"#dbeafe":"#ede9fe"):"#fff",
+                      color:focusSkill===sk?(sport==="ski"?"#1d4ed8":"#6d28d9"):"#475569",
+                      fontSize:12,fontWeight:focusSkill===sk?600:400,cursor:"pointer"}}>
+                    {sk==="전체"?"🎯 전체 분석":sk}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* 스노보드만 스탠스 선택 표시 */}
             {sport==="snowboard"&&(
               <div style={{marginBottom:16}}>
@@ -1446,6 +1470,71 @@ export default function App(){
                 ) : (
                   /* 기록 목록 */
                   <div>
+                    {/* ── 시즌 리포트 ── */}
+                    {history.length >= 2 && (()=>{
+                      const avg = Math.round(history.reduce((s,h)=>{
+                        const hAvg = h.scores.length>0 ? h.scores.reduce((a,sc)=>a+sc.value,0)/h.scores.length : 0;
+                        return s+hAvg;
+                      },0)/history.length);
+                      const best = history.reduce((b,h)=>{
+                        const hAvg = h.scores.length>0 ? Math.round(h.scores.reduce((a,sc)=>a+sc.value,0)/h.scores.length):0;
+                        return hAvg>(b.score||0)?{...h,score:hAvg}:b;
+                      },{score:0});
+                      const first = history[history.length-1];
+                      const last  = history[0];
+                      const firstAvg = first.scores.length>0?Math.round(first.scores.reduce((a,sc)=>a+sc.value,0)/first.scores.length):0;
+                      const lastAvg  = last.scores.length>0?Math.round(last.scores.reduce((a,sc)=>a+sc.value,0)/last.scores.length):0;
+                      const trend = lastAvg - firstAvg;
+                      // 가장 많이 나온 개선 포인트
+                      const warnTexts = history.flatMap(h=>(h.feedback||[]).filter(f=>f.type==="warn").map(f=>f.tag||""));
+                      const topWarn = warnTexts.length>0 ? warnTexts.sort((a,b)=>warnTexts.filter(x=>x===b).length-warnTexts.filter(x=>x===a).length)[0] : null;
+                      return(
+                        <div style={{background:"#0f172a",borderRadius:12,padding:"16px 18px",marginBottom:14,color:"#fff"}}>
+                          <div style={{fontSize:13,fontWeight:600,color:"#94a3b8",marginBottom:12,display:"flex",alignItems:"center",gap:6}}>
+                            <span style={{fontSize:15}}>📊</span> 시즌 리포트
+                          </div>
+                          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+                            <div style={{background:"rgba(255,255,255,0.07)",borderRadius:8,padding:"10px 12px"}}>
+                              <div style={{fontSize:10,color:"#64748b",marginBottom:3}}>총 분석 횟수</div>
+                              <div style={{fontSize:22,fontWeight:700,color:"#fff"}}>{history.length}<span style={{fontSize:12,color:"#64748b",marginLeft:2}}>회</span></div>
+                            </div>
+                            <div style={{background:"rgba(255,255,255,0.07)",borderRadius:8,padding:"10px 12px"}}>
+                              <div style={{fontSize:10,color:"#64748b",marginBottom:3}}>평균 점수</div>
+                              <div style={{fontSize:22,fontWeight:700,color:"#fff"}}>{avg}<span style={{fontSize:12,color:"#64748b",marginLeft:2}}>점</span></div>
+                            </div>
+                            <div style={{background:"rgba(255,255,255,0.07)",borderRadius:8,padding:"10px 12px"}}>
+                              <div style={{fontSize:10,color:"#64748b",marginBottom:3}}>최고 기록</div>
+                              <div style={{fontSize:22,fontWeight:700,color:"#38bdf8"}}>{best.score}<span style={{fontSize:12,color:"#64748b",marginLeft:2}}>점</span></div>
+                            </div>
+                            <div style={{background:"rgba(255,255,255,0.07)",borderRadius:8,padding:"10px 12px"}}>
+                              <div style={{fontSize:10,color:"#64748b",marginBottom:3}}>점수 변화</div>
+                              <div style={{fontSize:20,fontWeight:700,color:trend>=0?"#4ade80":"#f87171"}}>{trend>=0?"+":""}{trend}<span style={{fontSize:12,marginLeft:2}}>{trend>=0?"📈":"📉"}</span></div>
+                            </div>
+                          </div>
+                          {topWarn&&<div style={{background:"rgba(255,255,255,0.05)",borderRadius:8,padding:"9px 12px",fontSize:12,color:"#94a3b8"}}>
+                            <span style={{color:"#fbbf24"}}>⚠ </span>자주 나온 개선 포인트: <span style={{color:"#fff",fontWeight:500}}>{topWarn}</span>
+                          </div>}
+                          <button onClick={()=>{
+                            if(!window.Kakao) return;
+                            if(!window.Kakao.isInitialized()) window.Kakao.init("c36b2a5e9a3466d999feca6a2ca957d9");
+                            window.Kakao.Share.sendDefault({
+                              objectType:"feed",
+                              content:{
+                                title:"SNOWRIDE AI 시즌 리포트",
+                                description:"총 "+history.length+"회 분석 · 평균 "+avg+"점 · 최고 "+best.score+"점"+(trend>=0?" · "+trend+"점 성장":""),
+                                imageUrl:"https://rideai.vercel.app/logo.png",
+                                link:{mobileWebUrl:"https://rideai.vercel.app",webUrl:"https://rideai.vercel.app"},
+                              },
+                              buttons:[{title:"나도 분석받기",link:{mobileWebUrl:"https://rideai.vercel.app",webUrl:"https://rideai.vercel.app"}}],
+                            });
+                          }} style={{width:"100%",marginTop:10,padding:"9px 0",borderRadius:8,background:"#FEE500",border:"none",color:"#3A1D1D",fontSize:12,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="#3A1D1D"><path d="M12 2C6.477 2 2 5.918 2 10.773c0 3.11 1.964 5.843 4.928 7.406L5.94 22l5.04-2.67c.33.046.666.07 1.02.07 5.523 0 10-3.918 10-8.773C22 5.918 17.523 2 12 2z"/></svg>
+                            시즌 리포트 카카오 공유
+                          </button>
+                        </div>
+                      );
+                    })()}
+
                     {history.map((h,i)=>{
                       const daysLeft = Math.ceil((TTL_MS-(Date.now()-h.savedAt))/(1000*60*60*24));
                       const avgScore = h.scores.length>0 ? Math.round(h.scores.reduce((s,sc)=>s+sc.value,0)/h.scores.length) : 0;
@@ -1466,6 +1555,11 @@ export default function App(){
                               <div style={{fontSize:17,fontWeight:700,color:"#0f172a"}}>{avgScore}점</div>
                             </div>
                             <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+                              {h.focusSkill&&h.focusSkill!=="전체"&&(
+                                <span style={{fontSize:11,background:"#dbeafe",color:"#1d4ed8",padding:"2px 8px",borderRadius:99,fontWeight:500}}>
+                                  🎯 {h.focusSkill}
+                                </span>
+                              )}
                               {h.scores.map((s,j)=>(
                                 <span key={j} style={{fontSize:11,background:"#f8fafc",color:"#475569",padding:"2px 7px",borderRadius:99,border:"0.5px solid rgba(0,0,0,0.08)"}}>
                                   {s.label} {s.value}점
@@ -1477,7 +1571,7 @@ export default function App(){
                       );
                     })}
                     <div style={{fontSize:11,color:"#94a3b8",textAlign:"center",marginTop:8,lineHeight:1.8}}>
-                      최근 {history.length}개 기록 · 최대 5개 보관 · 7일 후 자동 삭제
+                      최근 {history.length}개 기록 · 최대 10개 보관 · 30일 후 자동 삭제
                     </div>
                   </div>
                 )}
