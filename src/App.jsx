@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.05-2";
+const VERSION = "ver 0.05-3";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -987,9 +987,9 @@ export default function App(){
         <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}}>
           <div style={{background:"#fff",borderRadius:20,padding:"32px 24px",maxWidth:380,width:"100%",boxShadow:"0 4px 32px rgba(0,0,0,0.08)"}}>
             <div style={{textAlign:"center",marginBottom:22}}>
-              <div style={{fontSize:44,marginBottom:10}}>⛷</div>
-              <div style={{fontSize:20,fontWeight:700,color:"#0f172a",lineHeight:1.3,marginBottom:4}}>Snow Riding AI<br/>Coaching Staff</div>
-              <div style={{fontSize:13,color:"#94a3b8"}}>스키·스노보드 AI 라이딩 코치</div>
+              <img src="/logo.png" alt="SNOWRIDE AI" style={{width:120,height:120,objectFit:"contain",marginBottom:8,display:"block",margin:"0 auto 8px"}}/>
+              <div style={{fontSize:18,fontWeight:900,color:"#0d47a1",letterSpacing:0.5,marginBottom:2}}>SNOW<span style={{color:"#2196f3"}}>RIDE</span></div>
+              <div style={{fontSize:10,color:"#64748b",letterSpacing:2}}>AI COACHING STAFF</div>
             </div>
             <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
               {[["🎬","영상 업로드","라이딩 영상을 올리면 AI가 자동으로 핵심 장면을 선택해요"],
@@ -1021,7 +1021,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>Snow Riding AI ver 0.05-2 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-3 made by GP</div>
           </div>
         </div>
       )}
@@ -1030,8 +1030,8 @@ export default function App(){
 
         {/* HEADER */}
         <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:24}}>
-          <div style={{width:42,height:42,background:"#eff6ff",borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>⛷</div>
-          <div><div style={{fontSize:15,fontWeight:700,color:"#0f172a",lineHeight:1.3}}>Snow Riding AI<br/>Coaching Staff</div><div style={{fontSize:12,color:"#94a3b8"}}>스키·스노보드 AI 라이딩 코치</div></div>
+          <div style={{width:42,height:42,background:"#eff6ff",borderRadius:10,overflow:"hidden",flexShrink:0}}><img src="/logo.png" alt="SNOWRIDE" style={{width:40,height:40,objectFit:"contain"}}/></div>
+          <div><div style={{fontSize:13,fontWeight:900,color:"#0d47a1",letterSpacing:0.5}}>SNOW<span style={{color:"#2196f3"}}>RIDE</span></div><div style={{fontSize:9,color:"#94a3b8",letterSpacing:1.5}}>AI COACHING STAFF</div></div>
           {!import.meta.env.VITE_ANTHROPIC_KEY && (
             <button onClick={()=>setShowKeyInput(v=>!v)} style={{marginLeft:"auto",padding:"6px 12px",borderRadius:8,border:"0.5px solid rgba(0,0,0,0.15)",background:apiKey?"#f0fdf4":"#fef2f2",color:apiKey?"#166534":"#991b1b",fontSize:12,cursor:"pointer"}}>
               {apiKey?"🔑 API 키 설정됨":"🔑 API 키 필요"}
@@ -1307,7 +1307,7 @@ export default function App(){
                         window.Kakao.Share.sendDefault({
                           objectType:"feed",
                           content:{
-                            title:"Snow Riding AI 분석 결과",
+                            title:"SNOWRIDE AI 분석 결과",
                             description:(selectedHistory.sport==="ski"?"스키":"스노보드")+" 분석 평균 "+avg+"점! AI 라이딩 코치에게 자세 분석받아보세요.",
                             link:{mobileWebUrl:"https://rideai.vercel.app",webUrl:"https://rideai.vercel.app"},
                           },
@@ -1470,7 +1470,8 @@ export default function App(){
               window.Kakao.Share.sendDefault({
                 objectType:"feed",
                 content:{
-                  title:"Snow Riding AI 분석 결과 🎿",
+                  title:"SNOWRIDE AI 분석 결과",
+                  imageUrl:"https://rideai.vercel.app/logo.png",
                   description:`${sport==="ski"?"스키":"스노보드"} 라이딩 분석 완료! 평균 ${avg}점\nAI가 분석한 내 라이딩 자세 확인해보세요!`,
                   link:{mobileWebUrl:"https://rideai.vercel.app",webUrl:"https://rideai.vercel.app"},
                 },
@@ -1596,8 +1597,8 @@ export default function App(){
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16,paddingBottom:12,borderBottom:"1px solid rgba(0,0,0,0.08)"}}>
               <div style={{fontSize:28}}>⛷</div>
               <div>
-                <div style={{fontSize:18,fontWeight:700,color:"#0f172a"}}>Snow Riding AI Coaching Staff 분석 결과</div>
-                <div style={{fontSize:12,color:"#94a3b8"}}>Snow Riding AI Coaching Staff · rideai.vercel.app</div>
+                <div style={{fontSize:18,fontWeight:700,color:"#0f172a"}}>SNOWRIDE AI COACHING STAFF 분석 결과</div>
+                <div style={{fontSize:12,color:"#94a3b8"}}>SNOWRIDE AI COACHING STAFF · rideai.vercel.app</div>
               </div>
               <div style={{marginLeft:"auto",fontSize:12,color:"#94a3b8"}}>{new Date().toLocaleDateString("ko-KR")}</div>
             </div>
@@ -1638,12 +1639,12 @@ export default function App(){
             </div>
             {/* Footer */}
             <div style={{textAlign:"center",paddingTop:10,borderTop:"1px solid rgba(0,0,0,0.06)",fontSize:11,color:"#cbd5e1"}}>
-              Snow Riding AI Coaching Staff {VERSION} · made by GP · rideai.vercel.app
+              SNOWRIDE AI COACHING STAFF {VERSION} · made by GP · rideai.vercel.app
             </div>
           </div>
         </div>)}
 
-        <div style={{textAlign:"center",padding:"32px 0 4px",fontSize:11,color:"#cbd5e1"}}>Snow Riding AI Coaching Staff {VERSION}</div>
+        <div style={{textAlign:"center",padding:"32px 0 4px",fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI COACHING STAFF {VERSION}</div>
         <div style={{textAlign:"center",padding:"0 0 12px",fontSize:11,color:"#cbd5e1"}}>made by GP</div>
       </div>}
 
