@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.05-6";
+const VERSION = "ver 0.05-8";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -516,28 +516,81 @@ function SubjectPicker({frames,onDone}){
 }
 
 /* ── STEP BAR ─────────────────────────────────────────────── */
-/* ── History helpers (localStorage, max 5, 7-day TTL) ────── */
-const HISTORY_KEY = "rideai_history";
-const MAX_HISTORY = 10;
+/* ── History helpers (IndexedDB, max 10, 30-day TTL) ────── */
+const DB_NAME = "rideai_db";
+const DB_VERSION = 1;
+const STORE_NAME = "history";
+const MAX_HISTORY = 100;
 const TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30일
 
-function loadHistory() {
-  try {
-    const raw = localStorage.getItem(HISTORY_KEY);
-    if (!raw) return [];
-    const all = JSON.parse(raw);
-    const now = Date.now();
-    return all.filter(h => now - h.savedAt < TTL_MS);
-  } catch { return []; }
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME, { keyPath: "id" });
+      }
+    };
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror   = e => reject(e.target.error);
+  });
 }
 
-function saveHistory(entry) {
+async function loadHistory() {
   try {
-    let all = loadHistory();
-    all.unshift(entry);
-    if (all.length > MAX_HISTORY) all = all.slice(0, MAX_HISTORY);
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(all));
-  } catch(e) { console.warn("history save failed:", e); }
+    // 기존 localStorage 데이터 마이그레이션
+    const legacy = localStorage.getItem("rideai_history");
+    if (legacy) {
+      const items = JSON.parse(legacy);
+      const db = await openDB();
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      const store = tx.objectStore(STORE_NAME);
+      for (const item of items) store.put(item);
+      await new Promise(r => tx.oncomplete = r);
+      localStorage.removeItem("rideai_history");
+    }
+    const db = await openDB();
+    const tx = db.transaction(STORE_NAME, "readonly");
+    const store = tx.objectStore(STORE_NAME);
+    const all = await new Promise((res, rej) => {
+      const req = store.getAll();
+      req.onsuccess = e => res(e.target.result);
+      req.onerror   = e => rej(e.target.error);
+    });
+    const now = Date.now();
+    return all
+      .filter(h => now - h.savedAt < TTL_MS)
+      .sort((a, b) => b.savedAt - a.savedAt);
+  } catch(e) { console.warn("loadHistory failed:", e); return []; }
+}
+
+async function saveHistory(entry) {
+  try {
+    const db = await openDB();
+    // 저장
+    const tx1 = db.transaction(STORE_NAME, "readwrite");
+    tx1.objectStore(STORE_NAME).put(entry);
+    await new Promise(r => tx1.oncomplete = r);
+    // 오래된 항목 삭제 (TTL 초과 + MAX_HISTORY 초과)
+    const all = await loadHistory();
+    const toDelete = all.slice(MAX_HISTORY);
+    if (toDelete.length > 0) {
+      const tx2 = db.transaction(STORE_NAME, "readwrite");
+      const store2 = tx2.objectStore(STORE_NAME);
+      for (const h of toDelete) store2.delete(h.id);
+      await new Promise(r => tx2.oncomplete = r);
+    }
+  } catch(e) { console.warn("saveHistory failed:", e); }
+}
+
+async function deleteHistory(id) {
+  try {
+    const db = await openDB();
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    tx.objectStore(STORE_NAME).delete(id);
+    await new Promise(r => tx.oncomplete = r);
+  } catch(e) { console.warn("deleteHistory failed:", e); }
 }
 
 const STEPS=["종목 선택","레벨 선택","영상 추가","분석","피사체 선택","피드백"];
@@ -721,8 +774,17 @@ export default function App(){
   const [focusSkill,setFocusSkill]=useState("전체"); // 집중 분석 기술 
   const [file,setFile]=useState(null);
   const [phase,setPhase]=useState("sport"); // sport | upload | loading | picking | done | history | error
-  const [history,setHistory]=useState(()=>loadHistory());
+  const [history,setHistory]=useState([]);
   const [selectedHistory,setSelectedHistory]=useState(null);
+  const [histFilter,setHistFilter]=useState({sport:"전체",level:"전체",skill:"전체"});
+
+  // IndexedDB에서 히스토리 로드
+  const {useEffect} = React;
+  useEffect(()=>{
+    loadHistory().then(h=>setHistory(h));
+  },[]);
+
+  const refreshHistory = () => loadHistory().then(h=>setHistory(h));
   const [loadMsg,setLoadMsg]=useState("");
   const [pct,setPct]=useState(0);
   const [capturedFrames,setCapturedFrames]=useState([]);
@@ -954,8 +1016,8 @@ export default function App(){
         } catch { thumbs.push(null); }
       } else { thumbs.push(null); }
     }
-    // Save to localStorage history
-    saveHistory({
+    // Save to IndexedDB history
+    await saveHistory({
       id: aid,
       savedAt: Date.now(),
       sport,
@@ -968,7 +1030,7 @@ export default function App(){
         thumb: thumbs[i] || null,
       })),
     });
-    setHistory(loadHistory());
+    refreshHistory();
   };
 
   const reset=()=>{
@@ -1038,7 +1100,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-6 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-8 made by GP</div>
           </div>
         </div>
       )}
@@ -1088,7 +1150,7 @@ export default function App(){
             {history.length>0&&<span style={{background:"#0f172a",color:"#fff",fontSize:11,fontWeight:600,padding:"1px 7px",borderRadius:99}}>{history.length}</span>}
           </button>
           <div style={{fontSize:11,color:"#94a3b8",lineHeight:1.8,padding:"0 2px"}}>
-            ⚠ 기록 안내: 최근 10개까지 보관 · 30일 후 자동 삭제 · 같은 기기/브라우저에서만 확인 가능 · GIF/동영상은 저장되지 않습니다
+            ⚠ 기록 안내: 최근 100개까지 보관 · 30일 후 자동 삭제 · 같은 기기/브라우저에서만 확인 가능 · GIF/동영상은 저장되지 않습니다
           </div>
 
           {/* ── 서비스 안내 ── */}
@@ -1351,6 +1413,14 @@ export default function App(){
                         style={{background:"none",border:"none",fontSize:13,color:"#64748b",cursor:"pointer",padding:0,display:"flex",alignItems:"center",gap:4}}>
                         ← 목록으로
                       </button>
+                      <button onClick={async()=>{
+                          if(!window.confirm("이 기록을 삭제할까요?")) return;
+                          await deleteHistory(selectedHistory.id);
+                          setSelectedHistory(null);
+                          refreshHistory();
+                        }} style={{background:"none",border:"none",fontSize:12,color:"#ef4444",cursor:"pointer",padding:"4px 8px"}}>
+                          🗑 삭제
+                        </button>
                       <button onClick={()=>{
                         if(!window.Kakao) return;
                         if(!window.Kakao.isInitialized()) window.Kakao.init("c36b2a5e9a3466d999feca6a2ca957d9");
@@ -1470,6 +1540,40 @@ export default function App(){
                 ) : (
                   /* 기록 목록 */
                   <div>
+                    {/* ── 필터 ── */}
+                    {(()=>{
+                      const sports = ["전체","스키","스노보드"];
+                      const levels = ["전체","레벨1","레벨2","레벨3","데몬스트레이터","잘 모르겠어요"];
+                      const skills = ["전체",...new Set(history.map(h=>h.focusSkill||"전체").filter(s=>s&&s!=="전체"))];
+                      const FilterChips = ({label,options,field})=>(
+                        <div style={{marginBottom:8}}>
+                          <div style={{fontSize:11,color:"#94a3b8",marginBottom:5}}>{label}</div>
+                          <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+                            {options.map(opt=>(
+                              <button key={opt} onClick={()=>setHistFilter(f=>({...f,[field]:opt}))}
+                                style={{padding:"4px 11px",borderRadius:99,fontSize:12,border:histFilter[field]===opt?"1.5px solid #0f172a":"0.5px solid rgba(0,0,0,0.1)",
+                                  background:histFilter[field]===opt?"#0f172a":"#fff",color:histFilter[field]===opt?"#fff":"#475569",cursor:"pointer",fontWeight:histFilter[field]===opt?600:400}}>
+                                {opt}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                      const isFiltered = histFilter.sport!=="전체"||histFilter.level!=="전체"||histFilter.skill!=="전체";
+                      return(
+                        <div style={{background:"#f8fafc",borderRadius:12,padding:"12px 14px",marginBottom:12,border:"0.5px solid rgba(0,0,0,0.07)"}}>
+                          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+                            <div style={{fontSize:12,fontWeight:500,color:"#0f172a"}}>🔍 필터</div>
+                            {isFiltered&&<button onClick={()=>setHistFilter({sport:"전체",level:"전체",skill:"전체"})}
+                              style={{fontSize:11,color:"#ef4444",background:"none",border:"none",cursor:"pointer"}}>초기화</button>}
+                          </div>
+                          <FilterChips label="종목" options={sports} field="sport"/>
+                          <FilterChips label="레벨" options={levels} field="level"/>
+                          {skills.length>1&&<FilterChips label="집중 기술" options={skills} field="skill"/>}
+                        </div>
+                      );
+                    })()}
+
                     {/* ── 시즌 리포트 ── */}
                     {history.length >= 2 && (()=>{
                       const avg = Math.round(history.reduce((s,h)=>{
@@ -1535,7 +1639,21 @@ export default function App(){
                       );
                     })()}
 
-                    {history.map((h,i)=>{
+                    {(()=>{
+                      const levelMap={"lv1":"레벨1","lv2":"레벨2","lv3":"레벨3","demon":"데몬스트레이터","unknown":"잘 모르겠어요","":'전체'};
+                      const filteredHist = history.filter(h=>{
+                        if(histFilter.sport!=="전체"&&(histFilter.sport==="스키"?h.sport!=="ski":h.sport!=="snowboard")) return false;
+                        if(histFilter.level!=="전체"&&levelMap[h.level||""]!==histFilter.level) return false;
+                        if(histFilter.skill!=="전체"&&(h.focusSkill||"전체")!==histFilter.skill) return false;
+                        return true;
+                      });
+                      if(filteredHist.length===0) return(
+                        <div style={{textAlign:"center",padding:"32px 0",color:"#94a3b8"}}>
+                          <div style={{fontSize:20,marginBottom:8}}>🔍</div>
+                          <div style={{fontSize:13}}>조건에 맞는 기록이 없어요</div>
+                        </div>
+                      );
+                      return filteredHist.map((h,i)=>{
                       const daysLeft = Math.ceil((TTL_MS-(Date.now()-h.savedAt))/(1000*60*60*24));
                       const avgScore = h.scores.length>0 ? Math.round(h.scores.reduce((s,sc)=>s+sc.value,0)/h.scores.length) : 0;
                         const firstThumb = (h.frames||[]).find(f=>f.thumb)?.thumb || null;
@@ -1569,9 +1687,10 @@ export default function App(){
                           </div>
                         </button>
                       );
-                    })}
+                    })});
+                    })()}
                     <div style={{fontSize:11,color:"#94a3b8",textAlign:"center",marginTop:8,lineHeight:1.8}}>
-                      최근 {history.length}개 기록 · 최대 10개 보관 · 30일 후 자동 삭제
+                      최근 {history.length}개 기록 · 최대 100개 보관 · 30일 후 자동 삭제
                     </div>
                   </div>
                 )}
