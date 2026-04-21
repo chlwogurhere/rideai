@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.05-12";
+const VERSION = "ver 0.05-13";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -1102,7 +1102,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-12 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-13 made by GP</div>
           </div>
         </div>
       )}
@@ -1590,7 +1590,13 @@ export default function App(){
                         if(pMs2>0&&(now2-h.savedAt)>pMs2) return false;
                         return true;
                       });
-                      if(reportHist.length<2) return null;
+                      if(reportHist.length<2) return(
+                        <div style={{background:"#f8fafc",border:"0.5px solid rgba(0,0,0,0.07)",borderRadius:12,padding:"16px 18px",marginBottom:12,textAlign:"center"}}>
+                          <div style={{fontSize:14,marginBottom:6}}>📊</div>
+                          <div style={{fontSize:13,fontWeight:500,color:"#0f172a",marginBottom:3}}>시즌 리포트</div>
+                          <div style={{fontSize:12,color:"#94a3b8"}}>현재 필터 조건으로 <span style={{color:"#0f172a",fontWeight:500}}>{reportHist.length}개</span> 기록이 있어요<br/>2개 이상 분석하면 리포트가 표시됩니다</div>
+                        </div>
+                      );
                       const avg = Math.round(reportHist.reduce((s,h)=>{
                         const hAvg = h.scores.length>0 ? h.scores.reduce((a,sc)=>a+sc.value,0)/h.scores.length : 0;
                         return s+hAvg;
@@ -1608,9 +1614,12 @@ export default function App(){
                       const topWarn = warnTexts.length>0 ? warnTexts.sort((a,b)=>warnTexts.filter(x=>x===b).length-warnTexts.filter(x=>x===a).length)[0] : null;
                       return(
                         <div style={{background:"#0f172a",borderRadius:12,padding:"16px 18px",marginBottom:14,color:"#fff"}}>
-                          <div style={{fontSize:13,fontWeight:600,color:"#94a3b8",marginBottom:12,display:"flex",alignItems:"center",gap:6}}>
-                            <span style={{fontSize:15}}>📊</span> 시즌 리포트
-                            <span style={{fontSize:11,color:"#475569",fontWeight:400,marginLeft:4}}>{reportHist.length}개 기록 기준</span>
+                          <div style={{fontSize:13,fontWeight:600,color:"#94a3b8",marginBottom:12,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                            <div style={{display:"flex",alignItems:"center",gap:6}}>
+                              <span style={{fontSize:15}}>📊</span> 시즌 리포트
+                              <span style={{fontSize:11,color:"#475569",fontWeight:400,marginLeft:4}}>{reportHist.length}개 기록 기준</span>
+                            </div>
+                            <span style={{fontSize:10,color:"#475569",fontWeight:400}}>2개 이상 분석 시 표시</span>
                           </div>
                           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
                             <div style={{background:"rgba(255,255,255,0.07)",borderRadius:8,padding:"10px 12px"}}>
