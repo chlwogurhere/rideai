@@ -1687,7 +1687,7 @@ export default function App(){
                           </div>
                         </button>
                       );
-                    })});
+                    });
                     })()}
                     <div style={{fontSize:11,color:"#94a3b8",textAlign:"center",marginTop:8,lineHeight:1.8}}>
                       최근 {history.length}개 기록 · 최대 100개 보관 · 30일 후 자동 삭제
