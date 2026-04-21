@@ -868,9 +868,7 @@ export default function App(){
         : fullSkill.replace("카빙턴","카빙턴").replace("슬라이딩턴","슬라이딩턴").replace("모글","모글(보드)").replace("종합활강","종합활강(보드)");
       const checkpoint = skillCheckpoints[skKey] || (fullSkill ? "【"+fullSkill+" 집중 분석】움직임이 가장 큰 구간을 집중 추출합니다. 선택한 기술의 자세와 리듬을 중점적으로 분석하세요." : "");
       const focusGuide = fullSkill
-        ? "[집중 분석 기술: "+fullSkill+"]
-"+checkpoint+"
-이 체크포인트를 최우선으로 분석하고, 피드백과 팁도 이 기술 위주로 작성하세요. 모션 탐지 모드로 턴 정점 장면이 집중 추출됩니다."
+        ? "[집중 분석 기술: "+fullSkill+"] "+checkpoint+" 이 체크포인트를 최우선으로 분석하고, 피드백과 팁도 이 기술 위주로 작성하세요. 모션 탐지 모드로 턴 정점 장면이 집중 추출됩니다."
         : "";
       // KSIA 기반 코칭 기준
       const ksiaRef = isSki ? `
