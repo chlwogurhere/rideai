@@ -1083,7 +1083,7 @@ export default function App(){
             {history.length>0&&<span style={{background:"#0f172a",color:"#fff",fontSize:11,fontWeight:600,padding:"1px 7px",borderRadius:99}}>{history.length}</span>}
           </button>
           <div style={{fontSize:11,color:"#94a3b8",lineHeight:1.8,padding:"0 2px"}}>
-            ⚠ 기록 안내: 최근 5개까지 보관 · 7일 후 자동 삭제 · 같은 기기/브라우저에서만 확인 가능 · 이미지는 저장되지 않습니다
+            ⚠ 기록 안내: 최근 5개까지 보관 · 7일 후 자동 삭제 · 같은 기기/브라우저에서만 확인 가능 · GIF/동영상은 저장되지 않습니다
           </div>
 
           {/* ── 서비스 안내 ── */}
