@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.05-9";
+const VERSION = "ver 0.05-10";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -521,7 +521,7 @@ const DB_NAME = "rideai_db";
 const DB_VERSION = 1;
 const STORE_NAME = "history";
 const MAX_HISTORY = 100;
-const TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30일
+const TTL_MS = 100 * 24 * 60 * 60 * 1000; // 100일
 
 function openDB() {
   return new Promise((resolve, reject) => {
@@ -1101,7 +1101,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-9 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-10 made by GP</div>
           </div>
         </div>
       )}
@@ -1571,6 +1571,7 @@ export default function App(){
                           <FilterChips label="종목" options={sports} field="sport"/>
                           <FilterChips label="레벨" options={levels} field="level"/>
                           {skills.length>1&&<FilterChips label="집중 기술" options={skills} field="skill"/>}
+                          <FilterChips label="기간" options={["전체","최근 7일","최근 30일","최근 90일"]} field="period"/>
                         </div>
                       );
                     })()}
@@ -1719,7 +1720,7 @@ export default function App(){
                     </>);
                     })()}
                     <div style={{fontSize:11,color:"#94a3b8",textAlign:"center",marginTop:8,lineHeight:1.8}}>
-                      총 {history.length}개 기록 · 최대 100개 보관 · 30일 후 자동 삭제
+                      총 {history.length}개 기록 · 최대 100개 보관 · 100일 후 자동 삭제
                     </div>
                   </div>
                 )}
