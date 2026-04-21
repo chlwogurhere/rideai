@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.05-1";
+const VERSION = "ver 0.05-2";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -1021,7 +1021,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>Snow Riding AI ver 0.05-1 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>Snow Riding AI ver 0.05-2 made by GP</div>
           </div>
         </div>
       )}
@@ -1309,7 +1309,6 @@ export default function App(){
                           content:{
                             title:"Snow Riding AI 분석 결과",
                             description:(selectedHistory.sport==="ski"?"스키":"스노보드")+" 분석 평균 "+avg+"점! AI 라이딩 코치에게 자세 분석받아보세요.",
-                            imageUrl:"https://rideai.vercel.app/og.png",
                             link:{mobileWebUrl:"https://rideai.vercel.app",webUrl:"https://rideai.vercel.app"},
                           },
                           buttons:[{title:"무료로 분석받기",link:{mobileWebUrl:"https://rideai.vercel.app",webUrl:"https://rideai.vercel.app"}}],
@@ -1473,7 +1472,6 @@ export default function App(){
                 content:{
                   title:"Snow Riding AI 분석 결과 🎿",
                   description:`${sport==="ski"?"스키":"스노보드"} 라이딩 분석 완료! 평균 ${avg}점\nAI가 분석한 내 라이딩 자세 확인해보세요!`,
-                  imageUrl:"https://rideai.vercel.app/og.png",
                   link:{mobileWebUrl:"https://rideai.vercel.app",webUrl:"https://rideai.vercel.app"},
                 },
                 buttons:[{title:"무료로 분석받기 →",link:{mobileWebUrl:"https://rideai.vercel.app",webUrl:"https://rideai.vercel.app"}}],
