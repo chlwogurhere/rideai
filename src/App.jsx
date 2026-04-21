@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.05-15";
+const VERSION = "ver 0.05-16";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -844,6 +844,9 @@ export default function App(){
       const fullSkill = focusSkill!=="전체" ? (focusSkill + (subSkill ? " "+subSkill+"턴" : "")) : "";
       const skillCheckpoints = {
         // ── 스키 ──────────────────────────────────────────────────
+        "베이직턴 롱턴": "【스키 베이직 롱턴 핵심 체크포인트】양 스키가 V자(스노우플라우) 없이 나란히 유지되는지 / 무게중심이 바깥발로 자연스럽게 이동하는지 / 상체가 안정적으로 슬로프 아래를 향하는지 / 무릎과 발목이 부드럽게 굽혀지는지 / 턴 시작과 끝이 매끄럽게 연결되는지",
+        "베이직턴 미들턴": "【스키 베이직 미들턴 핵심 체크포인트】패러렐 자세(양 스키 평행)가 유지되는지 / 턴 반경이 일정한지 / 체중이 바깥발로 이동하는 타이밍이 자연스러운지 / 상체가 스키를 따라 과도하게 돌지 않는지",
+        "베이직턴 숏턴": "【스키 베이직 숏턴 핵심 체크포인트】짧은 반경에서 패러렐이 유지되는지 / 리듬이 일정한지 / 폴 플랜팅이 이루어지는지 / 무릎 굴곡이 충격을 흡수하는지 / 상체가 안정적으로 고정되는지",
         "카빙턴 롱턴": "【스키 카빙 롱턴 핵심 체크포인트】외발(바깥쪽 스키)에 충분한 체중 집중 여부 / 엣지 각도가 설면에 충분히 물리는지 / 상체가 진행 방향을 향해 안정적으로 유지되는지 / 무릎이 턴 안쪽으로 자연스럽게 기울어지는지 / 앙귤레이션(고관절-무릎 꺾임)이 형성되는지",
         "카빙턴 미들턴": "【스키 카빙 미들턴 핵심 체크포인트】양 스키가 평행을 유지하는지 / 턴 반경이 일정하게 유지되는지 / 엣지 전환 타이밍이 자연스러운지 / 상체가 스키 진행 방향을 따라가지 않고 독립적으로 유지되는지 / 체중 이동이 부드럽게 이루어지는지",
         "카빙턴 숏턴": "【스키 카빙 숏턴 핵심 체크포인트】빠른 엣지 전환이 이루어지는지 / 폴 플랜팅 타이밍이 턴 시작과 맞는지 / 상체 선행(상체가 먼저 도는 현상)이 없는지 / 리듬이 일정한지 / 무릎 굴곡이 충격 흡수 역할을 하는지",
@@ -1129,7 +1132,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-15 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-16 made by GP</div>
           </div>
         </div>
       )}
@@ -1256,9 +1259,9 @@ export default function App(){
               const acBg = isSki2?"#dbeafe":"#ede9fe";
               const acTx = isSki2?"#1d4ed8":"#6d28d9";
               const skillList = isSki2
-                ? ["전체","카빙턴","다이나믹턴","모글","종합활강"]
-                : ["전체","카빙턴","슬라이딩턴","모글","종합활강"];
-              const hasRadius = ["카빙턴","다이나믹턴","슬라이딩턴"].includes(focusSkill);
+                ? ["전체","베이직턴","다이나믹턴","카빙턴","모글","종합활강"]
+                : ["전체","슬라이딩턴","카빙턴","모글","종합활강"];
+              const hasRadius = ["베이직턴","카빙턴","다이나믹턴","슬라이딩턴"].includes(focusSkill);
               return(
                 <div style={{marginBottom:16}}>
                   <div style={{fontSize:13,fontWeight:500,color:"#0f172a",marginBottom:4}}>오늘 집중할 기술 <span style={{fontSize:11,color:"#94a3b8",fontWeight:400}}>(선택)</span></div>
