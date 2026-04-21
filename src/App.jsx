@@ -779,7 +779,6 @@ export default function App(){
   const [histFilter,setHistFilter]=useState({sport:"전체",level:"전체",skill:"전체"});
 
   // IndexedDB에서 히스토리 로드
-  const {useEffect} = React;
   useEffect(()=>{
     loadHistory().then(h=>setHistory(h));
   },[]);
