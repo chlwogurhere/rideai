@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.05-16";
+const VERSION = "ver 0.05-17";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -1132,7 +1132,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-16 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-17 made by GP</div>
           </div>
         </div>
       )}
@@ -1624,7 +1624,14 @@ export default function App(){
                     {(()=>{
                       const sports = ["전체","스키","스노보드"];
                       const levels = ["전체","레벨1","레벨2","레벨3","데몬스트레이터","잘 모르겠어요"];
-                      const skills = ["전체",...new Set(history.map(h=>h.focusSkill||"전체").filter(s=>s&&s!=="전체"))];
+                      const allSkills = ["전체","베이직턴","다이나믹턴","카빙턴","모글","종합활강","슬라이딩턴"];
+                      // 실제 기록에 있는 기술만 표시 (전체 제외)
+                      const usedSkills = new Set(history.map(h=>{
+                        const sk = h.focusSkill||"전체";
+                        // 정규화: "카빙턴 롱턴" → "카빙턴", "카빙 턴" → "카빙턴" 등
+                        return allSkills.find(a=>sk.startsWith(a)&&a!=="전체") || sk;
+                      }).filter(s=>s&&s!=="전체"));
+                      const skills = ["전체",...allSkills.filter(s=>s!=="전체"&&usedSkills.has(s))];
                       const FilterChips = ({label,options,field})=>(
                         <div style={{marginBottom:8}}>
                           <div style={{fontSize:11,color:"#94a3b8",marginBottom:5}}>{label}</div>
@@ -1664,7 +1671,11 @@ export default function App(){
                       const reportHist = history.filter(h=>{
                         if(histFilter.sport!=="전체"&&(histFilter.sport==="스키"?h.sport!=="ski":h.sport!=="snowboard")) return false;
                         if(histFilter.level!=="전체"&&levelMap2[h.level||""]!==histFilter.level) return false;
-                        if(histFilter.skill!=="전체"&&(h.focusSkill||"전체")!==histFilter.skill) return false;
+                        if(histFilter.skill!=="전체"){
+          const sk = h.focusSkill||"전체";
+          const normalized = ["베이직턴","다이나믹턴","카빙턴","모글","종합활강","슬라이딩턴"].find(a=>sk.startsWith(a)) || sk;
+          if(normalized!==histFilter.skill) return false;
+        }
                         if(pMs2>0&&(now2-h.savedAt)>pMs2) return false;
                         return true;
                       });
@@ -1765,7 +1776,11 @@ export default function App(){
                       const filteredHist = history.filter(h=>{
                         if(histFilter.sport!=="전체"&&(histFilter.sport==="스키"?h.sport!=="ski":h.sport!=="snowboard")) return false;
                         if(histFilter.level!=="전체"&&levelMap[h.level||""]!==histFilter.level) return false;
-                        if(histFilter.skill!=="전체"&&(h.focusSkill||"전체")!==histFilter.skill) return false;
+                        if(histFilter.skill!=="전체"){
+          const sk = h.focusSkill||"전체";
+          const normalized = ["베이직턴","다이나믹턴","카빙턴","모글","종합활강","슬라이딩턴"].find(a=>sk.startsWith(a)) || sk;
+          if(normalized!==histFilter.skill) return false;
+        }
                         if(pMs>0&&(now-h.savedAt)>pMs) return false;
                         return true;
                       });
