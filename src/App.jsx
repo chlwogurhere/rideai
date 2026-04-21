@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.05-8";
+const VERSION = "ver 0.05-9";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -776,7 +776,9 @@ export default function App(){
   const [phase,setPhase]=useState("sport"); // sport | upload | loading | picking | done | history | error
   const [history,setHistory]=useState([]);
   const [selectedHistory,setSelectedHistory]=useState(null);
-  const [histFilter,setHistFilter]=useState({sport:"전체",level:"전체",skill:"전체"});
+  const [histFilter,setHistFilter]=useState({sport:"전체",level:"전체",skill:"전체",period:"전체"});
+  const [histPage,setHistPage]=useState(1);
+  const HIST_PER_PAGE = 5;
 
   // IndexedDB에서 히스토리 로드
   useEffect(()=>{
@@ -1099,7 +1101,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-8 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-9 made by GP</div>
           </div>
         </div>
       )}
@@ -1549,7 +1551,7 @@ export default function App(){
                           <div style={{fontSize:11,color:"#94a3b8",marginBottom:5}}>{label}</div>
                           <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
                             {options.map(opt=>(
-                              <button key={opt} onClick={()=>setHistFilter(f=>({...f,[field]:opt}))}
+                              <button key={opt} onClick={()=>{setHistFilter(f=>({...f,[field]:opt}));setHistPage(1);}}
                                 style={{padding:"4px 11px",borderRadius:99,fontSize:12,border:histFilter[field]===opt?"1.5px solid #0f172a":"0.5px solid rgba(0,0,0,0.1)",
                                   background:histFilter[field]===opt?"#0f172a":"#fff",color:histFilter[field]===opt?"#fff":"#475569",cursor:"pointer",fontWeight:histFilter[field]===opt?600:400}}>
                                 {opt}
@@ -1558,12 +1560,12 @@ export default function App(){
                           </div>
                         </div>
                       );
-                      const isFiltered = histFilter.sport!=="전체"||histFilter.level!=="전체"||histFilter.skill!=="전체";
+                      const isFiltered = histFilter.sport!=="전체"||histFilter.level!=="전체"||histFilter.skill!=="전체"||histFilter.period!=="전체";
                       return(
                         <div style={{background:"#f8fafc",borderRadius:12,padding:"12px 14px",marginBottom:12,border:"0.5px solid rgba(0,0,0,0.07)"}}>
                           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
                             <div style={{fontSize:12,fontWeight:500,color:"#0f172a"}}>🔍 필터</div>
-                            {isFiltered&&<button onClick={()=>setHistFilter({sport:"전체",level:"전체",skill:"전체"})}
+                            {isFiltered&&<button onClick={()=>{setHistFilter({sport:"전체",level:"전체",skill:"전체",period:"전체"});setHistPage(1);}}
                               style={{fontSize:11,color:"#ef4444",background:"none",border:"none",cursor:"pointer"}}>초기화</button>}
                           </div>
                           <FilterChips label="종목" options={sports} field="sport"/>
@@ -1640,19 +1642,27 @@ export default function App(){
 
                     {(()=>{
                       const levelMap={"lv1":"레벨1","lv2":"레벨2","lv3":"레벨3","demon":"데몬스트레이터","unknown":"잘 모르겠어요","":'전체'};
+                      const periodMs={"전체":0,"최근 7일":7,"최근 30일":30,"최근 90일":90};
+                      const pMs = (periodMs[histFilter.period]||0)*24*60*60*1000;
+                      const now = Date.now();
                       const filteredHist = history.filter(h=>{
                         if(histFilter.sport!=="전체"&&(histFilter.sport==="스키"?h.sport!=="ski":h.sport!=="snowboard")) return false;
                         if(histFilter.level!=="전체"&&levelMap[h.level||""]!==histFilter.level) return false;
                         if(histFilter.skill!=="전체"&&(h.focusSkill||"전체")!==histFilter.skill) return false;
+                        if(pMs>0&&(now-h.savedAt)>pMs) return false;
                         return true;
                       });
+                      const totalPages = Math.max(1, Math.ceil(filteredHist.length/HIST_PER_PAGE));
+                      const safePage = Math.min(histPage, totalPages);
+                      const pagedHist = filteredHist.slice((safePage-1)*HIST_PER_PAGE, safePage*HIST_PER_PAGE);
                       if(filteredHist.length===0) return(
                         <div style={{textAlign:"center",padding:"32px 0",color:"#94a3b8"}}>
                           <div style={{fontSize:20,marginBottom:8}}>🔍</div>
                           <div style={{fontSize:13}}>조건에 맞는 기록이 없어요</div>
                         </div>
                       );
-                      return filteredHist.map((h,i)=>{
+                      return(<>
+                      {pagedHist.map((h,i)=>{
                       const daysLeft = Math.ceil((TTL_MS-(Date.now()-h.savedAt))/(1000*60*60*24));
                       const avgScore = h.scores.length>0 ? Math.round(h.scores.reduce((s,sc)=>s+sc.value,0)/h.scores.length) : 0;
                         const firstThumb = (h.frames||[]).find(f=>f.thumb)?.thumb || null;
@@ -1686,10 +1696,30 @@ export default function App(){
                           </div>
                         </button>
                       );
-                    });
+                    })}
+                    {/* 페이지네이션 */}
+                    {totalPages>1&&(
+                      <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,margin:"12px 0"}}>
+                        <button onClick={()=>setHistPage(p=>Math.max(1,p-1))} disabled={safePage===1}
+                          style={{padding:"6px 14px",borderRadius:8,border:"0.5px solid rgba(0,0,0,0.12)",background:"#fff",color:safePage===1?"#cbd5e1":"#0f172a",cursor:safePage===1?"not-allowed":"pointer",fontSize:13}}>
+                          ← 이전
+                        </button>
+                        {Array.from({length:totalPages},(_,i)=>i+1).map(p=>(
+                          <button key={p} onClick={()=>setHistPage(p)}
+                            style={{width:32,height:32,borderRadius:8,border:p===safePage?"none":"0.5px solid rgba(0,0,0,0.1)",background:p===safePage?"#0f172a":"#fff",color:p===safePage?"#fff":"#475569",cursor:"pointer",fontSize:13,fontWeight:p===safePage?600:400}}>
+                            {p}
+                          </button>
+                        ))}
+                        <button onClick={()=>setHistPage(p=>Math.min(totalPages,p+1))} disabled={safePage===totalPages}
+                          style={{padding:"6px 14px",borderRadius:8,border:"0.5px solid rgba(0,0,0,0.12)",background:"#fff",color:safePage===totalPages?"#cbd5e1":"#0f172a",cursor:safePage===totalPages?"not-allowed":"pointer",fontSize:13}}>
+                          다음 →
+                        </button>
+                      </div>
+                    )}
+                    </>);
                     })()}
                     <div style={{fontSize:11,color:"#94a3b8",textAlign:"center",marginTop:8,lineHeight:1.8}}>
-                      최근 {history.length}개 기록 · 최대 100개 보관 · 30일 후 자동 삭제
+                      총 {history.length}개 기록 · 최대 100개 보관 · 30일 후 자동 삭제
                     </div>
                   </div>
                 )}
