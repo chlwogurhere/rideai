@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.05-11";
+const VERSION = "ver 0.05-12";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -1022,6 +1022,7 @@ export default function App(){
       id: aid,
       savedAt: Date.now(),
       sport,
+      level,
       focusSkill: focusSkill||"전체",
       scores: refinedData.scores || [],
       feedback: refinedData.feedback || [],
@@ -1101,7 +1102,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-11 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-12 made by GP</div>
           </div>
         </div>
       )}
@@ -1690,7 +1691,7 @@ export default function App(){
                             <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:6}}>
                               <div>
                                 <div style={{fontSize:13,fontWeight:600,color:"#0f172a"}}>{h.sport==="ski"?"스키":"스노보드"} 분석</div>
-                                <div style={{fontSize:11,color:"#94a3b8"}}>{new Date(h.savedAt).toLocaleDateString("ko-KR")} · {daysLeft}일 후 삭제</div>
+                                <div style={{fontSize:11,color:"#94a3b8"}}>{new Date(h.savedAt).toLocaleDateString("ko-KR")} · {daysLeft}일 후 삭제{h.level&&h.level!=="unknown"?" · "+{"lv1":"레벨1","lv2":"레벨2","lv3":"레벨3","demon":"데몬"}[h.level]:""}</div>
                               </div>
                               <div style={{fontSize:17,fontWeight:700,color:"#0f172a"}}>{avgScore}점</div>
                             </div>
