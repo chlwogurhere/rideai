@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.05-10";
+const VERSION = "ver 0.05-11";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -1101,7 +1101,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-10 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-11 made by GP</div>
           </div>
         </div>
       )}
@@ -1576,28 +1576,40 @@ export default function App(){
                       );
                     })()}
 
-                    {/* ── 시즌 리포트 ── */}
-                    {history.length >= 2 && (()=>{
-                      const avg = Math.round(history.reduce((s,h)=>{
+                    {/* ── 시즌 리포트 (필터 적용) ── */}
+                    {(()=>{
+                      const levelMap2={"lv1":"레벨1","lv2":"레벨2","lv3":"레벨3","demon":"데몬스트레이터","unknown":"잘 모르겠어요","":'전체'};
+                      const periodMs2={"전체":0,"최근 7일":7,"최근 30일":30,"최근 90일":90};
+                      const pMs2=(periodMs2[histFilter.period]||0)*24*60*60*1000;
+                      const now2=Date.now();
+                      const reportHist = history.filter(h=>{
+                        if(histFilter.sport!=="전체"&&(histFilter.sport==="스키"?h.sport!=="ski":h.sport!=="snowboard")) return false;
+                        if(histFilter.level!=="전체"&&levelMap2[h.level||""]!==histFilter.level) return false;
+                        if(histFilter.skill!=="전체"&&(h.focusSkill||"전체")!==histFilter.skill) return false;
+                        if(pMs2>0&&(now2-h.savedAt)>pMs2) return false;
+                        return true;
+                      });
+                      if(reportHist.length<2) return null;
+                      const avg = Math.round(reportHist.reduce((s,h)=>{
                         const hAvg = h.scores.length>0 ? h.scores.reduce((a,sc)=>a+sc.value,0)/h.scores.length : 0;
                         return s+hAvg;
-                      },0)/history.length);
-                      const best = history.reduce((b,h)=>{
+                      },0)/reportHist.length);
+                      const best = reportHist.reduce((b,h)=>{
                         const hAvg = h.scores.length>0 ? Math.round(h.scores.reduce((a,sc)=>a+sc.value,0)/h.scores.length):0;
                         return hAvg>(b.score||0)?{...h,score:hAvg}:b;
                       },{score:0});
-                      const first = history[history.length-1];
-                      const last  = history[0];
+                      const first = reportHist[reportHist.length-1];
+                      const last  = reportHist[0];
                       const firstAvg = first.scores.length>0?Math.round(first.scores.reduce((a,sc)=>a+sc.value,0)/first.scores.length):0;
                       const lastAvg  = last.scores.length>0?Math.round(last.scores.reduce((a,sc)=>a+sc.value,0)/last.scores.length):0;
                       const trend = lastAvg - firstAvg;
-                      // 가장 많이 나온 개선 포인트
-                      const warnTexts = history.flatMap(h=>(h.feedback||[]).filter(f=>f.type==="warn").map(f=>f.tag||""));
+                      const warnTexts = reportHist.flatMap(h=>(h.feedback||[]).filter(f=>f.type==="warn").map(f=>f.tag||""));
                       const topWarn = warnTexts.length>0 ? warnTexts.sort((a,b)=>warnTexts.filter(x=>x===b).length-warnTexts.filter(x=>x===a).length)[0] : null;
                       return(
                         <div style={{background:"#0f172a",borderRadius:12,padding:"16px 18px",marginBottom:14,color:"#fff"}}>
                           <div style={{fontSize:13,fontWeight:600,color:"#94a3b8",marginBottom:12,display:"flex",alignItems:"center",gap:6}}>
                             <span style={{fontSize:15}}>📊</span> 시즌 리포트
+                            <span style={{fontSize:11,color:"#475569",fontWeight:400,marginLeft:4}}>{reportHist.length}개 기록 기준</span>
                           </div>
                           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
                             <div style={{background:"rgba(255,255,255,0.07)",borderRadius:8,padding:"10px 12px"}}>
@@ -1627,7 +1639,7 @@ export default function App(){
                               objectType:"feed",
                               content:{
                                 title:"SNOWRIDE AI 시즌 리포트",
-                                description:"총 "+history.length+"회 분석 · 평균 "+avg+"점 · 최고 "+best.score+"점"+(trend>=0?" · "+trend+"점 성장":""),
+                                description:"총 "+reportHist.length+"회 분석 · 평균 "+avg+"점 · 최고 "+best.score+"점"+(trend>=0?" · "+trend+"점 성장":""),
                                 imageUrl:"https://rideai.vercel.app/logo.png",
                                 link:{mobileWebUrl:"https://rideai.vercel.app",webUrl:"https://rideai.vercel.app"},
                               },
