@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.05-14";
+const VERSION = "ver 0.05-15";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -771,7 +771,8 @@ export default function App(){
   const [sport,setSport]=useState("ski");
   const [level,setLevel]=useState(""); // "lv1"|"lv2"|"lv3"|"demon"|"unknown"
   const [stance,setStance]=useState("regular"); // "regular"|"goofy" (보드 전용)
-  const [focusSkill,setFocusSkill]=useState("전체"); // 집중 분석 기술 
+  const [focusSkill,setFocusSkill]=useState("전체"); // 집중 분석 기술
+  const [subSkill,setSubSkill]=useState(""); // 롱/미들/숏 
   const [file,setFile]=useState(null);
   const [phase,setPhase]=useState("sport"); // sport | upload | loading | picking | done | history | error
   const [history,setHistory]=useState([]);
@@ -840,8 +841,36 @@ export default function App(){
       const levelStr = levelMap[level]||"";
       const stanceGuide = !isSki ? `[스탠스: ${stance==="goofy"?"구피(오른발 앞)":"레귤러(왼발 앞)"}]` : "";
       const levelGuide = levelStr ? `[분석 기준: 응시자는 KSIA ${levelStr} 수준입니다. 이 수준에 맞는 기술 기준으로 분석하고 피드백하세요.] ${stanceGuide}` : stanceGuide;
-      const focusGuide = focusSkill && focusSkill !== "전체"
-        ? `[집중 분석 기술: ${focusSkill}. 이 기술에 관련된 부분을 가장 중점적으로 분석하고, 피드백과 팁도 이 기술 위주로 작성하세요.]`
+      const fullSkill = focusSkill!=="전체" ? (focusSkill + (subSkill ? " "+subSkill+"턴" : "")) : "";
+      const skillCheckpoints = {
+        // ── 스키 ──────────────────────────────────────────────────
+        "카빙턴 롱턴": "【스키 카빙 롱턴 핵심 체크포인트】외발(바깥쪽 스키)에 충분한 체중 집중 여부 / 엣지 각도가 설면에 충분히 물리는지 / 상체가 진행 방향을 향해 안정적으로 유지되는지 / 무릎이 턴 안쪽으로 자연스럽게 기울어지는지 / 앙귤레이션(고관절-무릎 꺾임)이 형성되는지",
+        "카빙턴 미들턴": "【스키 카빙 미들턴 핵심 체크포인트】양 스키가 평행을 유지하는지 / 턴 반경이 일정하게 유지되는지 / 엣지 전환 타이밍이 자연스러운지 / 상체가 스키 진행 방향을 따라가지 않고 독립적으로 유지되는지 / 체중 이동이 부드럽게 이루어지는지",
+        "카빙턴 숏턴": "【스키 카빙 숏턴 핵심 체크포인트】빠른 엣지 전환이 이루어지는지 / 폴 플랜팅 타이밍이 턴 시작과 맞는지 / 상체 선행(상체가 먼저 도는 현상)이 없는지 / 리듬이 일정한지 / 무릎 굴곡이 충격 흡수 역할을 하는지",
+        "다이나믹턴 롱턴": "【스키 다이나믹 롱턴 체크포인트】플렉션(압축)-익스텐션(신장) 동작이 턴에 맞게 이루어지는지 / 외발에 강한 압력이 실리는지 / 상체 선행이 명확한지 / 스키딩 없이 순수 카빙으로 호가 그려지는지",
+        "다이나믹턴 미들턴": "【스키 다이나믹 미들턴 체크포인트】플렉션-익스텐션 타이밍 / 무릎 전진 여부 / 엣지 전환 시 흐트러짐 없이 압력이 이어지는지 / 리듬이 일정한지",
+        "다이나믹턴 숏턴": "【스키 다이나믹 숏턴 체크포인트】빠른 플렉션-익스텐션 / 폴 플랜팅이 턴 시작과 정확히 맞는지 / 리듬이 규칙적인지 / 상체가 흔들리지 않는지",
+        "모글": "【스키 모글 핵심 체크포인트】혹(모글) 정상에서 충격 흡수(무릎-고관절 굽힘)가 이루어지는지 / 상체가 수직으로 안정적으로 유지되는지 / 폴 플랜팅 타이밍이 리듬과 맞는지 / 속도 조절이 되고 있는지",
+        "종합활강": "【스키 종합활강 핵심 체크포인트】롱-미들-숏턴 전환이 자연스러운지 / 각 턴 크기에서 해당 기술 완성도가 유지되는지 / 속도 변화에 맞는 자세 조절이 이루어지는지 / 전체 리듬이 일관되는지",
+        // ── 스노보드 ─────────────────────────────────────────────
+        "카빙턴 롱턴(보드)": "【스노보드 카빙 롱턴 핵심 체크포인트】힐/토사이드 엣지가 충분히 설면을 물고 있는지 / 앙귤레이션(무릎·고관절 꺾음)으로 엣지 각도를 만들고 있는지 / 상체가 로테이션 없이 안정적으로 유지되는지 / 턴 호가 깨끗하게 그려지는지",
+        "카빙턴 미들턴(보드)": "【스노보드 카빙 미들턴 핵심 체크포인트】엣지 전환 타이밍이 자연스러운지 / 체중이 두 발에 균형 있게 실리는지 / 상체 로테이션 없이 하체 주도로 턴이 이루어지는지 / 리듬이 일정한지",
+        "카빙턴 숏턴(보드)": "【스노보드 카빙 숏턴 핵심 체크포인트】빠른 힐-토 엣지 전환이 이루어지는지 / 상체가 안정적으로 고정되는지 / 무릎 굴곡이 충격을 흡수하는지 / 리듬이 빠르고 일정한지",
+        "슬라이딩턴 롱턴": "【스노보드 슬라이딩 롱턴 체크포인트】앞발-뒷발 체중 배분이 적절한지(앞발 60%) / 힐/토 전환 타이밍이 자연스러운지 / 상체 로테이션이 하체를 이끄는지 / 보드 테일이 스키딩되며 자연스럽게 호를 그리는지",
+        "슬라이딩턴 미들턴": "【스노보드 슬라이딩 미들턴 체크포인트】턴 타이밍과 리듬이 일정한지 / 상체가 너무 많이 돌지 않는지 / 체중 이동이 부드러운지",
+        "슬라이딩턴 숏턴": "【스노보드 슬라이딩 숏턴 체크포인트】빠른 힐-토 전환이 이루어지는지 / 상체가 흔들리지 않는지 / 리듬이 규칙적인지 / 뒷발에 체중이 쏠리지 않는지",
+        "모글(보드)": "【스노보드 모글 핵심 체크포인트】혹 정상에서 무릎·고관절 굽힘으로 충격 흡수가 되는지 / 상체가 안정적으로 유지되는지 / 보드가 설면에서 떠오르지 않는지",
+        "종합활강(보드)": "【스노보드 종합활강 핵심 체크포인트】카빙-슬라이딩 전환이 자연스러운지 / 속도 조절이 되는지 / 힐/토사이드 기술 수준이 균형 있는지 / 전체 리듬이 일관되는지",
+      };
+      // 보드 종목 key 매핑
+      const skKey = isSki
+        ? fullSkill
+        : fullSkill.replace("카빙턴","카빙턴").replace("슬라이딩턴","슬라이딩턴").replace("모글","모글(보드)").replace("종합활강","종합활강(보드)");
+      const checkpoint = skillCheckpoints[skKey] || (fullSkill ? "【"+fullSkill+" 집중 분석】움직임이 가장 큰 구간을 집중 추출합니다. 선택한 기술의 자세와 리듬을 중점적으로 분석하세요." : "");
+      const focusGuide = fullSkill
+        ? "[집중 분석 기술: "+fullSkill+"]
+"+checkpoint+"
+이 체크포인트를 최우선으로 분석하고, 피드백과 팁도 이 기술 위주로 작성하세요. 모션 탐지 모드로 턴 정점 장면이 집중 추출됩니다."
         : "";
       // KSIA 기반 코칭 기준
       const ksiaRef = isSki ? `
@@ -1023,7 +1052,7 @@ export default function App(){
       savedAt: Date.now(),
       sport,
       level,
-      focusSkill: focusSkill||"전체",
+      focusSkill: focusSkill!="전체" ? (focusSkill+(subSkill?" "+subSkill+"턴":"")) : "전체",
       scores: refinedData.scores || [],
       feedback: refinedData.feedback || [],
       tips: refinedData.tips || [],
@@ -1102,7 +1131,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-14 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-15 made by GP</div>
           </div>
         </div>
       )}
@@ -1136,7 +1165,7 @@ export default function App(){
           <div style={{fontSize:14,color:"#64748b",marginBottom:24}}>선택한 종목에 맞는 전문 용어로 분석해드립니다.</div>
           <div style={{display:"flex",gap:12,marginBottom:14}}>
             {[["ski","🎿","스키","#2563eb","#dbeafe","#1d4ed8"],["snowboard","🏂","스노보드","#7c3aed","#ede9fe","#6d28d9"]].map(([s,icon,lbl,ac,bg,bc])=>(
-              <button key={s} onClick={()=>{setSport(s);setLevel("");setPhase("level");}} style={{flex:1,padding:"28px 16px",borderRadius:16,border:"2px solid "+ac,background:bg,color:bc,cursor:"pointer",textAlign:"center",boxShadow:"0 2px 12px "+ac+"22"}}>
+              <button key={s} onClick={()=>{setSport(s);setLevel("");setFocusSkill("전체");setSubSkill("");setPhase("level");}} style={{flex:1,padding:"28px 16px",borderRadius:16,border:"2px solid "+ac,background:bg,color:bc,cursor:"pointer",textAlign:"center",boxShadow:"0 2px 12px "+ac+"22"}}>
                 <div style={{fontSize:40,marginBottom:10}}>{icon}</div>
                 <div style={{fontSize:17,fontWeight:600}}>{lbl}</div>
                 <div style={{fontSize:12,color:ac,marginTop:4,opacity:0.8}}>선택 →</div>
@@ -1223,23 +1252,71 @@ export default function App(){
               ))}
             </div>
             {/* 집중 기술 선택 */}
-            <div style={{marginBottom:16}}>
-              <div style={{fontSize:13,fontWeight:500,color:"#0f172a",marginBottom:8}}>오늘 집중할 기술 <span style={{fontSize:11,color:"#94a3b8",fontWeight:400}}>(선택)</span></div>
-              <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
-                {(sport==="ski"
-                  ? ["전체","카빙 턴","숏턴","롱턴","균형·중심","상체 안정"]
-                  : ["전체","카빙 턴","숏턴","엣지 전환","균형·중심","로테이션"]
-                ).map(sk=>(
-                  <button key={sk} onClick={()=>setFocusSkill(sk)}
-                    style={{padding:"7px 14px",borderRadius:99,border:focusSkill===sk?"1.5px solid "+(sport==="ski"?"#2563eb":"#7c3aed"):"0.5px solid rgba(0,0,0,0.1)",
-                      background:focusSkill===sk?(sport==="ski"?"#dbeafe":"#ede9fe"):"#fff",
-                      color:focusSkill===sk?(sport==="ski"?"#1d4ed8":"#6d28d9"):"#475569",
-                      fontSize:12,fontWeight:focusSkill===sk?600:400,cursor:"pointer"}}>
-                    {sk==="전체"?"🎯 전체 분석":sk}
-                  </button>
-                ))}
-              </div>
-            </div>
+            {(()=>{
+              const isSki2 = sport==="ski";
+              const ac = isSki2?"#2563eb":"#7c3aed";
+              const acBg = isSki2?"#dbeafe":"#ede9fe";
+              const acTx = isSki2?"#1d4ed8":"#6d28d9";
+              const skillList = isSki2
+                ? ["전체","카빙턴","다이나믹턴","모글","종합활강"]
+                : ["전체","카빙턴","슬라이딩턴","모글","종합활강"];
+              const hasRadius = ["카빙턴","다이나믹턴","슬라이딩턴"].includes(focusSkill);
+              return(
+                <div style={{marginBottom:16}}>
+                  <div style={{fontSize:13,fontWeight:500,color:"#0f172a",marginBottom:4}}>오늘 집중할 기술 <span style={{fontSize:11,color:"#94a3b8",fontWeight:400}}>(선택)</span></div>
+                  <div style={{fontSize:11,color:"#94a3b8",marginBottom:10}}>선택한 기술에 따라 분석 방식이 달라집니다</div>
+                  <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:8}}>
+                    {skillList.map(sk=>(
+                      <button key={sk} onClick={()=>{setFocusSkill(sk);setSubSkill("");}}
+                        style={{padding:"7px 14px",borderRadius:99,border:focusSkill===sk?"1.5px solid "+ac:"0.5px solid rgba(0,0,0,0.1)",
+                          background:focusSkill===sk?acBg:"#fff",color:focusSkill===sk?acTx:"#475569",
+                          fontSize:12,fontWeight:focusSkill===sk?600:400,cursor:"pointer"}}>
+                        {sk==="전체"?"🎯 전체 분석":sk}
+                      </button>
+                    ))}
+                  </div>
+                  {hasRadius&&(
+                    <div style={{marginBottom:8}}>
+                      <div style={{fontSize:11,color:"#94a3b8",marginBottom:6}}>반경 선택</div>
+                      <div style={{display:"flex",gap:6}}>
+                        {["롱","미들","숏"].map(r=>(
+                          <button key={r} onClick={()=>setSubSkill(r)}
+                            style={{padding:"5px 14px",borderRadius:99,border:subSkill===r?"1.5px solid "+ac:"0.5px solid rgba(0,0,0,0.1)",
+                              background:subSkill===r?acBg:"#f8fafc",color:subSkill===r?acTx:"#64748b",
+                              fontSize:11,fontWeight:subSkill===r?600:400,cursor:"pointer"}}>
+                            {r}턴
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {focusSkill!=="전체"&&(
+                    <div style={{borderRadius:10,overflow:"hidden",border:"1.5px solid "+ac,background:isSki2?"#fafbff":"#faf5ff"}}>
+                      <div style={{padding:"10px 14px",display:"flex",gap:8,alignItems:"flex-start"}}>
+                        <span style={{fontSize:14,flexShrink:0}}>🔍</span>
+                        <div>
+                          <div style={{fontSize:12,fontWeight:600,color:acTx,marginBottom:3}}>
+                            모션 탐지 분석 모드 — {focusSkill}{subSkill?" "+subSkill+"턴":""}
+                          </div>
+                          <div style={{fontSize:11,color:acTx,lineHeight:1.65}}>
+                            움직임이 가장 큰 구간을 자동 감지해 집중 추출합니다.
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{background:"rgba(0,0,0,0.04)",padding:"7px 14px",borderTop:"0.5px solid rgba(0,0,0,0.08)",fontSize:11,color:acTx}}>
+                        ⚡ 전체 분석보다 2~3초 더 소요될 수 있습니다
+                      </div>
+                    </div>
+                  )}
+                  {focusSkill==="전체"&&(
+                    <div style={{borderRadius:10,border:"1.5px solid #2563eb",background:"#eff6ff",padding:"10px 14px",display:"flex",gap:8,alignItems:"flex-start"}}>
+                      <span style={{fontSize:14,flexShrink:0}}>📊</span>
+                      <div style={{fontSize:11,color:"#1d4ed8",lineHeight:1.65}}>영상 전체를 고르게 나눠 8개 장면을 추출합니다. 어둡거나 라이더가 잘 안 보이는 장면은 자동으로 제외됩니다.</div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* 스노보드만 스탠스 선택 표시 */}
             {sport==="snowboard"&&(
