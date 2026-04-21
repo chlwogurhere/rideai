@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.05-4";
+const VERSION = "ver 0.05-5";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -121,33 +121,43 @@ async function extractPoseData(imageDataUrl) {
   }
 }
 
-function formatPoseData(pose, sport) {
+function formatPoseData(pose, sport, stance) {
   if (!pose || pose.confidence < 40) return null;
   const isSki = sport === "ski";
   const avgKnee = Math.round((pose.leftKneeAngle + pose.rightKneeAngle) / 2);
-  const avgHip  = Math.round((pose.leftHipAngle  + pose.rightHipAngle)  / 2);
-
-  // Ideal ranges for ski/snowboard
   const kneeIdeal  = isSki ? [90, 120] : [95, 125];
   const torsoIdeal = isSki ? [5, 20]   : [10, 25];
-
-  const kneeStatus  = avgKnee  < kneeIdeal[0]  ? "과굴곡(너무 많이 굽힘)" : avgKnee  > kneeIdeal[1]  ? "굴곡 부족(더 굽혀야 함)" : "적정 범위";
-  const torsoStatus = pose.torsoLean < torsoIdeal[0] ? "직립(더 앞으로 기울여야 함)" : pose.torsoLean > torsoIdeal[1] ? "과도한 전경" : "적정 범위";
-
-  return (
-    `[포즈 측정값 — 신뢰도 ${pose.confidence}%]
-` +
-    `• 무릎 굴곡: 왼쪽 ${pose.leftKneeAngle}° / 오른쪽 ${pose.rightKneeAngle}° (평균 ${avgKnee}°, 권장 ${kneeIdeal[0]}~${kneeIdeal[1]}°) → ${kneeStatus}
-` +
-    `• 상체 기울기: ${pose.torsoLean}° (권장 ${torsoIdeal[0]}~${torsoIdeal[1]}°) → ${torsoStatus}
-` +
-    `• 고관절 각도: 왼쪽 ${pose.leftHipAngle}° / 오른쪽 ${pose.rightHipAngle}°
-` +
-    `• 어깨 수평 차이: ${pose.shoulderDiff}% (0에 가까울수록 수평)
-` +
-    `• 팔꿈치 각도: 왼쪽 ${pose.leftElbowAngle}° / 오른쪽 ${pose.rightElbowAngle}°`
-  );
+  const kneeStatus  = avgKnee < kneeIdeal[0] ? "과굴곡" : avgKnee > kneeIdeal[1] ? "굴곡 부족" : "적정";
+  const torsoStatus = pose.torsoLean < torsoIdeal[0] ? "직립(더 앞으로)" : pose.torsoLean > torsoIdeal[1] ? "과도한 전경" : "적정";
+  const sd = pose.shoulderDiff || 0;
+  let edgeEstimate = "";
+  if (isSki) {
+    const conf = Math.abs(sd) > 10 ? "가능성 높음" : Math.abs(sd) > 4 ? "가능성 있음" : "불명확";
+    if (Math.abs(sd) > 4) {
+      edgeEstimate = sd < 0
+        ? "좌회전 추정(" + conf + ") → 오른발 인엣지/왼발 아웃엣지 사용 중일 가능성"
+        : "우회전 추정(" + conf + ") → 왼발 인엣지/오른발 아웃엣지 사용 중일 가능성";
+    } else {
+      edgeEstimate = "회전 방향 불명확 — 이미지 직접 판단 권장";
+    }
+  } else {
+    const isRegular = stance !== "goofy";
+    const towardToe = isRegular ? sd < 0 : sd > 0;
+    const conf = Math.abs(sd) > 12 ? "가능성 높음" : Math.abs(sd) > 5 ? "가능성 있음" : "불명확";
+    const stanceStr = isRegular ? "레귤러(왼발 앞)" : "구피(오른발 앞)";
+    edgeEstimate = Math.abs(sd) > 5
+      ? stanceStr + " 기준 — " + (towardToe ? "토사이드" : "힐사이드") + " 턴 중일 " + conf
+      : stanceStr + " 기준 — 방향 불명확, 이미지 직접 판단 권장";
+  }
+  const sdDir = sd > 0 ? "왼" : "오른";
+  return "[포즈 측정값 — 신뢰도 " + pose.confidence + "%]\n" +
+    "• 무릎: 왼쪽 " + pose.leftKneeAngle + "° / 오른쪽 " + pose.rightKneeAngle + "° (평균 " + avgKnee + "°) → " + kneeStatus + "\n" +
+    "• 상체 기울기: " + pose.torsoLean + "° → " + torsoStatus + "\n" +
+    "• 어깨 기울기: " + sdDir + "어깨 " + Math.abs(sd) + "% 낮음\n" +
+    "• [엣지 방향 추정] " + edgeEstimate + "\n" +
+    "• 고관절: 왼쪽 " + pose.leftHipAngle + "° / 오른쪽 " + pose.rightHipAngle + "°";
 }
+
 
 /* ── API ──────────────────────────────────────────────────── */
 async function apiCall(messages, system, apiKey) {
@@ -706,7 +716,8 @@ export default function App(){
   };
 
   const [sport,setSport]=useState("ski");
-  const [level,setLevel]=useState(""); // "lv1"|"lv2"|"lv3"|"demon"|"unknown" 
+  const [level,setLevel]=useState(""); // "lv1"|"lv2"|"lv3"|"demon"|"unknown"
+  const [stance,setStance]=useState("regular"); // "regular"|"goofy" (보드 전용) 
   const [file,setFile]=useState(null);
   const [phase,setPhase]=useState("sport"); // sport | upload | loading | picking | done | history | error
   const [history,setHistory]=useState(()=>loadHistory());
@@ -763,7 +774,8 @@ export default function App(){
       const isSki=sport==="ski", sl=isSki?"스키":"스노보드";
       const levelMap={"lv1":"레벨1","lv2":"레벨2","lv3":"레벨3","demon":"데몬스트레이터","unknown":"","":""}; 
       const levelStr = levelMap[level]||"";
-      const levelGuide = levelStr ? `[분석 기준: 응시자는 KSIA ${levelStr} 수준입니다. 이 수준에 맞는 기술 기준으로 분석하고 피드백하세요.]` : "";
+      const stanceGuide = !isSki ? `[스탠스: ${stance==="goofy"?"구피(오른발 앞)":"레귤러(왼발 앞)"}]` : "";
+      const levelGuide = levelStr ? `[분석 기준: 응시자는 KSIA ${levelStr} 수준입니다. 이 수준에 맞는 기술 기준으로 분석하고 피드백하세요.] ${stanceGuide}` : stanceGuide;
       // KSIA 기반 코칭 기준
       const ksiaRef = isSki ? `
 [KSIA 스키 등급별 핵심 기준 — 대한스키지도자연맹]
@@ -794,7 +806,7 @@ export default function App(){
         });
         frames.forEach((f,i)=>{
           const pd = poseDataList[i];
-          const poseText = pd ? formatPoseData(pd, sport) : null;
+          const poseText = pd ? formatPoseData(pd, sport, stance) : null;
           msgContent.push({type:"text",text:
             "[후보 "+i+" — "+f.time+"초]" +
             (poseText ? "\n" + poseText : "\n[포즈 감지 실패 — 라이더가 잘 안 보이는 장면]")
@@ -816,7 +828,7 @@ export default function App(){
         '"feedback":[{"type":"good","tag":"잘된 점","text":"KSIA 기준 잘된 부분 2~3문장","actionSteps":["구체적 동작1","동작2"]},{"type":"warn","tag":"개선 포인트","text":"개선방법 2~3문장","actionSteps":["언제어떻게 구체동작1","구체동작2"]},{"type":"info","tag":"코치 조언","text":"코칭 2~3문장","actionSteps":["구체동작1","구체동작2"]}],'+
         '"tips":[{"text":"친근한 코칭 말투 — 예: 앞발에 살짝 더 실어볼까요","detail":"구체적으로 어떻게 하는지 2문장"},{"text":"팁2","detail":"구체적 설명"},{"text":"팁3","detail":"구체적 설명"},{"text":"팁4","detail":"구체적 설명"}]}'+
         "\n규칙: frameIndex는 0~"+maxIdx+" 중 실제 라이더가 보이는 장면 선택, value 60-95, good 2개+warn 2개, 한국어."+
-        " 동일한 입력에 대해 항상 동일한 분석 결과를 출력하세요. 점수와 선택 장면이 일관되어야 합니다. 스노보드 종목일 경우 폴(pole)이 없으므로 폴 관련 언급 절대 금지. tips의 text는 친근한 코칭 말투로 — 드릴/연습/훈련 같은 딱딱한 운동 용어 금지, 예: 앞발에 살짝 더 실어볼까요/어깨는 슬로프 아래를 향해 고정해봐요."
+        " 동일한 입력에 대해 항상 동일한 분석 결과를 출력하세요. 점수와 선택 장면이 일관되어야 합니다. 스노보드 종목일 경우 폴(pole)이 없으므로 폴 관련 언급 절대 금지. tips text는 친근한 코칭 말투로 — 드릴/연습/훈련 같은 딱딱한 용어 금지. [엣지 방향 규칙] 포즈 측정값에 [엣지 방향 추정] 항목이 있으면 이미지 판단보다 우선 적용하세요. 스키 설명: 인엣지(안쪽 날)/아웃엣지(바깥 날) + 어느 발인지 명시 — 예: 오른발 인엣지. 스노보드 설명: 토사이드(발가락 쪽 엣지)/힐사이드(뒤꿈치 쪽 엣지) 사용. 방향 추정 불명확 시 단정 짓지 말고 이미지상으로 보입니다 식으로 표현."
       });
 
       let data;
@@ -1021,7 +1033,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-4 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-5 made by GP</div>
           </div>
         </div>
       )}
@@ -1141,6 +1153,21 @@ export default function App(){
                 </button>
               ))}
             </div>
+            {/* 스노보드만 스탠스 선택 표시 */}
+            {sport==="snowboard"&&(
+              <div style={{marginBottom:16}}>
+                <div style={{fontSize:13,fontWeight:500,color:"#0f172a",marginBottom:8}}>발 방향 (스탠스)</div>
+                <div style={{display:"flex",gap:8}}>
+                  {[["regular","🦶","레귤러","왼발이 앞"],["goofy","🦶","구피","오른발이 앞"]].map(([val,icon,lbl,desc])=>(
+                    <button key={val} onClick={()=>setStance(val)}
+                      style={{flex:1,padding:"10px 8px",borderRadius:10,border:stance===val?"2px solid #7c3aed":"0.5px solid rgba(0,0,0,0.1)",background:stance===val?"#ede9fe":"#fff",cursor:"pointer",textAlign:"center"}}>
+                      <div style={{fontSize:13,fontWeight:600,color:stance===val?"#6d28d9":"#0f172a"}}>{lbl}</div>
+                      <div style={{fontSize:11,color:"#64748b"}}>{desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <button onClick={()=>{if(level)setPhase("upload");}} disabled={!level}
               style={{width:"100%",padding:14,borderRadius:10,border:"none",background:level?"#0f172a":"#e2e8f0",color:level?"#fff":"#94a3b8",fontSize:15,fontWeight:600,cursor:level?"pointer":"not-allowed"}}>
               다음 →
