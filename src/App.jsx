@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.05-13";
+const VERSION = "ver 0.05-14";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -1102,7 +1102,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-13 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-14 made by GP</div>
           </div>
         </div>
       )}
@@ -1610,8 +1610,15 @@ export default function App(){
                       const firstAvg = first.scores.length>0?Math.round(first.scores.reduce((a,sc)=>a+sc.value,0)/first.scores.length):0;
                       const lastAvg  = last.scores.length>0?Math.round(last.scores.reduce((a,sc)=>a+sc.value,0)/last.scores.length):0;
                       const trend = lastAvg - firstAvg;
-                      const warnTexts = reportHist.flatMap(h=>(h.feedback||[]).filter(f=>f.type==="warn").map(f=>f.tag||""));
-                      const topWarn = warnTexts.length>0 ? warnTexts.sort((a,b)=>warnTexts.filter(x=>x===b).length-warnTexts.filter(x=>x===a).length)[0] : null;
+                      // warn 장면 제목으로 자주 나온 개선 포인트 계산
+                      const warnTitles = reportHist.flatMap(h=>(h.frames||[]).filter(f=>f.type==="warn"&&f.title).map(f=>f.title));
+                      const warnCounts = warnTitles.reduce((acc,t)=>{acc[t]=(acc[t]||0)+1;return acc;},{});
+                      const topWarn = Object.keys(warnCounts).length>0
+                        ? Object.entries(warnCounts).sort((a,b)=>b[1]-a[1]).map(([t,c])=>t+(c>1?" ("+c+"회)":""))[0]
+                        : null;
+                      const topWarnList = Object.keys(warnCounts).length>0
+                        ? Object.entries(warnCounts).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([t,c])=>({title:t,count:c}))
+                        : [];
                       return(
                         <div style={{background:"#0f172a",borderRadius:12,padding:"16px 18px",marginBottom:14,color:"#fff"}}>
                           <div style={{fontSize:13,fontWeight:600,color:"#94a3b8",marginBottom:12,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
@@ -1639,8 +1646,17 @@ export default function App(){
                               <div style={{fontSize:20,fontWeight:700,color:trend>=0?"#4ade80":"#f87171"}}>{trend>=0?"+":""}{trend}<span style={{fontSize:12,marginLeft:2}}>{trend>=0?"📈":"📉"}</span></div>
                             </div>
                           </div>
-                          {topWarn&&<div style={{background:"rgba(255,255,255,0.05)",borderRadius:8,padding:"9px 12px",fontSize:12,color:"#94a3b8"}}>
-                            <span style={{color:"#fbbf24"}}>⚠ </span>자주 나온 개선 포인트: <span style={{color:"#fff",fontWeight:500}}>{topWarn}</span>
+                          {topWarnList.length>0&&<div style={{background:"rgba(255,255,255,0.05)",borderRadius:8,padding:"10px 12px"}}>
+                            <div style={{fontSize:11,color:"#64748b",marginBottom:7}}>⚠ 자주 나온 개선 포인트</div>
+                            {topWarnList.map((w,i)=>(
+                              <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:i<topWarnList.length-1?6:0}}>
+                                <div style={{display:"flex",alignItems:"center",gap:7}}>
+                                  <span style={{width:16,height:16,borderRadius:"50%",background:"rgba(251,191,36,0.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,color:"#fbbf24",fontWeight:700,flexShrink:0}}>{i+1}</span>
+                                  <span style={{fontSize:12,color:"#e2e8f0"}}>{w.title}</span>
+                                </div>
+                                <span style={{fontSize:11,color:"#64748b"}}>{w.count}회</span>
+                              </div>
+                            ))}
                           </div>}
                           <button onClick={()=>{
                             if(!window.Kakao) return;
