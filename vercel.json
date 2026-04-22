@@ -1,7 +1,10 @@
 {
   "functions": {
     "api/proxy.js": {
-      "maxDuration": 30
+      "maxDuration": 60
+    },
+    "api/feedback.js": {
+      "maxDuration": 60
     }
   },
   "routes": [
