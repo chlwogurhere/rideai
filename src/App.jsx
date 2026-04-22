@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.05-22";
+const VERSION = "ver 0.05-23";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -936,9 +936,9 @@ export default function App(){
         '{"frameIndex":9,"type":"warn","title":"제목","desc":"전문용어(설명) 2문장"}'+
         '],'+
         '"feedback":[{"type":"good","tag":"잘된 점","text":"KSIA 기준 잘된 부분 2~3문장","actionSteps":["구체적 동작1","동작2"]},{"type":"warn","tag":"개선 포인트","text":"개선방법 2~3문장","actionSteps":["언제어떻게 구체동작1","구체동작2"]},{"type":"info","tag":"코치 조언","text":"코칭 2~3문장","actionSteps":["구체동작1","구체동작2"]}],'+
-        '"tips":[{"text":"친근한 코칭 말투 — 예: 앞발에 살짝 더 실어볼까요","detail":"구체적으로 어떻게 하는지 2문장"},{"text":"팁2","detail":"구체적 설명"},{"text":"팁3","detail":"구체적 설명"},{"text":"팁4","detail":"구체적 설명"}]}'+
+        '"tips":[{"text":"친근한 코칭 말투 — 예: 앞발에 살짝 더 실어볼까요","detail":"구체적으로 어떻게 하는지 2문장"},{"text":"팁2","detail":"구체적 설명"},{"text":"팁3","detail":"구체적 설명"},{"text":"팁4","detail":"구체적 설명"}],"estimatedLevel":"lv1또는lv2또는lv3또는demon"}'+
         "\n규칙: frameIndex는 0~"+maxIdx+" 중 실제 라이더가 보이는 장면 선택, value 60-95, good 2개+warn 2개, 한국어."+
-        " 동일한 입력에 대해 항상 동일한 분석 결과를 출력하세요. 점수와 선택 장면이 일관되어야 합니다. 스노보드 종목일 경우 폴(pole)이 없으므로 폴 관련 언급 절대 금지. tips text는 친근한 코칭 말투로 — 드릴/연습/훈련 같은 딱딱한 용어 금지. [엣지 방향 규칙] 포즈 측정값에 [엣지 방향 추정] 항목이 있으면 이미지 판단보다 우선 적용하세요. 스키 설명: 인엣지(안쪽 날)/아웃엣지(바깥 날) + 어느 발인지 명시 — 예: 오른발 인엣지. 스노보드 설명: 토사이드(발가락 쪽 엣지)/힐사이드(뒤꿈치 쪽 엣지) 사용. 방향 추정 불명확 시 단정 짓지 말고 이미지상으로 보입니다 식으로 표현."
+        " 동일한 입력에 대해 항상 동일한 분석 결과를 출력하세요. 점수와 선택 장면이 일관되어야 합니다. 스노보드 종목일 경우 폴(pole)이 없으므로 폴 관련 언급 절대 금지. tips text는 친근한 코칭 말투로 — 드릴/연습/훈련 같은 딱딱한 용어 금지. [엣지 방향 규칙] 포즈 측정값에 [엣지 방향 추정] 항목이 있으면 이미지 판단보다 우선 적용하세요. 스키 설명: 인엣지(안쪽 날)/아웃엣지(바깥 날) + 어느 발인지 명시 — 예: 오른발 인엣지. 스노보드 설명: 토사이드(발가락 쪽 엣지)/힐사이드(뒤꿈치 쪽 엣지) 사용. 방향 추정 불명확 시 단정 짓지 말고 이미지상으로 보입니다 식으로 표현. estimatedLevel은 영상에서 보이는 실제 실력을 KSIA 기준으로 추정해 lv1/lv2/lv3/demon 중 하나로만 응답하세요."
       });
 
       let data;
@@ -1145,7 +1145,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-22 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-23 made by GP</div>
           </div>
         </div>
       )}
@@ -1936,6 +1936,25 @@ export default function App(){
 
         {/* STEP 5: DONE */}
         {phase==="done"&&result&&(<div style={{animation:"fadeUp 0.4s ease"}}>
+          {(()=>{
+            const levelOrder=["lv1","lv2","lv3","demon"];
+            const levelNames={"lv1":"레벨1","lv2":"레벨2","lv3":"레벨3","demon":"데몬스트레이터"};
+            const selIdx=levelOrder.indexOf(level);
+            const estIdx=levelOrder.indexOf(result.estimatedLevel||"");
+            const diff=selIdx!==-1&&estIdx!==-1?Math.abs(selIdx-estIdx):0;
+            if(diff<2) return null;
+            const estName=levelNames[result.estimatedLevel]||"";
+            const isHigher=estIdx<selIdx;
+            return(
+              <div style={{background:isHigher?"#fef9c3":"#dbeafe",border:"1px solid "+(isHigher?"#fde68a":"#93c5fd"),borderRadius:12,padding:"12px 16px",marginBottom:16,display:"flex",gap:10,alignItems:"flex-start"}}>
+                <span style={{fontSize:18,flexShrink:0}}>{isHigher?"🔍":"📈"}</span>
+                <div>
+                  <div style={{fontSize:13,fontWeight:600,color:isHigher?"#92400e":"#1e40af",marginBottom:3}}>선택하신 레벨과 영상의 실력 차이가 있어요</div>
+                  <div style={{fontSize:12,color:isHigher?"#78350f":"#1d4ed8",lineHeight:1.65}}>영상 분석 결과 <strong>{estName}</strong> 수준으로 보입니다. {isHigher?"더 낮은 레벨로 설정하시면 더 맞춤화된 피드백을 받을 수 있어요.":"더 높은 레벨로 설정하시면 더 정확한 피드백을 받을 수 있어요."}</div>
+                </div>
+              </div>
+            );
+          })()}
           {/* Save/Share buttons */}
           <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
             <button onClick={()=>{
