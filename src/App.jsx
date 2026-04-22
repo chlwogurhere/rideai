@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.05-23";
+const VERSION = "ver 0.05-24";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -645,6 +645,8 @@ export default function App(){
   const [feedback,setFeedback]=useState(null); // null | 'good' | 'bad'
   const [feedbackDone,setFeedbackDone]=useState(false);
   const [stars,setStars]=useState(0);
+  const [queueStatus,setQueueStatus]=useState(null); // null | {status,position,total}
+  const [sessionId] = useState(()=>Math.random().toString(36).slice(2)+Date.now().toString(36));
   const [comment,setComment]=useState("");
   const [starDone,setStarDone]=useState(false);
   const analysisIdRef = useRef(null);
@@ -781,6 +783,9 @@ export default function App(){
   const [histPage,setHistPage]=useState(1);
   const [customFrom,setCustomFrom]=useState("");
   const [showScrollTop,setShowScrollTop]=useState(false);
+  const [queueStatus,setQueueStatus]=useState(null); // null | {status,position,id,active}
+  const queueIdRef = useRef(null);
+  const queuePollRef = useRef(null);
 
   useEffect(()=>{
     const onScroll=()=>setShowScrollTop(window.scrollY>300);
@@ -817,7 +822,28 @@ export default function App(){
   const onDrop=useCallback(e=>{e.preventDefault();onFile(e.dataTransfer.files[0]);;},[]);
 
   const runAnalysis=async()=>{
-    setError("");setPhase("loading");setPct(5);setLoadMsg("영상 불러오는 중...");
+    setError("");setPhase("loading");
+    setQueueStatus(null);
+
+    // ── 대기열 진입 ────────────────────────────────────────────────────────
+    try {
+      const qRes = await fetch("/api/queue?action=enter&sessionId="+sessionId);
+      const qData = await qRes.json();
+      if (qData.status === "wait") {
+        setQueueStatus(qData);
+        await new Promise((resolve) => {
+          const poll = setInterval(async () => {
+            try {
+              const sRes = await fetch("/api/queue?action=status&sessionId="+sessionId);
+              const sData = await sRes.json();
+              setQueueStatus(sData);
+              if (sData.status === "go") { clearInterval(poll); resolve(); }
+            } catch {}
+          }, 10000);
+        });
+        setQueueStatus(null);
+      }
+    } catch {}setPct(5);setLoadMsg("영상 불러오는 중...");
     try{
       if(urlRef.current) URL.revokeObjectURL(urlRef.current);
       urlRef.current=URL.createObjectURL(file);
@@ -959,6 +985,7 @@ export default function App(){
       console.error("run:",outerErr.message);
       setError(outerErr.message);
       setPhase("error");
+      fetch(`/api/queue?action=done&sessionId=${sessionId}`).catch(()=>{});
     }
   };
 
@@ -1145,7 +1172,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-23 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-24 made by GP</div>
           </div>
         </div>
       )}
@@ -1159,7 +1186,7 @@ export default function App(){
             <div><div style={{fontSize:13,fontWeight:900,color:"#0d47a1",letterSpacing:0.5}}>SNOW<span style={{color:"#2196f3"}}>RIDE</span></div><div style={{fontSize:9,color:"#94a3b8",letterSpacing:1.5}}>AI COACHING STAFF</div></div>
           </div>
           {(()=>{
-            const prevMap={level:"sport",upload:"level",loading:"upload",picking:"upload",done:"upload",error:"upload",history:"sport"};
+            const prevMap={level:"sport",upload:"level",loading:"upload",queue:"upload",picking:"upload",done:"upload",error:"upload",history:"sport"};
             const prev=prevMap[phase];
             return prev?(
               <button onClick={()=>setPhase(prev)} style={{padding:"6px 12px",borderRadius:8,border:"0.5px solid rgba(0,0,0,0.12)",background:"#fff",color:"#64748b",fontSize:12,cursor:"pointer",flexShrink:0}}>
@@ -1182,7 +1209,7 @@ export default function App(){
           </div>
         </div>)}
 
-        {phase!=="sport"&&phase!=="history"&&phase!=="error"&&<StepBar current={phase}/>}
+        {phase!=="sport"&&phase!=="history"&&phase!=="error"&&phase!=="queue"&&<StepBar current={phase}/>}
 
         {/* STEP 1: SPORT */}
         {phase==="sport"&&(<div style={{animation:"fadeUp 0.3s ease"}}>
@@ -1393,7 +1420,7 @@ export default function App(){
             <div>③ 남은 후보 장면 중 AI가 직접 보고 <strong>잘된 장면 2개 + 개선 필요 장면 2개</strong>를 선택합니다</div>
             <div style={{marginTop:5,color:"#a16207",fontSize:12}}>💡 라이더가 화면 중앙에 잘 보이는 영상을 사용하면 더 정확한 분석이 가능합니다.</div>
           </div>
-            <button onClick={runAnalysis} disabled={!file||fileTooLarge} style={{width:"100%",padding:15,borderRadius:10,border:"none",background:(file&&!fileTooLarge)?"#0f172a":"#e2e8f0",color:(file&&!fileTooLarge)?"#fff":"#94a3b8",fontSize:15,fontWeight:600,cursor:(file&&!fileTooLarge)?"pointer":"not-allowed"}}>
+            <button onClick={runWithQueue} disabled={!file||fileTooLarge} style={{width:"100%",padding:15,borderRadius:10,border:"none",background:(file&&!fileTooLarge)?"#0f172a":"#e2e8f0",color:(file&&!fileTooLarge)?"#fff":"#94a3b8",fontSize:15,fontWeight:600,cursor:(file&&!fileTooLarge)?"pointer":"not-allowed"}}>
             AI 분석 시작 →
           </button>
           {fileTooLarge&&<div style={{marginTop:10,textAlign:"center",fontSize:13,color:"#dc2626"}}>⚠️ 파일 크기가 100MB를 초과합니다. 더 작은 영상을 선택해주세요.</div>}
@@ -1424,11 +1451,54 @@ export default function App(){
         </div>)}
 
         {/* STEP 3: LOADING */}
+        {/* QUEUE PHASE */}
+        {phase==="queue"&&queueStatus&&(
+          <div style={{animation:"fadeUp 0.3s ease",padding:"32px 0",textAlign:"center"}}>
+            <div style={{width:64,height:64,borderRadius:"50%",background:"#f0f9ff",border:"2px solid #2563eb",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 20px",fontSize:28}}>
+              ⏳
+            </div>
+            <div style={{fontSize:17,fontWeight:600,color:"#0f172a",marginBottom:8}}>분석 대기 중입니다</div>
+            <div style={{fontSize:13,color:"#64748b",marginBottom:24,lineHeight:1.7}}>
+              현재 <strong style={{color:"#0f172a"}}>{queueStatus.active || 0}명</strong>이 분석 중입니다<br/>
+              내 순서: <strong style={{color:"#2563eb"}}>{queueStatus.position}번째</strong>
+            </div>
+            <div style={{maxWidth:240,margin:"0 auto 24px",background:"#f8fafc",borderRadius:12,padding:"14px 20px"}}>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"#94a3b8",marginBottom:8}}>
+                <span>대기</span><span>분석 시작</span>
+              </div>
+              <div style={{height:6,background:"rgba(0,0,0,0.08)",borderRadius:99,overflow:"hidden"}}>
+                <div style={{height:"100%",width:"30%",background:"#2563eb",borderRadius:99,animation:"pulse 1.5s ease-in-out infinite"}}/>
+              </div>
+            </div>
+            <div style={{fontSize:12,color:"#94a3b8",marginBottom:20}}>앞 순서가 완료되면 자동으로 분석이 시작됩니다</div>
+            <button onClick={()=>{
+              clearInterval(queuePollRef.current);
+              setQueueStatus(null);
+              fetch("/api/queue-done",{method:"POST"}).catch(()=>{});
+              setPhase("upload");
+            }} style={{padding:"9px 24px",borderRadius:8,border:"0.5px solid rgba(0,0,0,0.12)",background:"#fff",color:"#64748b",fontSize:13,cursor:"pointer"}}>
+              취소
+            </button>
+          </div>
+        )}
+
+        {/* LOADING PHASE */}
         {phase==="loading"&&(<div style={{animation:"fadeUp 0.3s ease",padding:"32px 0"}}>
           <div style={{textAlign:"center",marginBottom:24}}>
             <div style={{width:48,height:48,border:"3px solid rgba(0,0,0,0.08)",borderTopColor:"#0f172a",borderRadius:"50%",animation:"spin 0.85s linear infinite",margin:"0 auto 14px"}}/>
-            <div style={{fontSize:15,fontWeight:500,color:"#0f172a",marginBottom:4}}>{loadMsg}</div>
-            <div style={{fontSize:12,color:"#94a3b8"}}>잠시만 기다려주세요</div>
+            {queueStatus&&queueStatus.status==="wait" ? (<>
+              <div style={{fontSize:15,fontWeight:500,color:"#0f172a",marginBottom:4}}>분석 대기 중...</div>
+              <div style={{background:"#f1f5f9",borderRadius:10,padding:"12px 16px",margin:"0 auto",maxWidth:240}}>
+                <div style={{fontSize:22,fontWeight:700,color:"#0f172a",marginBottom:2}}>{queueStatus.position}번째 대기 중</div>
+                <div style={{fontSize:12,color:"#64748b"}}>현재 {queueStatus.total||0}명 대기 · 앞 분석 완료 시 자동 시작</div>
+                <div style={{marginTop:10,height:4,background:"rgba(0,0,0,0.06)",borderRadius:99,overflow:"hidden"}}>
+                  <div style={{height:"100%",width:((queueStatus.total-(queueStatus.position-1))/Math.max(queueStatus.total,1)*100)+"%",background:"#0f172a",borderRadius:99,transition:"width 1s"}}/>
+                </div>
+              </div>
+            </>) : (<>
+              <div style={{fontSize:15,fontWeight:500,color:"#0f172a",marginBottom:4}}>{loadMsg}</div>
+              <div style={{fontSize:12,color:"#94a3b8"}}>잠시만 기다려주세요</div>
+            </>)}
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:7,marginBottom:20}}>
             {[
@@ -1483,7 +1553,7 @@ export default function App(){
               <div style={{fontSize:11,color:"#92400e",lineHeight:1.6}}>오류 내용: {error}</div>
             </div>}
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
-              <button onClick={runAnalysis} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:14,fontWeight:500,cursor:"pointer"}}>
+              <button onClick={runWithQueue} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:14,fontWeight:500,cursor:"pointer"}}>
                 🔄 다시 시도하기
               </button>
               <button onClick={reset} style={{width:"100%",padding:"12px 0",borderRadius:10,border:"0.5px solid rgba(0,0,0,0.12)",background:"transparent",color:"#64748b",fontSize:14,cursor:"pointer"}}>
