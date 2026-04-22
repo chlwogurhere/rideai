@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.05-18";
+const VERSION = "ver 0.05-19";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -1135,7 +1135,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-18 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-19 made by GP</div>
           </div>
         </div>
       )}
@@ -1144,14 +1144,16 @@ export default function App(){
 
         {/* HEADER */}
         <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:24}}>
-          <div style={{width:42,height:42,background:"#eff6ff",borderRadius:10,overflow:"hidden",flexShrink:0,cursor:"pointer"}} onClick={reset}><img src="/logo.png" alt="SNOWRIDE" style={{width:40,height:40,objectFit:"contain"}}/></div>
-          <div style={{flex:1}}><div style={{fontSize:13,fontWeight:900,color:"#0d47a1",letterSpacing:0.5}}>SNOW<span style={{color:"#2196f3"}}>RIDE</span></div><div style={{fontSize:9,color:"#94a3b8",letterSpacing:1.5}}>AI COACHING STAFF</div></div>
+          <div onClick={reset} style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer",flex:1}}>
+            <div style={{width:42,height:42,background:"#eff6ff",borderRadius:10,overflow:"hidden",flexShrink:0}}><img src="/logo.png" alt="SNOWRIDE" style={{width:40,height:40,objectFit:"contain"}}/></div>
+            <div><div style={{fontSize:13,fontWeight:900,color:"#0d47a1",letterSpacing:0.5}}>SNOW<span style={{color:"#2196f3"}}>RIDE</span></div><div style={{fontSize:9,color:"#94a3b8",letterSpacing:1.5}}>AI COACHING STAFF</div></div>
+          </div>
           {(()=>{
             const prevMap={level:"sport",upload:"level",loading:"upload",picking:"upload",done:"upload",error:"upload"};
             const prev=prevMap[phase];
             return prev?(
               <button onClick={()=>setPhase(prev)} style={{padding:"6px 12px",borderRadius:8,border:"0.5px solid rgba(0,0,0,0.12)",background:"#fff",color:"#64748b",fontSize:12,cursor:"pointer",flexShrink:0}}>
-                ← 이전
+                ← 뒤로가기
               </button>
             ):null;
           })()}
@@ -1236,7 +1238,7 @@ export default function App(){
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
               <span style={{fontSize:22}}>{sport==="ski"?"🎿":"🏂"}</span>
               <span style={{fontSize:15,fontWeight:600,color:sport==="ski"?"#1d4ed8":"#6d28d9"}}>{sport==="ski"?"스키":"스노보드"} 레벨 선택</span>
-              <button onClick={()=>setPhase("sport")} style={{marginLeft:"auto",fontSize:12,color:"#94a3b8",background:"none",border:"none",cursor:"pointer"}}>← 종목 변경</button>
+
             </div>
             <div style={{fontSize:13,color:"#64748b",marginBottom:18}}>현재 실력 수준을 선택해주세요. 수준에 맞는 코칭을 드립니다.</div>
             <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:18}}>
