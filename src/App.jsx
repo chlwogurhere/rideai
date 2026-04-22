@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.05-19";
+const VERSION = "ver 0.05-20";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -779,6 +779,9 @@ export default function App(){
   const [selectedHistory,setSelectedHistory]=useState(null);
   const [histFilter,setHistFilter]=useState({sport:"전체",level:"전체",skill:"전체",period:"전체"});
   const [histPage,setHistPage]=useState(1);
+  const [customFrom,setCustomFrom]=useState("");
+  const [customTo,setCustomTo]=useState("");
+  const [customApplied,setCustomApplied]=useState(false);
   const HIST_PER_PAGE = 5;
 
   // IndexedDB에서 히스토리 로드
@@ -1135,7 +1138,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-19 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-20 made by GP</div>
           </div>
         </div>
       )}
@@ -1660,18 +1663,59 @@ export default function App(){
                           </div>
                         </div>
                       );
-                      const isFiltered = histFilter.sport!=="전체"||histFilter.level!=="전체"||histFilter.skill!=="전체"||histFilter.period!=="전체";
+                      const isFiltered = histFilter.sport!=="전체"||histFilter.level!=="전체"||histFilter.skill!=="전체"||histFilter.period!=="전체"||(histFilter.period==="자세히"&&customApplied);
                       return(
                         <div style={{background:"#f8fafc",borderRadius:12,padding:"12px 14px",marginBottom:12,border:"0.5px solid rgba(0,0,0,0.07)"}}>
                           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
                             <div style={{fontSize:12,fontWeight:500,color:"#0f172a"}}>🔍 필터</div>
-                            {isFiltered&&<button onClick={()=>{setHistFilter({sport:"전체",level:"전체",skill:"전체",period:"전체"});setHistPage(1);}}
+                            {isFiltered&&<button onClick={()=>{setHistFilter({sport:"전체",level:"전체",skill:"전체",period:"전체"});setHistPage(1);setCustomFrom("");setCustomTo("");setCustomApplied(false);}}
                               style={{fontSize:11,color:"#ef4444",background:"none",border:"none",cursor:"pointer"}}>초기화</button>}
                           </div>
                           <FilterChips label="종목" options={sports} field="sport"/>
                           <FilterChips label="레벨" options={levels} field="level"/>
                           {skills.length>1&&<FilterChips label="집중 기술" options={skills} field="skill"/>}
                           <FilterChips label="기간" options={["전체","최근 7일","최근 30일","최근 90일"]} field="period"/>
+                          <div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:4}}>
+                            <button onClick={()=>{setHistFilter(f=>({...f,period:"자세히"}));setHistPage(1);}}
+                              style={{padding:"4px 11px",borderRadius:99,fontSize:12,
+                                border:histFilter.period==="자세히"?"1.5px solid #0f172a":"1px solid rgba(0,0,0,0.18)",
+                                background:histFilter.period==="자세히"?"#0f172a":"#f1f5f9",
+                                color:histFilter.period==="자세히"?"#fff":"#475569",cursor:"pointer",
+                                fontWeight:histFilter.period==="자세히"?600:400}}>
+                              자세히 ▾
+                            </button>
+                          </div>
+                          {histFilter.period==="자세히"&&(
+                            <div style={{marginTop:8,padding:"12px 14px",background:isFiltered?"#f8fafc":"#f8fafc",borderRadius:10,border:"0.5px solid rgba(0,0,0,0.1)"}}>
+                              <div style={{fontSize:11,fontWeight:500,color:"#0f172a",marginBottom:8}}>직접 기간 설정</div>
+                              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
+                                <div>
+                                  <div style={{fontSize:11,color:"#94a3b8",marginBottom:3}}>시작일</div>
+                                  <input type="date" value={customFrom} onChange={e=>{setCustomFrom(e.target.value);setCustomApplied(false);}}
+                                    style={{width:"100%",padding:"7px 8px",borderRadius:8,border:"1px solid rgba(0,0,0,0.15)",fontSize:12,boxSizing:"border-box",background:"#fff",color:"#0f172a"}}/>
+                                </div>
+                                <div>
+                                  <div style={{fontSize:11,color:"#94a3b8",marginBottom:3}}>종료일</div>
+                                  <input type="date" value={customTo} onChange={e=>{setCustomTo(e.target.value);setCustomApplied(false);}}
+                                    style={{width:"100%",padding:"7px 8px",borderRadius:8,border:"1px solid rgba(0,0,0,0.15)",fontSize:12,boxSizing:"border-box",background:"#fff",color:"#0f172a"}}/>
+                                </div>
+                              </div>
+                              <div style={{display:"flex",gap:8}}>
+                                <button onClick={()=>{
+                                  if(!customFrom||!customTo){alert("시작일과 종료일을 모두 선택해주세요");return;}
+                                  if(customFrom>customTo){alert("종료일이 시작일보다 빠릅니다");return;}
+                                  setCustomApplied(true);setHistPage(1);
+                                }} style={{flex:1,padding:"8px 0",borderRadius:8,border:"none",background:"#0f172a",color:"#fff",fontSize:12,fontWeight:500,cursor:"pointer"}}>
+                                  적용
+                                </button>
+                                <button onClick={()=>{setCustomFrom("");setCustomTo("");setCustomApplied(false);}}
+                                  style={{padding:"8px 14px",borderRadius:8,border:"1px solid rgba(0,0,0,0.15)",background:"#fff",color:"#64748b",fontSize:12,cursor:"pointer"}}>
+                                  초기화
+                                </button>
+                              </div>
+                              {customApplied&&<div style={{marginTop:8,fontSize:11,color:"#2563eb",textAlign:"center"}}>{customFrom} ~ {customTo} 기간 적용 중</div>}
+                            </div>
+                          )}
                         </div>
                       );
                     })()}
@@ -1682,6 +1726,8 @@ export default function App(){
                       const periodMs2={"전체":0,"최근 7일":7,"최근 30일":30,"최근 90일":90};
                       const pMs2=(periodMs2[histFilter.period]||0)*24*60*60*1000;
                       const now2=Date.now();
+                      const customFromMs = customApplied&&customFrom ? new Date(customFrom).getTime() : 0;
+                      const customToMs   = customApplied&&customTo   ? new Date(customTo).getTime()+86400000 : 0;
                       const reportHist = history.filter(h=>{
                         if(histFilter.sport!=="전체"&&(histFilter.sport==="스키"?h.sport!=="ski":h.sport!=="snowboard")) return false;
                         if(histFilter.level!=="전체"&&levelMap2[h.level||""]!==histFilter.level) return false;
@@ -1690,7 +1736,10 @@ export default function App(){
           const normalized = ["베이직턴","다이나믹턴","카빙턴","모글","종합활강","슬라이딩턴"].find(a=>sk.startsWith(a)) || sk;
           if(normalized!==histFilter.skill) return false;
         }
-                        if(pMs2>0&&(now2-h.savedAt)>pMs2) return false;
+                        if(histFilter.period==="자세히"&&customApplied){
+                          if(customFromMs&&h.savedAt<customFromMs) return false;
+                          if(customToMs&&h.savedAt>customToMs) return false;
+                        } else if(pMs2>0&&(now2-h.savedAt)>pMs2) return false;
                         return true;
                       });
                       if(reportHist.length<2) return(
@@ -1787,6 +1836,8 @@ export default function App(){
                       const periodMs={"전체":0,"최근 7일":7,"최근 30일":30,"최근 90일":90};
                       const pMs = (periodMs[histFilter.period]||0)*24*60*60*1000;
                       const now = Date.now();
+                      const cfMs = customApplied&&customFrom ? new Date(customFrom).getTime() : 0;
+                      const ctMs = customApplied&&customTo   ? new Date(customTo).getTime()+86400000 : 0;
                       const filteredHist = history.filter(h=>{
                         if(histFilter.sport!=="전체"&&(histFilter.sport==="스키"?h.sport!=="ski":h.sport!=="snowboard")) return false;
                         if(histFilter.level!=="전체"&&levelMap[h.level||""]!==histFilter.level) return false;
@@ -1795,7 +1846,10 @@ export default function App(){
           const normalized = ["베이직턴","다이나믹턴","카빙턴","모글","종합활강","슬라이딩턴"].find(a=>sk.startsWith(a)) || sk;
           if(normalized!==histFilter.skill) return false;
         }
-                        if(pMs>0&&(now-h.savedAt)>pMs) return false;
+                        if(histFilter.period==="자세히"&&customApplied){
+                          if(cfMs&&h.savedAt<cfMs) return false;
+                          if(ctMs&&h.savedAt>ctMs) return false;
+                        } else if(pMs>0&&(now-h.savedAt)>pMs) return false;
                         return true;
                       });
                       const totalPages = Math.max(1, Math.ceil(filteredHist.length/HIST_PER_PAGE));
