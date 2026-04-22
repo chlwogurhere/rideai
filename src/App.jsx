@@ -1172,7 +1172,7 @@ export default function App(){
           </div>
         </div>)}
 
-        {phase!=="sport"&&<StepBar current={phase}/>}
+        {phase!=="sport"&&phase!=="history"&&phase!=="error"&&<StepBar current={phase}/>}
 
         {/* STEP 1: SPORT */}
         {phase==="sport"&&(<div style={{animation:"fadeUp 0.3s ease"}}>
