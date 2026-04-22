@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.05-17";
+const VERSION = "ver 0.05-18";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -787,6 +787,9 @@ export default function App(){
   },[]);
 
   const refreshHistory = () => loadHistory().then(h=>setHistory(h));
+
+  // 단계 전환 시 최상단 스크롤
+  useEffect(()=>{ window.scrollTo({top:0,behavior:"smooth"}); },[phase]);
   const [loadMsg,setLoadMsg]=useState("");
   const [pct,setPct]=useState(0);
   const [capturedFrames,setCapturedFrames]=useState([]);
@@ -1132,7 +1135,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-17 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-18 made by GP</div>
           </div>
         </div>
       )}
@@ -1141,11 +1144,20 @@ export default function App(){
 
         {/* HEADER */}
         <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:24}}>
-          <div style={{width:42,height:42,background:"#eff6ff",borderRadius:10,overflow:"hidden",flexShrink:0}}><img src="/logo.png" alt="SNOWRIDE" style={{width:40,height:40,objectFit:"contain"}}/></div>
-          <div><div style={{fontSize:13,fontWeight:900,color:"#0d47a1",letterSpacing:0.5}}>SNOW<span style={{color:"#2196f3"}}>RIDE</span></div><div style={{fontSize:9,color:"#94a3b8",letterSpacing:1.5}}>AI COACHING STAFF</div></div>
+          <div style={{width:42,height:42,background:"#eff6ff",borderRadius:10,overflow:"hidden",flexShrink:0,cursor:"pointer"}} onClick={reset}><img src="/logo.png" alt="SNOWRIDE" style={{width:40,height:40,objectFit:"contain"}}/></div>
+          <div style={{flex:1}}><div style={{fontSize:13,fontWeight:900,color:"#0d47a1",letterSpacing:0.5}}>SNOW<span style={{color:"#2196f3"}}>RIDE</span></div><div style={{fontSize:9,color:"#94a3b8",letterSpacing:1.5}}>AI COACHING STAFF</div></div>
+          {(()=>{
+            const prevMap={level:"sport",upload:"level",loading:"upload",picking:"upload",done:"upload",error:"upload"};
+            const prev=prevMap[phase];
+            return prev?(
+              <button onClick={()=>setPhase(prev)} style={{padding:"6px 12px",borderRadius:8,border:"0.5px solid rgba(0,0,0,0.12)",background:"#fff",color:"#64748b",fontSize:12,cursor:"pointer",flexShrink:0}}>
+                ← 이전
+              </button>
+            ):null;
+          })()}
           {!import.meta.env.VITE_ANTHROPIC_KEY && (
-            <button onClick={()=>setShowKeyInput(v=>!v)} style={{marginLeft:"auto",padding:"6px 12px",borderRadius:8,border:"0.5px solid rgba(0,0,0,0.15)",background:apiKey?"#f0fdf4":"#fef2f2",color:apiKey?"#166534":"#991b1b",fontSize:12,cursor:"pointer"}}>
-              {apiKey?"🔑 API 키 설정됨":"🔑 API 키 필요"}
+            <button onClick={()=>setShowKeyInput(v=>!v)} style={{padding:"6px 12px",borderRadius:8,border:"0.5px solid rgba(0,0,0,0.15)",background:apiKey?"#f0fdf4":"#fef2f2",color:apiKey?"#166534":"#991b1b",fontSize:12,cursor:"pointer"}}>
+              {apiKey?"🔑 API 키":"🔑 키 필요"}
             </button>
           )}
         </div>
@@ -1166,7 +1178,7 @@ export default function App(){
           <div style={{fontSize:14,color:"#64748b",marginBottom:24}}>선택한 종목에 맞는 전문 용어로 분석해드립니다.</div>
           <div style={{display:"flex",gap:12,marginBottom:14}}>
             {[["ski","🎿","스키","#2563eb","#dbeafe","#1d4ed8"],["snowboard","🏂","스노보드","#7c3aed","#ede9fe","#6d28d9"]].map(([s,icon,lbl,ac,bg,bc])=>(
-              <button key={s} onClick={()=>{setSport(s);setLevel("");setFocusSkill("전체");setSubSkill("");setPhase("level");}} style={{flex:1,padding:"28px 16px",borderRadius:16,border:"2px solid "+ac,background:bg,color:bc,cursor:"pointer",textAlign:"center",boxShadow:"0 2px 12px "+ac+"22"}}>
+              <button key={s} onClick={()=>{setSport(s);setLevel("");setFocusSkill("전체");setSubSkill("");setPhase("level");}} style={{flex:1,padding:"28px 16px",borderRadius:16,border:"2px solid "+ac,background:bg,color:bc,cursor:"pointer",textAlign:"center",boxShadow:"0 2px 12px "+ac+"33"}}>
                 <div style={{fontSize:40,marginBottom:10}}>{icon}</div>
                 <div style={{fontSize:17,fontWeight:600}}>{lbl}</div>
                 <div style={{fontSize:12,color:ac,marginTop:4,opacity:0.8}}>선택 →</div>
@@ -1242,7 +1254,7 @@ export default function App(){
                 ["unknown","❓","잘 모르겠어요","AI가 영상 보고 판단해 드립니다"],
               ]).map(([val,icon,title,desc])=>(
                 <button key={val} onClick={()=>setLevel(val)}
-                  style={{width:"100%",padding:"12px 14px",borderRadius:12,border:level===val?"2px solid "+(sport==="ski"?"#2563eb":"#7c3aed"):"0.5px solid rgba(0,0,0,0.1)",background:level===val?(sport==="ski"?"#dbeafe":"#ede9fe"):"#fff",textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",gap:12}}>
+                  style={{width:"100%",padding:"12px 14px",borderRadius:12,border:level===val?"2px solid "+(sport==="ski"?"#2563eb":"#7c3aed"):"1px solid rgba(0,0,0,0.18)",background:level===val?(sport==="ski"?"#dbeafe":"#ede9fe"):"#f8fafc",textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",gap:12}}>
                   <div style={{width:34,height:34,borderRadius:8,background:level===val?(sport==="ski"?"#2563eb":"#7c3aed"):"#f1f5f9",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>{icon}</div>
                   <div style={{flex:1}}>
                     <div style={{fontSize:13,fontWeight:600,color:level===val?(sport==="ski"?"#1d4ed8":"#6d28d9"):"#0f172a"}}>{title}</div>
@@ -1326,7 +1338,7 @@ export default function App(){
                 <div style={{display:"flex",gap:8}}>
                   {[["regular","🦶","레귤러","왼발이 앞"],["goofy","🦶","구피","오른발이 앞"]].map(([val,icon,lbl,desc])=>(
                     <button key={val} onClick={()=>setStance(val)}
-                      style={{flex:1,padding:"10px 8px",borderRadius:10,border:stance===val?"2px solid #7c3aed":"0.5px solid rgba(0,0,0,0.1)",background:stance===val?"#ede9fe":"#fff",cursor:"pointer",textAlign:"center"}}>
+                      style={{flex:1,padding:"10px 8px",borderRadius:10,border:stance===val?"2px solid #7c3aed":"1px solid rgba(0,0,0,0.18)",background:stance===val?"#ede9fe":"#f8fafc",cursor:"pointer",textAlign:"center"}}>
                       <div style={{fontSize:13,fontWeight:600,color:stance===val?"#6d28d9":"#0f172a"}}>{lbl}</div>
                       <div style={{fontSize:11,color:"#64748b"}}>{desc}</div>
                     </button>
@@ -1639,7 +1651,7 @@ export default function App(){
                             {options.map(opt=>(
                               <button key={opt} onClick={()=>{setHistFilter(f=>({...f,[field]:opt}));setHistPage(1);}}
                                 style={{padding:"4px 11px",borderRadius:99,fontSize:12,border:histFilter[field]===opt?"1.5px solid #0f172a":"0.5px solid rgba(0,0,0,0.1)",
-                                  background:histFilter[field]===opt?"#0f172a":"#fff",color:histFilter[field]===opt?"#fff":"#475569",cursor:"pointer",fontWeight:histFilter[field]===opt?600:400}}>
+                                  background:histFilter[field]===opt?"#0f172a":"#f1f5f9",color:histFilter[field]===opt?"#fff":"#475569",cursor:"pointer",fontWeight:histFilter[field]===opt?600:400}}>
                                 {opt}
                               </button>
                             ))}
