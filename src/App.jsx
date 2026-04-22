@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.05-20";
+const VERSION = "ver 0.05-21";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -780,6 +780,13 @@ export default function App(){
   const [histFilter,setHistFilter]=useState({sport:"전체",level:"전체",skill:"전체",period:"전체"});
   const [histPage,setHistPage]=useState(1);
   const [customFrom,setCustomFrom]=useState("");
+  const [showScrollTop,setShowScrollTop]=useState(false);
+
+  useEffect(()=>{
+    const onScroll=()=>setShowScrollTop(window.scrollY>300);
+    window.addEventListener("scroll",onScroll,{passive:true});
+    return()=>window.removeEventListener("scroll",onScroll);
+  },[]);
   const [customTo,setCustomTo]=useState("");
   const [customApplied,setCustomApplied]=useState(false);
   const HIST_PER_PAGE = 5;
@@ -1138,7 +1145,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-20 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-21 made by GP</div>
           </div>
         </div>
       )}
@@ -1490,8 +1497,11 @@ export default function App(){
         {phase==="history"&&(
           <div style={{animation:"fadeUp 0.3s ease"}}>
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:20}}>
-              <button onClick={()=>setPhase("sport")} style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"#64748b",padding:0}}>←</button>
-              <div style={{fontSize:16,fontWeight:600,color:"#0f172a"}}>이전 분석 기록</div>
+              <button onClick={()=>setPhase("sport")}
+                style={{display:"flex",alignItems:"center",gap:5,padding:"6px 12px",borderRadius:8,border:"0.5px solid rgba(0,0,0,0.12)",background:"#fff",color:"#64748b",fontSize:12,cursor:"pointer"}}>
+                ← 뒤로가기
+              </button>
+              <div style={{fontSize:16,fontWeight:600,color:"#0f172a",flex:1}}>이전 분석 기록</div>
             </div>
 
             {history.length===0 ? (
@@ -2125,6 +2135,14 @@ export default function App(){
         </div>
 
       </div>{/* end 3-col layout */}
+
+      {/* 맨 위로 버튼 */}
+      {showScrollTop&&(
+        <button onClick={()=>window.scrollTo({top:0,behavior:"smooth"})}
+          style={{position:"fixed",bottom:24,right:20,width:44,height:44,borderRadius:"50%",background:"#0f172a",color:"#fff",border:"none",fontSize:18,cursor:"pointer",boxShadow:"0 4px 16px rgba(0,0,0,0.2)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:999,lineHeight:1}}>
+          ↑
+        </button>
+      )}
     </div>
   );
 }
