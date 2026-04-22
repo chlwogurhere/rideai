@@ -645,7 +645,6 @@ export default function App(){
   const [feedback,setFeedback]=useState(null); // null | 'good' | 'bad'
   const [feedbackDone,setFeedbackDone]=useState(false);
   const [stars,setStars]=useState(0);
-  const [queueStatus,setQueueStatus]=useState(null); // null | {status,position,total}
   const [sessionId] = useState(()=>Math.random().toString(36).slice(2)+Date.now().toString(36));
   const [comment,setComment]=useState("");
   const [starDone,setStarDone]=useState(false);
