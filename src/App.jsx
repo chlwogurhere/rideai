@@ -1190,9 +1190,11 @@ export default function App(){
 
         {/* HEADER */}
         <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:24}}>
-          <div onClick={reset} style={{display:"flex",alignItems:"center",gap:14,cursor:"pointer",flex:1}}>
-            <div style={{width:72,height:72,background:"#eff6ff",borderRadius:14,overflow:"hidden",flexShrink:0}}><img src="/logo.png" alt="SNOWRIDE" style={{width:70,height:70,objectFit:"contain"}}/></div>
-            <div><div style={{fontSize:22,fontWeight:900,color:"#0d47a1",letterSpacing:0.5}}>SNOW<span style={{color:"#2196f3"}}>RIDE</span></div><div style={{fontSize:12,color:"#94a3b8",letterSpacing:1.5}}>AI COACHING STAFF</div></div>
+          <div style={{display:"flex",alignItems:"center",gap:14,flex:1}}>
+            <div onClick={reset} style={{display:"flex",alignItems:"center",gap:14,cursor:"pointer"}}>
+              <div style={{width:72,height:72,background:"#eff6ff",borderRadius:14,overflow:"hidden",flexShrink:0}}><img src="/logo.png" alt="SNOWRIDE" style={{width:70,height:70,objectFit:"contain"}}/></div>
+              <div><div style={{fontSize:22,fontWeight:900,color:"#0d47a1",letterSpacing:0.5}}>SNOW<span style={{color:"#2196f3"}}>RIDE</span></div><div style={{fontSize:12,color:"#94a3b8",letterSpacing:1.5}}>AI COACHING STAFF</div></div>
+            </div>
           </div>
           {(()=>{
             const prevMap={level:"sport",upload:"level",loading:"upload",queue:"upload",picking:"upload",done:"upload",error:"upload",history:"sport"};
