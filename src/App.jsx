@@ -639,7 +639,16 @@ function ShareFrameCard({frame}){
 
 /* ── MAIN APP ─────────────────────────────────────────────── */
 export default function App(){
-  const [authed,setAuthed]=useState(()=>sessionStorage.getItem("rideai_auth")==="ok");
+  const [authed,setAuthed]=useState(()=>{
+    try {
+      const stored = localStorage.getItem("rideai_auth");
+      if(!stored) return false;
+      const {ok, exp} = JSON.parse(stored);
+      if(ok && Date.now() < exp) return true;
+      localStorage.removeItem("rideai_auth");
+      return false;
+    } catch { return false; }
+  });
   const [saving,setSaving]=useState(false);
 
   const [feedback,setFeedback]=useState(null); // null | 'good' | 'bad'
@@ -761,7 +770,8 @@ export default function App(){
 
   const tryAuth = () => {
     if(pwInput.trim()===BETA_PW){
-      sessionStorage.setItem("rideai_auth","ok");
+      const exp = Date.now() + 2 * 60 * 60 * 1000; // 2시간
+      localStorage.setItem("rideai_auth", JSON.stringify({ok:true, exp}));
       setAuthed(true); setPwError(false);
     } else {
       setPwError(true);
