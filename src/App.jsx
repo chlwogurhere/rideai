@@ -34,7 +34,7 @@ function AdFitBanner({ adUnit }) {
     </div>
   );
 }
-const VERSION = "ver 0.05-33";
+const VERSION = "ver 0.05-34-1";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -1240,7 +1240,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-33 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-34-1 made by GP</div>
           </div>
         </div>
       )}
@@ -1499,8 +1499,8 @@ export default function App(){
                 ["unknown","❓","잘 모르겠어요","AI가 영상 보고 판단해 드립니다"],
               ]).map(([val,icon,title,desc])=>(
                 <button key={val} onClick={()=>setLevel(val)}
-                  style={{width:"100%",padding:"12px 14px",borderRadius:12,border:level===val?"2px solid "+(sport==="ski"?"#2563eb":"#7c3aed"):"1px solid rgba(0,0,0,0.18)",background:level===val?(sport==="ski"?"#dbeafe":"#ede9fe"):"#f8fafc",textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",gap:12}}>
-                  <div style={{width:34,height:34,borderRadius:8,background:level===val?(sport==="ski"?"#2563eb":"#7c3aed"):"#f1f5f9",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>{icon}</div>
+                  style={{width:"100%",padding:"12px 14px",borderRadius:12,border:level===val?"2px solid "+(sport==="ski"?"#2563eb":"#7c3aed"):"1.5px solid #cbd5e1",background:level===val?(sport==="ski"?"#dbeafe":"#ede9fe"):"#fff",textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",gap:12,boxShadow:level===val?"none":"0 1px 4px rgba(0,0,0,0.06)"}}>
+                  <div style={{width:34,height:34,borderRadius:8,background:level===val?(sport==="ski"?"#2563eb":"#7c3aed"):"#e2e8f0",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>{icon}</div>
                   <div style={{flex:1}}>
                     <div style={{fontSize:13,fontWeight:600,color:level===val?(sport==="ski"?"#1d4ed8":"#6d28d9"):"#0f172a"}}>{title}</div>
                     <div style={{fontSize:11,color:"#64748b"}}>{desc}</div>
@@ -1526,9 +1526,9 @@ export default function App(){
                   <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:8}}>
                     {skillList.map(sk=>(
                       <button key={sk} onClick={()=>{setFocusSkill(sk);setSubSkill("");}}
-                        style={{padding:"7px 14px",borderRadius:99,border:focusSkill===sk?"1.5px solid "+ac:"0.5px solid rgba(0,0,0,0.1)",
-                          background:focusSkill===sk?acBg:"#fff",color:focusSkill===sk?acTx:"#475569",
-                          fontSize:12,fontWeight:focusSkill===sk?600:400,cursor:"pointer"}}>
+                        style={{padding:"7px 14px",borderRadius:99,border:focusSkill===sk?"1.5px solid "+ac:"1.5px solid #cbd5e1",
+                          background:focusSkill===sk?acBg:"#f1f5f9",color:focusSkill===sk?acTx:"#475569",
+                          fontSize:12,fontWeight:focusSkill===sk?600:500,cursor:"pointer",boxShadow:focusSkill===sk?"none":"0 1px 3px rgba(0,0,0,0.08)"}}>
                         {sk==="전체"?"🎯 전체 분석":sk}
                       </button>
                     ))}
@@ -1539,9 +1539,9 @@ export default function App(){
                       <div style={{display:"flex",gap:6}}>
                         {["롱","미들","숏"].map(r=>(
                           <button key={r} onClick={()=>setSubSkill(r)}
-                            style={{padding:"5px 14px",borderRadius:99,border:subSkill===r?"1.5px solid "+ac:"0.5px solid rgba(0,0,0,0.1)",
-                              background:subSkill===r?acBg:"#f8fafc",color:subSkill===r?acTx:"#64748b",
-                              fontSize:11,fontWeight:subSkill===r?600:400,cursor:"pointer"}}>
+                            style={{padding:"5px 14px",borderRadius:99,border:subSkill===r?"1.5px solid "+ac:"1.5px solid #cbd5e1",
+                              background:subSkill===r?acBg:"#f1f5f9",color:subSkill===r?acTx:"#475569",
+                              fontSize:11,fontWeight:subSkill===r?600:500,cursor:"pointer"}}>
                             {r}턴
                           </button>
                         ))}
@@ -1583,7 +1583,7 @@ export default function App(){
                 <div style={{display:"flex",gap:8}}>
                   {[["regular","🦶","레귤러","왼발이 앞"],["goofy","🦶","구피","오른발이 앞"]].map(([val,icon,lbl,desc])=>(
                     <button key={val} onClick={()=>setStance(val)}
-                      style={{flex:1,padding:"10px 8px",borderRadius:10,border:stance===val?"2px solid #7c3aed":"1px solid rgba(0,0,0,0.18)",background:stance===val?"#ede9fe":"#f8fafc",cursor:"pointer",textAlign:"center"}}>
+                      style={{flex:1,padding:"10px 8px",borderRadius:10,border:stance===val?"2px solid #7c3aed":"1.5px solid #cbd5e1",background:stance===val?"#ede9fe":"#fff",cursor:"pointer",textAlign:"center",boxShadow:stance===val?"none":"0 1px 4px rgba(0,0,0,0.06)"}}>
                       <div style={{fontSize:13,fontWeight:600,color:stance===val?"#6d28d9":"#0f172a"}}>{lbl}</div>
                       <div style={{fontSize:11,color:"#64748b"}}>{desc}</div>
                     </button>
@@ -1606,7 +1606,7 @@ export default function App(){
             <button onClick={()=>setPhase("sport")} style={{marginLeft:"auto",fontSize:12,color:"#94a3b8",background:"none",border:"none",cursor:"pointer"}}>← 종목 변경</button>
           </div>
           <div onClick={()=>fileRef.current?.click()} onDrop={onDrop} onDragOver={e=>e.preventDefault()}
-            style={{border:"2px dashed rgba(0,0,0,0.12)",borderRadius:16,padding:"44px 20px",textAlign:"center",cursor:"pointer",background:"#fff",marginBottom:12}}>
+            style={{border:"2px dashed #94a3b8",borderRadius:16,padding:"44px 20px",textAlign:"center",cursor:"pointer",background:"#f8fafc",marginBottom:12}}>
             <input ref={fileRef} type="file" accept="video/*" onChange={e=>onFile(e.target.files[0])} style={{display:"none"}}/>
             <div style={{fontSize:40,marginBottom:12}}>🎬</div>
             <div style={{fontSize:15,fontWeight:500,marginBottom:6,color:"#0f172a"}}>{file?"✓ "+file.name:"라이딩 영상을 업로드하세요"}</div>
