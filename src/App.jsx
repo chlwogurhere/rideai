@@ -847,6 +847,31 @@ export default function App(){
   const onFile=f=>{if(f&&f.type.startsWith("video/")){setFile(f);setPhase("upload");}};
   const onDrop=useCallback(e=>{e.preventDefault();onFile(e.dataTransfer.files[0]);;},[]);
 
+  const queueDone=async()=>{
+    clearInterval(queuePollRef.current);
+    setQueueStatus(null);
+    try{await fetch("/api/queue-done",{method:"POST"});}catch(e){}
+  };
+
+  const runWithQueue=async()=>{
+    try{
+      const res=await fetch("/api/queue-enter",{method:"POST"});
+      const data=await res.json();
+      queueIdRef.current=data.id;
+      if(data.status==="go"){runAnalysis();return;}
+      setQueueStatus(data);
+      setPhase("queue");
+      queuePollRef.current=setInterval(async()=>{
+        try{
+          const r=await fetch(`/api/queue-status?id=${queueIdRef.current}`);
+          const d=await r.json();
+          setQueueStatus(d);
+          if(d.status==="go"){clearInterval(queuePollRef.current);setQueueStatus(null);runAnalysis();}
+        }catch(e){clearInterval(queuePollRef.current);runAnalysis();}
+      },5000);
+    }catch(e){runAnalysis();}
+  };
+
   const runAnalysis=async()=>{
     setError("");setPhase("loading");
     setQueueStatus(null);
