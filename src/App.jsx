@@ -34,7 +34,7 @@ function AdFitBanner({ adUnit }) {
     </div>
   );
 }
-const VERSION = "ver 0.05-34-1";
+const VERSION = "ver 0.05-34-2";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -772,7 +772,7 @@ export default function App(){
         if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
           await navigator.share({
             title: "RIDE AI 라이딩 분석 결과",
-            text: "AI가 분석한 내 라이딩 자세입니다 🎿 rideai.vercel.app",
+            text: "AI가 분석한 내 라이딩 자세입니다 🎿 snowride.kr",
             files: [file],
           });
         } else {
@@ -1193,11 +1193,6 @@ export default function App(){
       {/* ── 3-column layout: left ad | content | right ad ── */}
       <div style={{display:"flex",justifyContent:"center",alignItems:"flex-start",minHeight:"100vh",gap:0}}>
 
-        {/* LEFT AD BANNER */}
-        <div className="ad-left" style={{width:160,flexShrink:0,position:"sticky",top:20,paddingTop:20}}>
-          <AdBanner side="left"/>
-        </div>
-
         {/* MAIN CONTENT */}
         <div style={{flex:1,maxWidth:720,minWidth:0,background:"#f8fafc",minHeight:"100vh"}}>
 
@@ -1240,7 +1235,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-34-1 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-34-2 made by GP</div>
           </div>
         </div>
       )}
@@ -1804,18 +1799,21 @@ export default function App(){
                           🗑 삭제
                         </button>
                       <button onClick={()=>{
-                        if(!window.Kakao) return;
-                        if(!window.Kakao.isInitialized()) window.Kakao.init("c36b2a5e9a3466d999feca6a2ca957d9");
-                        const avg = selectedHistory?.scores?.length>0 ? Math.round(selectedHistory.scores.reduce((s,sc)=>s+sc.value,0)/selectedHistory.scores.length) : 0;
-                        window.Kakao.Share.sendDefault({
-                          objectType:"feed",
-                          content:{
-                            title:"SNOWRIDE AI 분석 결과",
-                            description:(selectedHistory.sport==="ski"?"스키":"스노보드")+" 분석 평균 "+avg+"점! AI 라이딩 코치에게 자세 분석받아보세요.",
-                            link:{mobileWebUrl:"https://rideai.vercel.app",webUrl:"https://rideai.vercel.app"},
-                          },
-                          buttons:[{title:"무료로 분석받기",link:{mobileWebUrl:"https://rideai.vercel.app",webUrl:"https://rideai.vercel.app"}}],
-                        });
+                        try{
+                          if(!window.Kakao) throw new Error("SDK 미로딩");
+                          if(!window.Kakao.isInitialized()) window.Kakao.init("c36b2a5e9a3466d999feca6a2ca957d9");
+                          const avg = selectedHistory?.scores?.length>0 ? Math.round(selectedHistory.scores.reduce((s,sc)=>s+sc.value,0)/selectedHistory.scores.length) : 0;
+                          window.Kakao.Share.sendDefault({
+                            objectType:"feed",
+                            content:{
+                              title:"SNOWRIDE AI 분석 결과",
+                              description:(selectedHistory.sport==="ski"?"스키":"스노보드")+" 분석 평균 "+avg+"점! AI 라이딩 코치에게 자세 분석받아보세요.",
+                              imageUrl:"https://snowride.kr/logo.png",
+                              link:{mobileWebUrl:"https://snowride.kr",webUrl:"https://snowride.kr"},
+                            },
+                            buttons:[{title:"무료로 분석받기",link:{mobileWebUrl:"https://snowride.kr",webUrl:"https://snowride.kr"}}],
+                          });
+                        }catch(e){alert("카카오 공유 중 오류가 발생했습니다.\n"+e.message);}
                       }} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",borderRadius:99,background:"#FEE500",border:"none",color:"#3A1D1D",fontSize:12,fontWeight:600,cursor:"pointer"}}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="#3A1D1D"><path d="M12 2C6.477 2 2 5.918 2 10.773c0 3.11 1.964 5.843 4.928 7.406L5.94 22l5.04-2.67c.33.046.666.07 1.02.07 5.523 0 10-3.918 10-8.773C22 5.918 17.523 2 12 2z"/></svg>
                         카카오 공유
@@ -2099,18 +2097,20 @@ export default function App(){
                             ))}
                           </div>}
                           <button onClick={()=>{
-                            if(!window.Kakao) return;
-                            if(!window.Kakao.isInitialized()) window.Kakao.init("c36b2a5e9a3466d999feca6a2ca957d9");
-                            window.Kakao.Share.sendDefault({
-                              objectType:"feed",
-                              content:{
-                                title:"SNOWRIDE AI 시즌 리포트",
-                                description:"총 "+reportHist.length+"회 분석 · 평균 "+avg+"점 · 최고 "+best.score+"점"+(trend>=0?" · "+trend+"점 성장":""),
-                                imageUrl:"https://rideai.vercel.app/logo.png",
-                                link:{mobileWebUrl:"https://rideai.vercel.app",webUrl:"https://rideai.vercel.app"},
-                              },
-                              buttons:[{title:"나도 분석받기",link:{mobileWebUrl:"https://rideai.vercel.app",webUrl:"https://rideai.vercel.app"}}],
-                            });
+                            try{
+                              if(!window.Kakao) throw new Error("SDK 미로딩");
+                              if(!window.Kakao.isInitialized()) window.Kakao.init("c36b2a5e9a3466d999feca6a2ca957d9");
+                              window.Kakao.Share.sendDefault({
+                                objectType:"feed",
+                                content:{
+                                  title:"SNOWRIDE AI 시즌 리포트",
+                                  description:"총 "+reportHist.length+"회 분석 · 평균 "+avg+"점 · 최고 "+best.score+"점"+(trend>=0?" · "+trend+"점 성장":""),
+                                  imageUrl:"https://snowride.kr/logo.png",
+                                  link:{mobileWebUrl:"https://snowride.kr",webUrl:"https://snowride.kr"},
+                                },
+                                buttons:[{title:"나도 분석받기",link:{mobileWebUrl:"https://snowride.kr",webUrl:"https://snowride.kr"}}],
+                              });
+                            }catch(e){alert("카카오 공유 중 오류가 발생했습니다.\n"+e.message);}
                           }} style={{width:"100%",marginTop:10,padding:"9px 0",borderRadius:8,background:"#FEE500",border:"none",color:"#3A1D1D",fontSize:12,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="#3A1D1D"><path d="M12 2C6.477 2 2 5.918 2 10.773c0 3.11 1.964 5.843 4.928 7.406L5.94 22l5.04-2.67c.33.046.666.07 1.02.07 5.523 0 10-3.918 10-8.773C22 5.918 17.523 2 12 2z"/></svg>
                             시즌 리포트 카카오 공유
@@ -2240,19 +2240,21 @@ export default function App(){
           {/* Save/Share buttons */}
           <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
             <button onClick={()=>{
-              if(!window.Kakao) return alert("카카오 SDK 로딩 중입니다. 잠시 후 다시 시도해주세요.");
-              if(!window.Kakao.isInitialized()) window.Kakao.init("c36b2a5e9a3466d999feca6a2ca957d9");
-              const avg = result?.scores?.length>0 ? Math.round(result.scores.reduce((s,sc)=>s+sc.value,0)/result.scores.length) : 0;
-              window.Kakao.Share.sendDefault({
-                objectType:"feed",
-                content:{
-                  title:"SNOWRIDE AI 분석 결과",
-                  imageUrl:"https://rideai.vercel.app/logo.png",
-                  description:`${sport==="ski"?"스키":"스노보드"} 라이딩 분석 완료! 평균 ${avg}점\nAI가 분석한 내 라이딩 자세 확인해보세요!`,
-                  link:{mobileWebUrl:"https://rideai.vercel.app",webUrl:"https://rideai.vercel.app"},
-                },
-                buttons:[{title:"무료로 분석받기 →",link:{mobileWebUrl:"https://rideai.vercel.app",webUrl:"https://rideai.vercel.app"}}],
-              });
+              try{
+                if(!window.Kakao) throw new Error("SDK 미로딩");
+                if(!window.Kakao.isInitialized()) window.Kakao.init("c36b2a5e9a3466d999feca6a2ca957d9");
+                const avg = result?.scores?.length>0 ? Math.round(result.scores.reduce((s,sc)=>s+sc.value,0)/result.scores.length) : 0;
+                window.Kakao.Share.sendDefault({
+                  objectType:"feed",
+                  content:{
+                    title:"SNOWRIDE AI 분석 결과",
+                    imageUrl:"https://snowride.kr/logo.png",
+                    description:`${sport==="ski"?"스키":"스노보드"} 라이딩 분석 완료! 평균 ${avg}점\nAI가 분석한 내 라이딩 자세 확인해보세요!`,
+                    link:{mobileWebUrl:"https://snowride.kr",webUrl:"https://snowride.kr"},
+                  },
+                  buttons:[{title:"무료로 분석받기 →",link:{mobileWebUrl:"https://snowride.kr",webUrl:"https://snowride.kr"}}],
+                });
+              }catch(e){alert("카카오 공유 중 오류가 발생했습니다.\n"+e.message);}
             }} style={{width:"100%",padding:"12px 0",borderRadius:10,border:"none",background:"#FEE500",color:"#3A1D1D",fontSize:14,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="#3A1D1D"><path d="M12 2C6.477 2 2 5.918 2 10.773c0 3.11 1.964 5.843 4.928 7.406L5.94 22l5.04-2.67c.33.046.666.07 1.02.07 5.523 0 10-3.918 10-8.773C22 5.918 17.523 2 12 2z"/></svg>
               카카오톡으로 공유하기
@@ -2379,7 +2381,7 @@ export default function App(){
               <div style={{fontSize:28}}>⛷</div>
               <div>
                 <div style={{fontSize:18,fontWeight:700,color:"#0f172a"}}>SNOWRIDE AI COACHING STAFF 분석 결과</div>
-                <div style={{fontSize:12,color:"#94a3b8"}}>SNOWRIDE AI COACHING STAFF · rideai.vercel.app</div>
+                <div style={{fontSize:12,color:"#94a3b8"}}>SNOWRIDE AI COACHING STAFF · snowride.kr</div>
               </div>
               <div style={{marginLeft:"auto",fontSize:12,color:"#94a3b8"}}>{new Date().toLocaleDateString("ko-KR")}</div>
             </div>
@@ -2431,10 +2433,6 @@ export default function App(){
 
         </div>{/* end main content */}
 
-        {/* RIGHT AD BANNER */}
-        <div className="ad-right" style={{width:160,flexShrink:0,position:"sticky",top:20,paddingTop:20}}>
-          <AdBanner side="right"/>
-        </div>
 
       </div>{/* end 3-col layout */}
 
