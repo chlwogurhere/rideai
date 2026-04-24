@@ -27,7 +27,7 @@ function AdFitBanner({ adUnit }) {
     <div ref={ref} style={{width:"100%",minHeight:50,display:"flex",alignItems:"center",justifyContent:"center",margin:"10px 0",overflow:"hidden"}}/>
   );
 }
-const VERSION = "ver 0.05-29";
+const VERSION = "ver 0.05-30";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -1005,7 +1005,7 @@ export default function App(){
       msgContent.push({type:"text",text:
         "당신은 KSIA(대한스키지도자연맹) 기준의 전문 "+sl+" 코치입니다.\n"+termGuide+"\n"+levelGuide+(focusGuide?"\n"+focusGuide:"")+"\n\n[코칭 언어 규칙] 각도 수치 언급 금지. 슬로프 옆에서 직접 코칭하듯 자연스럽게. 잘된 점은 구체적 칭찬, 개선점은 방법 제시.\n"+"위 후보 장면 중 라이더가 잘 보이는 4개를 선택하세요. "+
         "\n\nJSON으로만 응답(마크다운 없이):\n"+
-        '{"scores":[{"label":"자세","value":75,"color":"#3b82f6"},{"label":"균형","value":70,"color":"#22c55e"},{"label":"기술","value":68,"color":"#f59e0b"}],'+
+        '{"scores":[{"label":"자세","value":N1,"color":"#3b82f6"},{"label":"균형","value":N2,"color":"#22c55e"},{"label":"기술","value":N3,"color":"#f59e0b"}],'+
         '"frames":['+
         '{"frameIndex":0,"type":"good","title":"제목10자이내","desc":"코칭 말투로 2문장. 잘된 이유 구체적으로"},'+
         '{"frameIndex":3,"type":"warn","title":"제목","desc":"코칭 말투로 2문장. 어떻게 고치면 좋을지 방법까지"},'+
@@ -1079,7 +1079,7 @@ export default function App(){
           "각도 수치 없이, 슬로프에서 직접 코칭하듯 자연스럽게 설명하세요.\n"+
           "잘된 점은 구체적으로 칭찬하고, 개선점은 '이렇게 해보세요' 식으로 방법을 제시하세요.\n\n"+
           "JSON으로만 응답(마크다운 없이):\n"+
-          '{"scores":[{"label":"자세","value":78,"color":"#3b82f6"},{"label":"균형","value":72,"color":"#22c55e"},{"label":"기술","value":70,"color":"#f59e0b"}],'+
+          '{"scores":[{"label":"자세","value":N1,"color":"#3b82f6"},{"label":"균형","value":N2,"color":"#22c55e"},{"label":"기술","value":N3,"color":"#f59e0b"}],'+
           '"frames":[{"frameIndex":0,"type":"good","title":"제목10자","desc":"KSIA 기준 자연스러운 코칭 말투 2문장","annotations":[{"x":0.5,"y":0.45,"type":"good","label":"라벨","arrow":{"x":0.5,"y":0.6}}]},'+
           '{"frameIndex":1,"type":"warn","title":"제목","desc":"KSIA 기준 자연스러운 코칭 말투 2문장","annotations":[{"x":0.5,"y":0.45,"type":"warn","label":"라벨","arrow":{"x":0.5,"y":0.58}}]},'+
           '{"frameIndex":2,"type":"good","title":"제목","desc":"KSIA 기준 자연스러운 코칭 말투 2문장","annotations":[{"x":0.5,"y":0.45,"type":"good","label":"라벨","arrow":{"x":0.5,"y":0.6}}]},'+
@@ -1223,7 +1223,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-29 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-30 made by GP</div>
           </div>
         </div>
       )}
@@ -2160,6 +2160,8 @@ export default function App(){
             <div style={{fontSize:14,fontWeight:600,marginBottom:16}}>종합 점수</div>
             {(result.scores||[]).map((s,i)=><ScoreBar key={i} {...s}/>)}
           </div>
+          {/* 광고 배너 — 결과 상단 */}
+          <AdFitBanner adUnit="DAN-AeHytcuMcCUFT2Os"/>
           <div style={{marginBottom:16}}>
             <div style={{fontSize:14,fontWeight:600,marginBottom:12}}>장면별 분석</div>
             <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
@@ -2234,6 +2236,9 @@ export default function App(){
               </div>
             )}
           </div>
+
+          {/* 광고 배너 — 결과 하단 */}
+          <AdFitBanner adUnit="DAN-AeHytcuMcCUFT2Os"/>
 
           {/* 후원하기 */}
           <div style={{background:"#fff",border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:12,padding:"18px 20px",marginBottom:16,textAlign:"center"}}>
