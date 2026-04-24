@@ -1,7 +1,34 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.05-27";
+
+/* ── 카카오 애드핏 배너 컴포넌트 ─────────────────────────────── */
+function AdFitBanner({ adUnit }) {
+  const { useEffect, useRef } = React;
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!ref.current || !adUnit) return;
+    try {
+      const ins = document.createElement("ins");
+      ins.className = "kakao_ad_area";
+      ins.style.display = "none";
+      ins.setAttribute("data-ad-unit", adUnit);
+      ins.setAttribute("data-ad-width", "320");
+      ins.setAttribute("data-ad-height", "50");
+      ref.current.appendChild(ins);
+      const script = document.createElement("script");
+      script.type = "text/javascript";
+      script.src = "//t1.daumcdn.net/kas/static/ba.min.js";
+      script.async = true;
+      ref.current.appendChild(script);
+    } catch(e) {}
+    return () => { if(ref.current) ref.current.innerHTML = ""; };
+  }, [adUnit]);
+  return (
+    <div ref={ref} style={{width:"100%",minHeight:50,display:"flex",alignItems:"center",justifyContent:"center",margin:"10px 0",overflow:"hidden"}}/>
+  );
+}
+const VERSION = "ver 0.05-28";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -1172,7 +1199,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-27 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-28 made by GP</div>
           </div>
         </div>
       )}
@@ -1259,6 +1286,9 @@ export default function App(){
           <div style={{fontSize:11,color:"#94a3b8",lineHeight:1.8,padding:"0 2px"}}>
             ⚠ 기록 안내: 최근 100개까지 보관 · 30일 후 자동 삭제 · 같은 기기/브라우저에서만 확인 가능 · GIF/동영상은 저장되지 않습니다
           </div>
+
+          {/* ── 광고 배너 — 메인 ── */}
+          <AdFitBanner adUnit="DAN-WULO4c8RyD5HRDbg"/>
 
           {/* ── 개인정보처리방침 링크 ── */}
           <div style={{textAlign:"center",marginBottom:8}}>
@@ -1753,6 +1783,9 @@ export default function App(){
                 ) : (
                   /* 기록 목록 */
                   <div>
+                    {/* 광고 배너 — 이전기록 */}
+                    <AdFitBanner adUnit="DAN-7UrFO4BwR5S952bi"/>
+
                     {/* ── 필터 ── */}
                     {(()=>{
                       const sports = ["전체","스키","스노보드"];
