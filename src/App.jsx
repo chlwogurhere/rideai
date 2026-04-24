@@ -194,7 +194,7 @@ async function apiCall(messages, system, apiKey) {
   const headers = { "Content-Type": "application/json", "x-api-key": key };
   if (isLocal) headers["anthropic-version"] = "2023-06-01";
   const r = await fetch(url, { method:"POST", headers,
-    body: JSON.stringify({ model:MODEL, max_tokens:3000, temperature:0, system, messages, meta:{sport,level,stance,focusSkill} }) });
+    body: JSON.stringify({ model:MODEL, max_tokens:3000, temperature:0, system, messages }) });
   if (!r.ok) throw new Error("HTTP " + r.status);
   const j = await r.json();
   if (j.error) throw new Error(j.error.message || j.error.type);
