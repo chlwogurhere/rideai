@@ -1359,7 +1359,7 @@ export default function App(){
           </div>
         )}
 
-        {/* STEP 1: SPORT */}}
+        {/* STEP 1: SPORT */}
         {phase==="sport"&&(<div style={{animation:"fadeUp 0.3s ease"}}>
           <div style={{border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:12,overflow:"hidden",marginBottom:14}}>
             <div style={{background:"#f8fafc",padding:"9px 14px",borderBottom:"0.5px solid rgba(0,0,0,0.06)"}}>
