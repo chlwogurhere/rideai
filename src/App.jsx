@@ -809,7 +809,7 @@ export default function App(){
   const [focusSkill,setFocusSkill]=useState("전체"); // 집중 분석 기술
   const [subSkill,setSubSkill]=useState(""); // 롱/미들/숏 
   const [file,setFile]=useState(null);
-  const [phase,setPhase]=useState("sport"); // sport | upload | loading | picking | done | history | error
+  const [phase,setPhase]=useState("landing"); // landing | sport | upload | loading | picking | done | history | error
   const [history,setHistory]=useState([]);
   const [selectedHistory,setSelectedHistory]=useState(null);
   const [histFilter,setHistFilter]=useState({sport:"전체",level:"전체",skill:"전체",period:"전체"});
