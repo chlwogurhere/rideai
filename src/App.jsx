@@ -27,7 +27,7 @@ function AdFitBanner({ adUnit }) {
     <div ref={ref} style={{width:"100%",minHeight:50,display:"flex",alignItems:"center",justifyContent:"center",margin:"10px 0",overflow:"hidden"}}/>
   );
 }
-const VERSION = "ver 0.05-30";
+const VERSION = "ver 0.05-31";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -930,7 +930,17 @@ export default function App(){
       const levelMap={"lv1":"레벨1","lv2":"레벨2","lv3":"레벨3","demon":"데몬스트레이터","unknown":"","":""}; 
       const levelStr = levelMap[level]||"";
       const stanceGuide = !isSki ? `[스탠스: ${stance==="goofy"?"구피(오른발 앞)":"레귤러(왼발 앞)"}]` : "";
-      const levelGuide = levelStr ? `[분석 기준: 응시자는 KSIA ${levelStr} 수준입니다. 이 수준에 맞는 기술 기준으로 분석하고 피드백하세요.] ${stanceGuide}` : stanceGuide;
+      const levelGuide = levelStr
+        ? `[채점 기준 — 필수 적용]
+응시자가 선택한 레벨: KSIA ${levelStr}
+이 레벨의 기술 기준으로 엄격하게 채점하세요.
+- 레벨1(베이직) 기준 → 해당 수준 완성도에 따라 60~85점
+- 레벨2(다이나믹/슬라이딩) 기준 → 해당 수준 완성도에 따라 55~82점  
+- 레벨3(카빙/고급) 기준 → 해당 수준 완성도에 따라 50~80점
+- 데몬스트레이터 기준 → 완성도에 따라 45~78점
+레벨이 높을수록 기준이 까다로우므로 같은 영상이라도 높은 레벨을 선택하면 점수가 낮아져야 합니다.
+선택 레벨(${levelStr})의 핵심 기술 완성도를 중점으로 채점하고, value는 반드시 실제 분석값으로 계산하세요. ${stanceGuide}`
+        : stanceGuide;
       const fullSkill = focusSkill!=="전체" ? (focusSkill + (subSkill ? " "+subSkill+"턴" : "")) : "";
       const skillCheckpoints = {
         // ── 스키 ──────────────────────────────────────────────────
@@ -1223,7 +1233,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-30 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-31 made by GP</div>
           </div>
         </div>
       )}
