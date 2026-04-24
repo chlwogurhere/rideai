@@ -809,7 +809,7 @@ export default function App(){
   const [focusSkill,setFocusSkill]=useState("전체"); // 집중 분석 기술
   const [subSkill,setSubSkill]=useState(""); // 롱/미들/숏 
   const [file,setFile]=useState(null);
-  const [phase,setPhase]=useState("landing"); // landing → sport → level → upload → loading → picking → done
+  const [phase,setPhase]=useState("sport"); // sport | upload | loading | picking | done | history | error
   const [history,setHistory]=useState([]);
   const [selectedHistory,setSelectedHistory]=useState(null);
   const [histFilter,setHistFilter]=useState({sport:"전체",level:"전체",skill:"전체",period:"전체"});
@@ -1250,13 +1250,13 @@ export default function App(){
         {/* HEADER */}
         <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:24}}>
           <div style={{display:"flex",alignItems:"center",gap:14,flex:1}}>
-            <div onClick={reset} style={{display:"flex",alignItems:"center",gap:14,cursor:"pointer"}}>
+            <div onClick={phase!=="landing"?()=>setPhase("sport"):undefined} style={{display:"flex",alignItems:"center",gap:14,cursor:phase!=="landing"?"pointer":"default"}}>
               <div style={{width:72,height:72,background:"#eff6ff",borderRadius:14,overflow:"hidden",flexShrink:0}}><img src="/logo.png" alt="SNOWRIDE" style={{width:70,height:70,objectFit:"contain"}}/></div>
               <div><div style={{fontSize:22,fontWeight:900,color:"#0d47a1",letterSpacing:0.5}}>SNOW<span style={{color:"#2196f3"}}>RIDE</span></div><div style={{fontSize:12,color:"#94a3b8",letterSpacing:1.5}}>AI COACHING STAFF</div></div>
             </div>
           </div>
           {(()=>{
-            const prevMap={sport:"landing",level:"sport",upload:"level",loading:"upload",queue:"upload",picking:"upload",done:"upload",error:"upload",history:"sport"};
+            const prevMap={level:"sport",upload:"level",loading:"upload",queue:"upload",picking:"upload",done:"upload",error:"upload",history:"sport"};
             const prev=prevMap[phase];
             return prev?(
               <button onClick={()=>setPhase(prev)} style={{padding:"6px 12px",borderRadius:8,border:"0.5px solid rgba(0,0,0,0.12)",background:"#fff",color:"#64748b",fontSize:12,cursor:"pointer",flexShrink:0}}>
@@ -1279,7 +1279,7 @@ export default function App(){
           </div>
         </div>)}
 
-        {phase!=="landing"&&phase!=="history"&&phase!=="error"&&phase!=="queue"&&<StepBar current={phase}/>}
+        {phase!=="landing"&&phase!=="sport"&&phase!=="history"&&phase!=="error"&&phase!=="queue"&&<StepBar current={phase}/>}
 
         {/* LANDING PAGE */}
         {phase==="landing"&&(
@@ -1291,7 +1291,7 @@ export default function App(){
               <div style={{fontSize:22,fontWeight:900,color:"#0d47a1",marginBottom:2}}>SNOW<span style={{color:"#2196f3"}}>RIDE</span></div>
               <div style={{fontSize:11,color:"#94a3b8",letterSpacing:2,marginBottom:12}}>AI COACHING STAFF</div>
               <div style={{fontSize:15,fontWeight:600,color:"#0f172a",marginBottom:5}}>스키 · 스노보드 AI 코치</div>
-              <div style={{fontSize:13,color:"#64748b",lineHeight:1.7}}>영상 한 편으로<br/>자세 분석과 맞춤 피드백을 받아보세요</div>
+              <div style={{fontSize:13,color:"#64748b"}}>영상 한 편으로 자세 분석과 맞춤 피드백을 받아보세요</div>
             </div>
 
             <div style={{border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:12,overflow:"hidden",marginBottom:12}}>
