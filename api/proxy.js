@@ -44,7 +44,7 @@ function getClientIp(req) {
 export default async function handler(req, res) {
   // ── CORS ──────────────────────────────────────────────────────────────────
   const origin = req.headers.origin || "";
-  const allowed = ["https://rideai.vercel.app","http://localhost:5173","http://localhost:3000"];
+  const allowed = ["https://rideai.vercel.app","https://snowride.kr","https://www.snowride.kr","http://localhost:5173","http://localhost:3000"];
   if (allowed.includes(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
   }
