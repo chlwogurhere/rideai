@@ -34,7 +34,7 @@ function AdFitBanner({ adUnit }) {
     </div>
   );
 }
-const VERSION = "ver 0.05-34-4";
+const VERSION = "ver 0.05-34-5";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -674,6 +674,15 @@ function ShareFrameCard({frame}){
 export default function App(){
   const [authed,setAuthed]=useState(true); // 베타 게이트 제거
   const [saving,setSaving]=useState(false);
+  const [logoB64,setLogoB64]=useState("");
+
+  useEffect(()=>{
+    fetch("/logo.png").then(r=>r.blob()).then(blob=>{
+      const reader=new FileReader();
+      reader.onload=e=>setLogoB64(e.target.result);
+      reader.readAsDataURL(blob);
+    }).catch(()=>{});
+  },[]);
 
   const [feedback,setFeedback]=useState(null); // null | 'good' | 'bad'
   const [feedbackDone,setFeedbackDone]=useState(false);
@@ -1235,7 +1244,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-34-4 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-34-5 made by GP</div>
           </div>
         </div>
       )}
@@ -2358,7 +2367,7 @@ export default function App(){
           <div ref={shareRef} style={{display:"none",background:"#f8fafc",padding:"20px",fontFamily:"sans-serif"}}>
             {/* Header */}
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16,paddingBottom:12,borderBottom:"1px solid rgba(0,0,0,0.08)"}}>
-              <img src="https://snowride.kr/logo.png" alt="SNOWRIDE" style={{width:44,height:44,objectFit:"contain",flexShrink:0}} crossOrigin="anonymous"/>
+              {logoB64&&<img src={logoB64} alt="SNOWRIDE" style={{width:44,height:44,objectFit:"contain",flexShrink:0}}/>}
               <div>
                 <div style={{fontSize:18,fontWeight:700,color:"#0f172a"}}>SNOWRIDE AI COACHING STAFF 분석 결과</div>
                 <div style={{fontSize:12,color:"#94a3b8"}}>SNOWRIDE AI COACHING STAFF · snowride.kr</div>
