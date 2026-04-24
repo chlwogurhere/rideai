@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.05-24";
+const VERSION = "ver 0.05-25";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -168,7 +168,7 @@ async function apiCall(messages, system, apiKey) {
   const headers = { "Content-Type": "application/json", "x-api-key": key };
   if (isLocal) headers["anthropic-version"] = "2023-06-01";
   const r = await fetch(url, { method:"POST", headers,
-    body: JSON.stringify({ model:MODEL, max_tokens:3000, temperature:0, system, messages }) });
+    body: JSON.stringify({ model:MODEL, max_tokens:3000, temperature:0, system, messages, meta:{sport,level,stance,focusSkill} }) });
   if (!r.ok) throw new Error("HTTP " + r.status);
   const j = await r.json();
   if (j.error) throw new Error(j.error.message || j.error.type);
@@ -1181,7 +1181,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-24 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-25 made by GP</div>
           </div>
         </div>
       )}
