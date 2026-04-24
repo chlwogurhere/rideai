@@ -34,7 +34,7 @@ function AdFitBanner({ adUnit }) {
     </div>
   );
 }
-const VERSION = "ver 0.05-34-5";
+const VERSION = "ver 0.60";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -1244,7 +1244,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-34-5 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.60 made by GP</div>
           </div>
         </div>
       )}
@@ -1456,6 +1456,60 @@ export default function App(){
               </div>
             </div>
           </div>
+
+          {/* 업데이트 내역 */}
+          {(()=>{
+            const PATCH_NOTES=[
+              {
+                ver:"v0.60",
+                date:"2025. 4. 25.",
+                isLatest:true,
+                logs:[
+                  {type:"new",text:"앱 첫 화면 개선"},
+                  {type:"new",text:"버튼이 더 잘 보이도록 디자인 개선"},
+                  {type:"fix",text:"화면에 } 글자가 표시되던 버그 수정"},
+                  {type:"improve",text:"카카오톡 공유 오류 수정"},
+                  {type:"improve",text:"결과 이미지 저장 시 로고 깨짐 수정"},
+                ],
+              },
+            ];
+            const typeStyle={
+              new:{color:"#16a34a",label:"✦"},
+              improve:{color:"#2563eb",label:"▲"},
+              fix:{color:"#dc2626",label:"✕"},
+            };
+            return(
+              <div style={{background:"#fff",borderRadius:12,overflow:"hidden",marginBottom:14,border:"0.5px solid rgba(0,0,0,0.08)"}}>
+                <div style={{background:"#f8fafc",padding:"9px 14px",borderBottom:"0.5px solid rgba(0,0,0,0.06)"}}>
+                  <div style={{fontSize:12,fontWeight:600,color:"#0f172a"}}>업데이트 내역</div>
+                </div>
+                <div style={{padding:"10px 14px",display:"flex",flexDirection:"column",gap:10}}>
+                  {PATCH_NOTES.map((patch)=>(
+                    <div key={patch.ver} style={{border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:10,overflow:"hidden"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",background:"#f8fafc",borderBottom:"0.5px solid rgba(0,0,0,0.06)"}}>
+                        <div style={{fontSize:11,fontWeight:600,background:"#dbeafe",color:"#1d4ed8",padding:"2px 8px",borderRadius:99}}>{patch.ver}</div>
+                        <div style={{fontSize:11,color:"#94a3b8"}}>{patch.date}</div>
+                        {patch.isLatest&&<div style={{marginLeft:"auto",fontSize:10,background:"#dcfce7",color:"#166534",padding:"1px 7px",borderRadius:99}}>최신</div>}
+                      </div>
+                      <div style={{padding:"10px 12px",display:"flex",flexDirection:"column",gap:6}}>
+                        {patch.logs.map((log,i)=>(
+                          <div key={i} style={{display:"flex",alignItems:"flex-start",gap:6,fontSize:12,color:"#0f172a"}}>
+                            <span style={{color:typeStyle[log.type].color,flexShrink:0,fontSize:11,marginTop:1}}>{typeStyle[log.type].label}</span>
+                            <span>{log.text}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  <div style={{display:"flex",gap:12,fontSize:11,color:"#94a3b8",paddingTop:2}}>
+                    <div style={{display:"flex",alignItems:"center",gap:3}}><span style={{color:"#16a34a"}}>✦</span> 새 기능</div>
+                    <div style={{display:"flex",alignItems:"center",gap:3}}><span style={{color:"#2563eb"}}>▲</span> 개선</div>
+                    <div style={{display:"flex",alignItems:"center",gap:3}}><span style={{color:"#dc2626"}}>✕</span> 버그 수정</div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
         </div>)}
 
