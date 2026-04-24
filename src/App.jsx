@@ -5,6 +5,7 @@ const MODEL = "claude-sonnet-4-20250514";
 /* ── 카카오 애드핏 배너 컴포넌트 ─────────────────────────────── */
 function AdFitBanner({ adUnit }) {
   const ref = useRef(null);
+  const [loaded, setLoaded] = useState(false);
   useEffect(() => {
     if (!ref.current || !adUnit) return;
     try {
@@ -19,12 +20,18 @@ function AdFitBanner({ adUnit }) {
       script.type = "text/javascript";
       script.src = "//t1.daumcdn.net/kas/static/ba.min.js";
       script.async = true;
+      script.onload = () => setLoaded(true);
       ref.current.appendChild(script);
     } catch(e) {}
     return () => { if(ref.current) ref.current.innerHTML = ""; };
   }, [adUnit]);
+  // 광고 로딩 전에도 동일한 높이를 미리 확보 → CLS 방지
   return (
-    <div ref={ref} style={{width:"100%",minHeight:50,display:"flex",alignItems:"center",justifyContent:"center",margin:"10px 0",overflow:"hidden"}}/>
+    <div style={{width:"100%",height:60,margin:"10px 0",overflow:"hidden",
+      background:loaded?"transparent":"transparent",
+      minHeight:60,contain:"layout size"}}>
+      <div ref={ref} style={{width:"100%",height:"100%"}}/>
+    </div>
   );
 }
 const VERSION = "ver 0.05-31";
