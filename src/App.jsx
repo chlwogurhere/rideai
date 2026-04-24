@@ -4,7 +4,6 @@ const MODEL = "claude-sonnet-4-20250514";
 
 /* ── 카카오 애드핏 배너 컴포넌트 ─────────────────────────────── */
 function AdFitBanner({ adUnit }) {
-  const { useEffect, useRef } = React;
   const ref = useRef(null);
   useEffect(() => {
     if (!ref.current || !adUnit) return;
