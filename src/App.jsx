@@ -34,7 +34,7 @@ function AdFitBanner({ adUnit }) {
     </div>
   );
 }
-const VERSION = "ver 0.05-34-2";
+const VERSION = "ver 0.05-34-3";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -1235,7 +1235,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-34-2 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-34-3 made by GP</div>
           </div>
         </div>
       )}
@@ -1274,7 +1274,7 @@ export default function App(){
           </div>
         </div>)}
 
-        {phase!=="landing"&&phase!=="sport"&&phase!=="history"&&phase!=="error"&&phase!=="queue"&&<StepBar current={phase}/>}
+        {phase!=="landing"&&phase!=="history"&&phase!=="error"&&phase!=="queue"&&<StepBar current={phase}/>}
 
         {/* LANDING PAGE */}
         {phase==="landing"&&(
@@ -1356,26 +1356,6 @@ export default function App(){
 
         {/* STEP 1: SPORT */}
         {phase==="sport"&&(<div style={{animation:"fadeUp 0.3s ease"}}>
-          <div style={{border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:12,overflow:"hidden",marginBottom:14}}>
-            <div style={{background:"#f8fafc",padding:"9px 14px",borderBottom:"0.5px solid rgba(0,0,0,0.06)"}}>
-              <div style={{fontSize:12,fontWeight:600,color:"#0f172a"}}>이렇게 사용하세요</div>
-            </div>
-            <div style={{padding:"10px 14px",display:"flex",flexDirection:"column",gap:9}}>
-              {[
-                ["#dbeafe","#1d4ed8","1","종목 · 레벨 선택","스키 또는 스노보드를 선택하고 현재 레벨을 고르세요"],
-                ["#dcfce7","#166534","2","라이딩 영상 업로드","슬로프에서 찍은 영상(100MB 이하)을 올려주세요"],
-                ["#fef9c3","#854d0e","3","AI 분석 결과 확인","점수 · 장면 카드 · 맞춤 피드백을 확인하고 공유하세요"],
-              ].map(([bg,tc,num,title,desc])=>(
-                <div key={num} style={{display:"flex",alignItems:"center",gap:10}}>
-                  <div style={{width:24,height:24,borderRadius:"50%",background:bg,color:tc,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:600,flexShrink:0}}>{num}</div>
-                  <div>
-                    <div style={{fontSize:12,fontWeight:600,color:"#0f172a"}}>{title}</div>
-                    <div style={{fontSize:11,color:"#64748b",lineHeight:1.4}}>{desc}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
           <div style={{fontSize:18,fontWeight:600,marginBottom:6,color:"#0f172a"}}>종목을 선택하세요</div>
           <div style={{fontSize:14,color:"#64748b",marginBottom:24}}>선택한 종목에 맞는 전문 용어로 분석해드립니다.</div>
           <div style={{display:"flex",gap:12,marginBottom:14}}>
