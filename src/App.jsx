@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.05-26";
+const VERSION = "ver 0.05-27";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -1172,7 +1172,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-26 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-27 made by GP</div>
           </div>
         </div>
       )}
@@ -1258,6 +1258,19 @@ export default function App(){
           </button>
           <div style={{fontSize:11,color:"#94a3b8",lineHeight:1.8,padding:"0 2px"}}>
             ⚠ 기록 안내: 최근 100개까지 보관 · 30일 후 자동 삭제 · 같은 기기/브라우저에서만 확인 가능 · GIF/동영상은 저장되지 않습니다
+          </div>
+
+          {/* ── 개인정보처리방침 링크 ── */}
+          <div style={{textAlign:"center",marginBottom:8}}>
+            <a href="/privacy.html" target="_blank"
+              style={{fontSize:11,color:"#94a3b8",textDecoration:"underline",cursor:"pointer"}}>
+              개인정보처리방침
+            </a>
+            <span style={{fontSize:11,color:"#e2e8f0",margin:"0 8px"}}>|</span>
+            <a href="/privacy.html" target="_blank"
+              style={{fontSize:11,color:"#94a3b8",textDecoration:"underline",cursor:"pointer"}}>
+              이용약관
+            </a>
           </div>
 
           {/* ── 서비스 안내 ── */}
@@ -1447,6 +1460,9 @@ export default function App(){
             <button onClick={runWithQueue} disabled={!file||fileTooLarge} style={{width:"100%",padding:15,borderRadius:10,border:"none",background:(file&&!fileTooLarge)?"#0f172a":"#e2e8f0",color:(file&&!fileTooLarge)?"#fff":"#94a3b8",fontSize:15,fontWeight:600,cursor:(file&&!fileTooLarge)?"pointer":"not-allowed"}}>
             AI 분석 시작 →
           </button>
+          <div style={{fontSize:11,color:"#94a3b8",textAlign:"center",marginTop:8}}>
+            분석 시작 시 <a href="/privacy.html" target="_blank" style={{color:"#64748b",textDecoration:"underline"}}>개인정보처리방침</a>에 동의하는 것으로 간주됩니다
+          </div>
           {fileTooLarge&&<div style={{marginTop:10,textAlign:"center",fontSize:13,color:"#dc2626"}}>⚠️ 파일 크기가 100MB를 초과합니다. 더 작은 영상을 선택해주세요.</div>}
 
           {/* 촬영 가이드 */}
@@ -2227,7 +2243,7 @@ export default function App(){
             </div>
             {/* Footer */}
             <div style={{textAlign:"center",paddingTop:10,borderTop:"1px solid rgba(0,0,0,0.06)",fontSize:11,color:"#cbd5e1"}}>
-              SNOWRIDE AI COACHING STAFF {VERSION} · made by GP · rideai.vercel.app
+              SNOWRIDE AI COACHING STAFF {VERSION} · made by GP · <a href="/privacy.html" target="_blank" style={{color:"#94a3b8",textDecoration:"underline"}}>개인정보처리방침</a>
             </div>
           </div>
         </div>)}
