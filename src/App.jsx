@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "ver 0.05-25";
+const VERSION = "ver 0.05-26";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -639,16 +639,7 @@ function ShareFrameCard({frame}){
 
 /* ── MAIN APP ─────────────────────────────────────────────── */
 export default function App(){
-  const [authed,setAuthed]=useState(()=>{
-    try {
-      const stored = localStorage.getItem("rideai_auth");
-      if(!stored) return false;
-      const {ok, exp} = JSON.parse(stored);
-      if(ok && Date.now() < exp) return true;
-      localStorage.removeItem("rideai_auth");
-      return false;
-    } catch { return false; }
-  });
+  const [authed,setAuthed]=useState(true); // 베타 게이트 제거
   const [saving,setSaving]=useState(false);
 
   const [feedback,setFeedback]=useState(null); // null | 'good' | 'bad'
@@ -1181,7 +1172,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-25 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-26 made by GP</div>
           </div>
         </div>
       )}
@@ -1234,6 +1225,28 @@ export default function App(){
                 <div style={{fontSize:12,color:ac,marginTop:4,opacity:0.8}}>선택 →</div>
               </button>
             ))}
+          </div>
+
+          {/* 주요 기능 */}
+          <div style={{background:"#f8fafc",borderRadius:12,padding:"14px",marginBottom:14,border:"0.5px solid rgba(0,0,0,0.06)"}}>
+            <div style={{fontSize:12,fontWeight:500,color:"#94a3b8",marginBottom:10,letterSpacing:0.5}}>주요 기능</div>
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              {[
+                ["🎬","영상 분석 + 자세 측정","영상에서 8개 장면 자동 추출 · MediaPipe 관절 각도 측정","#dbeafe"],
+                ["🎯","KSIA 등급별 맞춤 피드백","레벨1~데몬 기준 · 집중 기술 선택 시 모션 탐지 분석","#dcfce7"],
+                ["📊","점수 + 장면 카드","자세·균형·기술 점수 · 잘된 장면/개선 장면 분리 표시","#fef9c3"],
+                ["📈","분석 기록 + 시즌 리포트","최대 100회 보관 · 기간·레벨별 필터 · 카카오 공유","#fce7f3"],
+                ["🔍","엣지 방향 자동 추정","스키 인/아웃엣지 · 보드 토/힐사이드 스탠스 기반 분석","#ede9fe"],
+              ].map(([icon,title,desc,bg])=>(
+                <div key={title} style={{display:"flex",alignItems:"flex-start",gap:10}}>
+                  <div style={{width:28,height:28,borderRadius:8,background:bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,flexShrink:0}}>{icon}</div>
+                  <div>
+                    <div style={{fontSize:12,fontWeight:500,color:"#0f172a",marginBottom:2}}>{title}</div>
+                    <div style={{fontSize:11,color:"#64748b",lineHeight:1.55}}>{desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* 이전 기록 확인 버튼 */}
