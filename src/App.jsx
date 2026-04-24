@@ -34,7 +34,7 @@ function AdFitBanner({ adUnit }) {
     </div>
   );
 }
-const VERSION = "ver 0.05-31";
+const VERSION = "ver 0.05-33";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -1174,7 +1174,7 @@ export default function App(){
   };
 
   const reset=()=>{
-    setPhase("sport");setFile(null);setResult(null);setRawData(null);setCapturedFrames([]);setError("");setPct(0);
+    setPhase("landing");setFile(null);setResult(null);setRawData(null);setCapturedFrames([]);setError("");setPct(0);
     if(urlRef.current){URL.revokeObjectURL(urlRef.current);urlRef.current=null;}
     if(fileRef.current) fileRef.current.value="";
     if(vidRef.current) vidRef.current.src="";
@@ -1240,7 +1240,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-31 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.05-33 made by GP</div>
           </div>
         </div>
       )}
@@ -1256,7 +1256,7 @@ export default function App(){
             </div>
           </div>
           {(()=>{
-            const prevMap={level:"sport",upload:"level",loading:"upload",queue:"upload",picking:"upload",done:"upload",error:"upload",history:"sport"};
+            const prevMap={sport:"landing",level:"sport",upload:"level",loading:"upload",queue:"upload",picking:"upload",done:"upload",error:"upload",history:"sport"};
             const prev=prevMap[phase];
             return prev?(
               <button onClick={()=>setPhase(prev)} style={{padding:"6px 12px",borderRadius:8,border:"0.5px solid rgba(0,0,0,0.12)",background:"#fff",color:"#64748b",fontSize:12,cursor:"pointer",flexShrink:0}}>
@@ -1279,10 +1279,108 @@ export default function App(){
           </div>
         </div>)}
 
-        {phase!=="sport"&&phase!=="history"&&phase!=="error"&&phase!=="queue"&&<StepBar current={phase}/>}
+        {phase!=="landing"&&phase!=="sport"&&phase!=="history"&&phase!=="error"&&phase!=="queue"&&<StepBar current={phase}/>}
 
-        {/* STEP 1: SPORT */}
+        {/* LANDING PAGE */}
+        {phase==="landing"&&(
+          <div style={{animation:"fadeUp 0.4s ease"}}>
+            <div style={{textAlign:"center",marginBottom:22}}>
+              <div onClick={()=>setPhase("sport")} style={{width:80,height:80,background:"#eff6ff",borderRadius:18,overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px",cursor:"pointer"}}>
+                <img src="/logo.png" alt="SNOWRIDE" style={{width:78,height:78,objectFit:"contain"}}/>
+              </div>
+              <div style={{fontSize:22,fontWeight:900,color:"#0d47a1",marginBottom:2}}>SNOW<span style={{color:"#2196f3"}}>RIDE</span></div>
+              <div style={{fontSize:11,color:"#94a3b8",letterSpacing:2,marginBottom:12}}>AI COACHING STAFF</div>
+              <div style={{fontSize:15,fontWeight:600,color:"#0f172a",marginBottom:5}}>스키 · 스노보드 AI 코치</div>
+              <div style={{fontSize:13,color:"#64748b",lineHeight:1.7}}>영상 한 편으로<br/>자세 분석과 맞춤 피드백을 받아보세요</div>
+            </div>
+
+            <div style={{border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:12,overflow:"hidden",marginBottom:12}}>
+              <div style={{background:"#f8fafc",padding:"9px 14px",borderBottom:"0.5px solid rgba(0,0,0,0.06)"}}>
+                <div style={{fontSize:12,fontWeight:600,color:"#0f172a"}}>이렇게 사용하세요</div>
+              </div>
+              <div style={{padding:"12px 14px",display:"flex",flexDirection:"column",gap:12}}>
+                {[
+                  ["#dbeafe","#1d4ed8","1","종목 · 레벨 선택","스키 또는 스노보드를 선택하고 현재 레벨을 고르세요"],
+                  ["#dcfce7","#166534","2","라이딩 영상 업로드","슬로프에서 찍은 영상(100MB 이하)을 올려주세요"],
+                  ["#fef9c3","#854d0e","3","AI 분석 결과 확인","점수 · 장면 카드 · 맞춤 피드백을 확인하고 공유하세요"],
+                ].map(([bg,tc,num,title,desc])=>(
+                  <div key={num} style={{display:"flex",alignItems:"flex-start",gap:12}}>
+                    <div style={{width:26,height:26,borderRadius:"50%",background:bg,color:tc,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:600,flexShrink:0}}>{num}</div>
+                    <div>
+                      <div style={{fontSize:13,fontWeight:600,color:"#0f172a",marginBottom:2}}>{title}</div>
+                      <div style={{fontSize:11,color:"#64748b",lineHeight:1.55}}>{desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div style={{border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:12,overflow:"hidden",marginBottom:18}}>
+              <div style={{background:"#f8fafc",padding:"9px 14px",borderBottom:"0.5px solid rgba(0,0,0,0.06)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <div style={{fontSize:12,fontWeight:600,color:"#0f172a"}}>분석 결과 미리보기</div>
+                <div style={{fontSize:10,color:"#94a3b8"}}>샘플 · 스키 레벨2</div>
+              </div>
+              <div style={{padding:"12px 14px"}}>
+                {[["자세",74,"#3b82f6"],["균형",68,"#22c55e"],["기술",71,"#f59e0b"]].map(([label,val,color])=>(
+                  <div key={label} style={{marginBottom:8}}>
+                    <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#64748b",marginBottom:3}}>
+                      <span>{label}</span><span style={{color:"#0f172a",fontWeight:500}}>{val}점</span>
+                    </div>
+                    <div style={{height:5,background:"#f1f5f9",borderRadius:99}}>
+                      <div style={{height:"100%",width:val+"%",background:color,borderRadius:99}}/>
+                    </div>
+                  </div>
+                ))}
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7,marginBottom:10,marginTop:10}}>
+                  <div style={{borderRadius:8,overflow:"hidden",border:"0.5px solid #bbf7d0"}}>
+                    <div style={{background:"#f0fdf4",padding:"5px 8px",borderBottom:"0.5px solid #bbf7d0"}}><div style={{fontSize:10,fontWeight:600,color:"#166534"}}>잘된 장면</div></div>
+                    <div style={{background:"#f8fafc",height:36,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"#94a3b8"}}>캡처 이미지</div>
+                    <div style={{padding:"5px 8px",fontSize:10,color:"#64748b",lineHeight:1.4}}>무릎 굴곡이 자연스럽게 유지됐어요</div>
+                  </div>
+                  <div style={{borderRadius:8,overflow:"hidden",border:"0.5px solid #fecaca"}}>
+                    <div style={{background:"#fef2f2",padding:"5px 8px",borderBottom:"0.5px solid #fecaca"}}><div style={{fontSize:10,fontWeight:600,color:"#991b1b"}}>고쳐볼 장면</div></div>
+                    <div style={{background:"#f8fafc",height:36,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"#94a3b8"}}>캡처 이미지</div>
+                    <div style={{padding:"5px 8px",fontSize:10,color:"#64748b",lineHeight:1.4}}>상체가 앞으로 더 기울어야 해요</div>
+                  </div>
+                </div>
+                <div style={{background:"#f8fafc",borderRadius:8,padding:"8px 10px",fontSize:11,color:"#64748b",lineHeight:1.6}}>앞발 체중 이동이 조금 늦어요. 턴 시작 시 무릎을 먼저 밀어볼까요?</div>
+              </div>
+            </div>
+
+            <button onClick={()=>setPhase("sport")}
+              style={{width:"100%",padding:16,borderRadius:12,border:"none",background:"#0d47a1",color:"#fff",fontSize:16,fontWeight:700,cursor:"pointer",marginBottom:12}}>
+              지금 시작하기 →
+            </button>
+
+            <button onClick={()=>{setPhase("history");refreshHistory();}}
+              style={{width:"100%",padding:"11px 0",borderRadius:10,border:"0.5px solid rgba(0,0,0,0.12)",background:"#fff",color:"#0f172a",fontSize:13,fontWeight:500,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+              <span style={{fontSize:15}}>📋</span> 이전 분석 기록 보기
+            </button>
+          </div>
+        )}
+
+        {/* STEP 1: SPORT */}}
         {phase==="sport"&&(<div style={{animation:"fadeUp 0.3s ease"}}>
+          <div style={{border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:12,overflow:"hidden",marginBottom:14}}>
+            <div style={{background:"#f8fafc",padding:"9px 14px",borderBottom:"0.5px solid rgba(0,0,0,0.06)"}}>
+              <div style={{fontSize:12,fontWeight:600,color:"#0f172a"}}>이렇게 사용하세요</div>
+            </div>
+            <div style={{padding:"10px 14px",display:"flex",flexDirection:"column",gap:9}}>
+              {[
+                ["#dbeafe","#1d4ed8","1","종목 · 레벨 선택","스키 또는 스노보드를 선택하고 현재 레벨을 고르세요"],
+                ["#dcfce7","#166534","2","라이딩 영상 업로드","슬로프에서 찍은 영상(100MB 이하)을 올려주세요"],
+                ["#fef9c3","#854d0e","3","AI 분석 결과 확인","점수 · 장면 카드 · 맞춤 피드백을 확인하고 공유하세요"],
+              ].map(([bg,tc,num,title,desc])=>(
+                <div key={num} style={{display:"flex",alignItems:"center",gap:10}}>
+                  <div style={{width:24,height:24,borderRadius:"50%",background:bg,color:tc,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:600,flexShrink:0}}>{num}</div>
+                  <div>
+                    <div style={{fontSize:12,fontWeight:600,color:"#0f172a"}}>{title}</div>
+                    <div style={{fontSize:11,color:"#64748b",lineHeight:1.4}}>{desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
           <div style={{fontSize:18,fontWeight:600,marginBottom:6,color:"#0f172a"}}>종목을 선택하세요</div>
           <div style={{fontSize:14,color:"#64748b",marginBottom:24}}>선택한 종목에 맞는 전문 용어로 분석해드립니다.</div>
           <div style={{display:"flex",gap:12,marginBottom:14}}>
