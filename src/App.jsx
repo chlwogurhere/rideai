@@ -34,7 +34,7 @@ function AdFitBanner({ adUnit }) {
     </div>
   );
 }
-const VERSION = "ver 0.61-2";
+const VERSION = "ver 0.62";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -725,6 +725,9 @@ export default function App(){
   const [sessionId] = useState(()=>Math.random().toString(36).slice(2)+Date.now().toString(36));
   const [comment,setComment]=useState("");
   const [starDone,setStarDone]=useState(false);
+  const [aiSelected,setAiSelected]=useState([]);
+  const [aiMemo,setAiMemo]=useState("");
+  const [aiFeedbackDone,setAiFeedbackDone]=useState(false);
   const analysisIdRef = useRef(null);
   const resultRef = useRef(null);
   const shareRef = useRef(null);
@@ -734,7 +737,7 @@ export default function App(){
     if (starDone || stars === 0) return;
     setStarDone(true);
     try {
-      await fetch("https://script.google.com/macros/s/AKfycbz812_V3-2MKcMKetwBuGLNcsr7Rd5ofOT-2V8VdpSjZZYlJfbc9QLOOnwHKYkpgKg96g/exec", {
+      await fetch("https://script.google.com/macros/s/AKfycbxGBkg65QhRBoOhkw3SlkFaIgYTuxER6KSXzcTMX1D9vEOby3dikSnSYLDtFYghnMD_Fg/exec", {
         method: "POST",
         mode: "no-cors",
         headers: { "Content-Type": "application/json" },
@@ -749,7 +752,25 @@ export default function App(){
     } catch(e) { console.warn("sheet feedback failed:", e.message); }
   };
 
-  const submitFeedback = async (type) => {
+  const submitAiFeedback = async () => {
+    if(aiFeedbackDone || aiSelected.length===0) return;
+    setAiFeedbackDone(true);
+    try {
+      await fetch("https://script.google.com/macros/s/AKfycbxGBkg65QhRBoOhkw3SlkFaIgYTuxER6KSXzcTMX1D9vEOby3dikSnSYLDtFYghnMD_Fg/exec",{
+        method:"POST", mode:"no-cors",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          type:"ai_feedback",
+          sport,
+          selected:aiSelected,
+          memo:aiMemo,
+          score_pose:   result?.scores?.[0]?.value||"",
+          score_balance:result?.scores?.[1]?.value||"",
+          score_tech:   result?.scores?.[2]?.value||"",
+        }),
+      });
+    } catch(e){console.warn("ai feedback failed:",e.message);}
+  };
     if (feedbackDone) return;
     setFeedback(type);
     // Save to localStorage to prevent duplicate
@@ -1202,7 +1223,7 @@ export default function App(){
     setPct(100);
     const aid = Date.now().toString(36) + Math.random().toString(36).slice(2,6);
     analysisIdRef.current = aid;
-    setFeedback(null); setStars(0); setComment(""); setStarDone(false);
+    setFeedback(null); setStars(0); setComment(""); setStarDone(false); setAiSelected([]); setAiMemo(""); setAiFeedbackDone(false);
     setFeedbackDone(localStorage.getItem("rideai_fb_"+aid)==="done");
     const finalResult = {...refinedData, annotated};
     setResult(finalResult);
@@ -1300,7 +1321,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.61-2 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.62 made by GP</div>
           </div>
         </div>
       )}
@@ -1517,12 +1538,21 @@ export default function App(){
           {(()=>{
             const PATCH_NOTES=[
               {
-                ver:"v0.61",
-                date:"2025. 4. 25.",
+                ver:"v0.62",
+                date:"2025. 4. 26.",
                 isLatest:true,
                 logs:[
-                  {type:"new",text:"체크리스트 기반 정밀 점수 산출 시스템 도입"},
-                  {type:"improve",text:"자세·균형·기술 각 항목별 세부 평가 후 가중 평균 계산"},
+                  {type:"new",text:"AI 분석이 맞지 않을 때 피드백을 남길 수 있어요"},
+                  {type:"new",text:"피드백 내용을 바탕으로 즉시 재분석을 요청할 수 있어요"},
+                ],
+              },
+              {
+                ver:"v0.61",
+                date:"2025. 4. 25.",
+                isLatest:false,
+                logs:[
+                  {type:"new",text:"점수 측정이 더 정밀해졌어요"},
+                  {type:"new",text:"점수가 어떻게 계산되는지 확인할 수 있어요"},
                 ],
               },
               {
@@ -1530,12 +1560,12 @@ export default function App(){
                 date:"2025. 4. 25.",
                 isLatest:false,
                 logs:[
-                  {type:"new",text:"앱 첫 화면 개선"},
-                  {type:"new",text:"버튼이 더 잘 보이도록 디자인 개선"},
-                  {type:"new",text:"업데이트 내역 추가"},
-                  {type:"fix",text:"화면에 } 글자가 표시되던 버그 수정"},
-                  {type:"improve",text:"카카오톡 공유 오류 수정"},
-                  {type:"improve",text:"결과 이미지 저장 시 로고 깨짐 수정"},
+                  {type:"new",text:"앱 첫 화면이 새로워졌어요"},
+                  {type:"new",text:"버튼과 선택 항목이 더 잘 보이도록 개선됐어요"},
+                  {type:"new",text:"업데이트 내역을 확인할 수 있어요"},
+                  {type:"fix",text:"화면에 } 글자가 표시되던 오류를 수정했어요"},
+                  {type:"improve",text:"카카오톡 공유 오류를 수정했어요"},
+                  {type:"improve",text:"결과 이미지 저장 시 로고가 정상 출력돼요"},
                 ],
               },
             ];
@@ -2463,6 +2493,57 @@ export default function App(){
                 <div style={{fontSize:12,color:"#94a3b8"}}>더 나은 서비스로 보답하겠습니다!</div>
               </div>
             )}
+          </div>
+
+          {/* ── AI 피드백 ── */}
+          <div style={{background:"#fff",border:"1.5px solid #bfdbfe",borderRadius:12,padding:"18px 20px",marginBottom:16}}>
+            {aiFeedbackDone ? (
+              <div style={{textAlign:"center",padding:"8px 0"}}>
+                <div style={{fontSize:22,marginBottom:6}}>🙏</div>
+                <div style={{fontSize:14,fontWeight:500,color:"#0f172a",marginBottom:3}}>피드백 감사합니다!</div>
+                <div style={{fontSize:12,color:"#94a3b8"}}>더 나은 분석을 위해 반영하겠습니다.</div>
+              </div>
+            ):(()=>{
+              const ITEMS=[
+                {group:"점수 관련",items:["전체 점수가 실제보다 너무 높아요","전체 점수가 실제보다 너무 낮아요","점수는 맞는데 항목별 비중이 이상해요"]},
+                {group:"분석 내용 관련",items:["잘된 점으로 분석됐는데 실제론 잘 안 됐어요","개선 필요로 분석됐는데 실제론 잘 됐어요","내가 선택한 집중 기술을 제대로 분석 안 했어요","코치 조언이 내 레벨에 맞지 않아요","개선 방법 설명이 너무 모호해요","스키/보드 종목에 맞지 않는 용어를 사용했어요","같은 내용이 반복되는 것 같아요"]},
+                {group:"장면 관련",items:["엉뚱한 장면을 선택했어요","가장 중요한 장면을 놓쳤어요"]},
+              ];
+              const toggle=(item)=>setAiSelected(prev=>prev.includes(item)?prev.filter(i=>i!==item):[...prev,item]);
+              return(<>
+                <div style={{fontSize:14,fontWeight:500,color:"#0f172a",marginBottom:4}}>AI 분석이 정확하지 않았나요?</div>
+                <div style={{fontSize:12,color:"#94a3b8",marginBottom:16}}>어떤 부분이 맞지 않는지 선택해주시면 재분석해드려요</div>
+                {ITEMS.map(({group,items})=>(
+                  <div key={group} style={{marginBottom:14}}>
+                    <div style={{fontSize:12,fontWeight:600,color:"#475569",marginBottom:8}}>{group}</div>
+                    <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                      {items.map(item=>{
+                        const checked=aiSelected.includes(item);
+                        return(
+                          <label key={item} onClick={()=>toggle(item)} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",border:"0.5px solid "+(checked?"#93c5fd":"rgba(0,0,0,0.1)"),borderRadius:8,cursor:"pointer",background:checked?"#eff6ff":"#fff",fontSize:12,color:checked?"#1d4ed8":"#0f172a",fontWeight:checked?500:400}}>
+                            <div style={{width:16,height:16,borderRadius:4,border:"1.5px solid "+(checked?"#3b82f6":"#cbd5e1"),background:checked?"#3b82f6":"#fff",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                              {checked&&<svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                            </div>
+                            {item}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+                <div style={{marginBottom:14}}>
+                  <div style={{fontSize:12,fontWeight:600,color:"#475569",marginBottom:6}}>추가로 하고 싶은 말 <span style={{fontWeight:400,color:"#94a3b8"}}>(선택)</span></div>
+                  <textarea value={aiMemo} onChange={e=>setAiMemo(e.target.value)}
+                    placeholder="예: 카빙 턴을 했는데 드리프트로 분석됐어요"
+                    style={{width:"100%",padding:"10px 12px",borderRadius:8,border:"0.5px solid rgba(0,0,0,0.15)",fontSize:12,resize:"none",height:60,fontFamily:"inherit",boxSizing:"border-box",outline:"none",color:"#0f172a",background:"#f8fafc"}}/>
+                </div>
+                <button onClick={submitAiFeedback} disabled={aiSelected.length===0}
+                  style={{width:"100%",padding:"11px 0",borderRadius:8,border:"none",background:aiSelected.length>0?"#2563eb":"#e2e8f0",color:aiSelected.length>0?"#fff":"#94a3b8",fontSize:14,fontWeight:500,cursor:aiSelected.length>0?"pointer":"not-allowed"}}>
+                  재분석 요청
+                </button>
+                <div style={{marginTop:8,textAlign:"center",fontSize:11,color:"#94a3b8"}}>재분석은 1회 분석당 1번만 가능해요</div>
+              </>);
+            })()}
           </div>
 
           {/* 광고 배너 — 결과 하단 */}
