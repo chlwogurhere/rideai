@@ -771,7 +771,8 @@ export default function App(){
       });
     } catch(e){console.warn("ai feedback failed:",e.message);}
   };
-    if (feedbackDone) return;
+
+  const submitFeedback = async (type) => {
     setFeedback(type);
     // Save to localStorage to prevent duplicate
     const aid = analysisIdRef.current || "unknown";
