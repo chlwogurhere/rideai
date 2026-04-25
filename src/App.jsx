@@ -34,7 +34,7 @@ function AdFitBanner({ adUnit }) {
     </div>
   );
 }
-const VERSION = "ver 0.62-3";
+const VERSION = "ver 0.62-4";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -1383,7 +1383,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.62-3 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.62-4 made by GP</div>
           </div>
         </div>
       )}
@@ -2523,7 +2523,7 @@ export default function App(){
           {/* ── Star Feedback ── */}
           <div style={{background:"#fff",border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:12,padding:"18px 20px",marginBottom:16}}>
             {!starDone ? (<>
-              <div style={{fontSize:14,fontWeight:500,color:"#0f172a",marginBottom:4,textAlign:"center"}}>분석이 도움이 됐나요?</div>
+              <div style={{fontSize:14,fontWeight:500,color:"#0f172a",marginBottom:4,textAlign:"center"}}>개발자에게 피드백하기</div>
               <div style={{fontSize:12,color:"#94a3b8",marginBottom:14,textAlign:"center"}}>별점과 의견을 남겨주시면 AI 코치 개선에 활용됩니다</div>
               {/* Stars */}
               <div style={{display:"flex",justifyContent:"center",gap:8,marginBottom:14}}>
@@ -2545,9 +2545,6 @@ export default function App(){
                 style={{width:"100%",marginTop:10,padding:"11px 0",borderRadius:8,border:"none",background:stars>0?"#0f172a":"#e2e8f0",color:stars>0?"#fff":"#94a3b8",fontSize:14,fontWeight:500,cursor:stars>0?"pointer":"not-allowed"}}>
                 피드백 제출
               </button>
-              {stars>0&&<div style={{marginTop:8,textAlign:"center",fontSize:12,color:"#94a3b8"}}>
-                {["","아쉬웠어요 😢","조금 아쉬워요 😕","괜찮았어요 😊","좋았어요 😄","최고예요 🤩"][stars]}
-              </div>}
             </>) : (
               <div style={{textAlign:"center",padding:"8px 0"}}>
                 <div style={{fontSize:22,marginBottom:6}}>{"⭐".repeat(stars)}</div>
