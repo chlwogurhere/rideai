@@ -34,7 +34,7 @@ function AdFitBanner({ adUnit }) {
     </div>
   );
 }
-const VERSION = "ver 0.62";
+const VERSION = "ver 0.62-1";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -755,6 +755,8 @@ export default function App(){
   const submitAiFeedback = async () => {
     if(aiFeedbackDone || aiSelected.length===0) return;
     setAiFeedbackDone(true);
+
+    // ── 구글 시트 전송 ──
     try {
       await fetch("https://script.google.com/macros/s/AKfycbxGBkg65QhRBoOhkw3SlkFaIgYTuxER6KSXzcTMX1D9vEOby3dikSnSYLDtFYghnMD_Fg/exec",{
         method:"POST", mode:"no-cors",
@@ -769,7 +771,68 @@ export default function App(){
           score_tech:   result?.scores?.[2]?.value||"",
         }),
       });
-    } catch(e){console.warn("ai feedback failed:",e.message);}
+    } catch(e){console.warn("ai feedback sheet failed:",e.message);}
+
+    // ── 재분석 요청 ──
+    try {
+      setPhase("loading");
+      setLoadMsg("피드백 기반 재분석 중...");
+      setPct(20);
+
+      const feedbackSummary =
+        "【사용자 피드백】\n" +
+        "다음 항목이 잘못 분석됐다고 사용자가 지적했습니다:\n" +
+        aiSelected.map(s=>"- "+s).join("\n") +
+        (aiMemo ? "\n추가 의견: "+aiMemo : "") +
+        "\n\n위 피드백을 반드시 반영하여 기존 분석을 수정하고 더 정확하게 재분석해주세요.";
+
+      const prevAnnotated = result?.annotated||[];
+      const prevFeedback  = result?.feedback||[];
+
+      const reMsg = [
+        {role:"user", content:[
+          {type:"text", text:
+            "당신은 KSIA 기준의 전문 "+(sport==="ski"?"스키":"스노보드")+" 코치입니다.\n" +
+            "아래는 이전 분석 결과입니다:\n" +
+            "점수: 자세 "+( result?.scores?.[0]?.value||"?")+"점 / 균형 "+(result?.scores?.[1]?.value||"?")+"점 / 기술 "+(result?.scores?.[2]?.value||"?")+"점\n" +
+            "장면 수: "+prevAnnotated.length+"개\n" +
+            "피드백 수: "+prevFeedback.length+"개\n\n" +
+            feedbackSummary + "\n\n" +
+            "[점수 산출 방식 — 반드시 준수]\n" +
+            "체크리스트 항목별로 1~10점 부여 후 가중 평균 계산. 40~100점 범위로 변환.\n\n" +
+            "JSON으로만 응답(마크다운 없이):\n" +
+            '{"scores":[{"label":"자세","value":N1,"color":"#3b82f6"},{"label":"균형","value":N2,"color":"#22c55e"},{"label":"기술","value":N3,"color":"#f59e0b"}],' +
+            '"frames":[{"frameIndex":0,"type":"good","title":"제목","desc":"코칭 2문장"},{"frameIndex":1,"type":"warn","title":"제목","desc":"코칭 2문장"},{"frameIndex":2,"type":"good","title":"제목","desc":"코칭 2문장"},{"frameIndex":3,"type":"warn","title":"제목","desc":"코칭 2문장"}],' +
+            '"feedback":[{"type":"good","tag":"잘된 점","text":"2~3문장","actionSteps":["동작1","동작2"]},{"type":"warn","tag":"개선 포인트","text":"2~3문장","actionSteps":["동작1","동작2"]},{"type":"info","tag":"코치 조언","text":"2~3문장","actionSteps":["동작1","동작2"]}],' +
+            '"tip":"한 줄 핵심 팁","levelEstimate":"레벨명"}'
+          }
+        ]}
+      ];
+
+      setPct(50);
+      const res = await fetch("/api/proxy",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({messages:reMsg, max_tokens:2000}),
+      });
+      const data = await res.json();
+      const raw = (data?.content?.[0]?.text||"").trim();
+      const jsonStr = raw.replace(/^```json\s*/,"").replace(/^```\s*/,"").replace(/```$/,"").trim();
+      const parsed = JSON.parse(jsonStr);
+
+      setPct(100);
+      setResult(prev=>({
+        ...prev,
+        scores:   parsed.scores   || prev.scores,
+        feedback: parsed.feedback || prev.feedback,
+        tip:      parsed.tip      || prev.tip,
+        levelEstimate: parsed.levelEstimate || prev.levelEstimate,
+      }));
+      setPhase("done");
+    } catch(e){
+      console.warn("reanalysis failed:",e.message);
+      setPhase("done");
+    }
   };
 
   const submitFeedback = async (type) => {
@@ -1322,7 +1385,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.62 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.62-1 made by GP</div>
           </div>
         </div>
       )}
