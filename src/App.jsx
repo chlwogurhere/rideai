@@ -34,7 +34,7 @@ function AdFitBanner({ adUnit }) {
     </div>
   );
 }
-const VERSION = "ver 0.62-1";
+const VERSION = "ver 0.62-2";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -737,7 +737,7 @@ export default function App(){
     if (starDone || stars === 0) return;
     setStarDone(true);
     try {
-      await fetch("https://script.google.com/macros/s/AKfycbxGBkg65QhRBoOhkw3SlkFaIgYTuxER6KSXzcTMX1D9vEOby3dikSnSYLDtFYghnMD_Fg/exec", {
+      await fetch("https://script.google.com/macros/s/AKfycbzSJpnWSy6YmF62dXdz8H7rqF2f264jDPvOPsJEsBqzTOfFnjfqRAyO1yUwlQcdcv5B/exec", {
         method: "POST",
         mode: "no-cors",
         headers: { "Content-Type": "application/json" },
@@ -758,7 +758,7 @@ export default function App(){
 
     // ── 구글 시트 전송 ──
     try {
-      await fetch("https://script.google.com/macros/s/AKfycbxGBkg65QhRBoOhkw3SlkFaIgYTuxER6KSXzcTMX1D9vEOby3dikSnSYLDtFYghnMD_Fg/exec",{
+      await fetch("https://script.google.com/macros/s/AKfycbyiUkJUehdwk6OrTAx1Gw3QFzv6NgY0aRdnZliWMJaI0kpHMzOzhwTrBjo5l3mGb6qPjA/exec",{
         method:"POST", mode:"no-cors",
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify({
@@ -1385,7 +1385,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.62-1 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.62-2 made by GP</div>
           </div>
         </div>
       )}
