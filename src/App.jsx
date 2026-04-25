@@ -34,7 +34,7 @@ function AdFitBanner({ adUnit }) {
     </div>
   );
 }
-const VERSION = "ver 0.61-1";
+const VERSION = "ver 0.61-2";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -463,7 +463,7 @@ function Tag({type,children}){const m={good:["#f0fdf4","#166534"],warn:["#fef2f2
 function ScoreBar({label,value,color}){return(<div style={{marginBottom:14}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:6,fontSize:14}}><span style={{color:"#475569"}}>{label}</span><span style={{fontWeight:500}}>{value}점</span></div><div style={{height:7,background:"rgba(0,0,0,0.08)",borderRadius:99}}><div style={{height:"100%",width:value+"%",background:color,borderRadius:99,transition:"width 1.2s ease"}}/></div></div>);}
 
 function ScoreGuide(){
-  const [open,setOpen]=React.useState(false);
+  const [open,setOpen]=useState(false);
   return(
     <div style={{border:"1px solid #bbf7d0",borderRadius:10,overflow:"hidden",marginTop:12,marginBottom:4}}>
       <div onClick={()=>setOpen(o=>!o)} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 12px",cursor:"pointer",background:"#f0fdf4"}}>
@@ -1300,7 +1300,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.61-1 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.61-2 made by GP</div>
           </div>
         </div>
       )}
