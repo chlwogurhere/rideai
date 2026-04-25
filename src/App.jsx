@@ -34,7 +34,7 @@ function AdFitBanner({ adUnit }) {
     </div>
   );
 }
-const VERSION = "ver 0.61";
+const VERSION = "ver 0.61-1";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -461,6 +461,41 @@ ${L(rS[0],rS[1],rEl[0],rEl[1]+6,14,"url(#ag)",hl.arm)}${L(rEl[0],rEl[1]+6,rW[0]-
 /* ── UI COMPONENTS ────────────────────────────────────────── */
 function Tag({type,children}){const m={good:["#f0fdf4","#166534"],warn:["#fef2f2","#991b1b"],info:["#eff6ff","#1e40af"]};const[bg,col]=m[type]||m.info;return <span style={{background:bg,color:col,fontSize:11,padding:"2px 10px",borderRadius:99,fontWeight:500}}>{children}</span>;}
 function ScoreBar({label,value,color}){return(<div style={{marginBottom:14}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:6,fontSize:14}}><span style={{color:"#475569"}}>{label}</span><span style={{fontWeight:500}}>{value}점</span></div><div style={{height:7,background:"rgba(0,0,0,0.08)",borderRadius:99}}><div style={{height:"100%",width:value+"%",background:color,borderRadius:99,transition:"width 1.2s ease"}}/></div></div>);}
+
+function ScoreGuide(){
+  const [open,setOpen]=React.useState(false);
+  return(
+    <div style={{border:"1px solid #bbf7d0",borderRadius:10,overflow:"hidden",marginTop:12,marginBottom:4}}>
+      <div onClick={()=>setOpen(o=>!o)} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 12px",cursor:"pointer",background:"#f0fdf4"}}>
+        <div style={{display:"flex",alignItems:"center",gap:6}}>
+          <span style={{fontSize:14}}>📊</span>
+          <span style={{fontSize:12,fontWeight:600,color:"#166534"}}>점수는 어떻게 산출되나요?</span>
+        </div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#166534" strokeWidth="2.5" style={{transition:"transform 0.2s",transform:open?"rotate(180deg)":"rotate(0deg)",flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      {open&&(
+        <div style={{padding:"12px 12px 14px",borderTop:"0.5px solid #bbf7d0",background:"#fff"}}>
+          <div style={{fontSize:11,color:"#64748b",marginBottom:10,lineHeight:1.6}}>각 영역별 세부 항목을 평가한 뒤 가중 평균으로 최종 점수를 산출해요.</div>
+          <div style={{display:"flex",flexDirection:"column",gap:7}}>
+            {[
+              ["#3b82f6","🔵 자세","상체 안정성 30% · 무릎·발목 굴곡 25% · 무게중심 위치 25% · 시선 방향 20%"],
+              ["#22c55e","🟢 균형","좌우 체중 배분 30% · 리듬 일관성 25% · 속도 조절 25% · 턴 중 안정성 20%"],
+              ["#f59e0b","🟡 기술","엣지 전환 타이밍 30% · 턴 형태 완성도 25% · 집중 기술 수행도 30% · 연속성 15%"],
+            ].map(([color,label,desc])=>(
+              <div key={label} style={{background:"#f8fafc",borderRadius:8,padding:"8px 10px"}}>
+                <div style={{fontSize:11,fontWeight:600,color,marginBottom:4}}>{label}</div>
+                <div style={{fontSize:10,color:"#64748b",lineHeight:1.7}}>{desc}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{marginTop:8,padding:"7px 10px",background:"#f0fdf4",borderRadius:8,fontSize:10,color:"#166534",lineHeight:1.6}}>
+            각 항목을 1~10점으로 평가 후 가중 평균 계산, 40~100점 범위로 변환한 점수예요.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 function FeedbackCard({type,tag,text,actionSteps}){
   const bc={good:"#16a34a",warn:"#dc2626",info:"#2563eb"}[type]||"#2563eb";
   const steps = Array.isArray(actionSteps) ? actionSteps : [];
@@ -1265,7 +1300,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.61 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.61-1 made by GP</div>
           </div>
         </div>
       )}
@@ -1913,6 +1948,7 @@ export default function App(){
                           </div>
                         </div>
                       ))}
+                      <ScoreGuide/>
                     </div>
                     {(()=>{
                       const goodF=(selectedHistory.frames||[]).filter(f=>f.type==="good");
@@ -2350,6 +2386,7 @@ export default function App(){
           <div style={{background:"#fff",border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:12,padding:"18px 20px",marginBottom:16}}>
             <div style={{fontSize:14,fontWeight:600,marginBottom:16}}>종합 점수</div>
             {(result.scores||[]).map((s,i)=><ScoreBar key={i} {...s}/>)}
+            <ScoreGuide/>
           </div>
           {/* 광고 배너 — 결과 상단 */}
           <AdFitBanner adUnit="DAN-AeHytcuMcCUFT2Os"/>
