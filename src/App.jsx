@@ -34,7 +34,7 @@ function AdFitBanner({ adUnit }) {
     </div>
   );
 }
-const VERSION = "ver 0.62-2";
+const VERSION = "ver 0.62-3";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -740,7 +740,6 @@ export default function App(){
       await fetch("https://script.google.com/macros/s/AKfycbzSJpnWSy6YmF62dXdz8H7rqF2f264jDPvOPsJEsBqzTOfFnjfqRAyO1yUwlQcdcv5B/exec", {
         method: "POST",
         mode: "no-cors",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sport,
           stars,
@@ -760,7 +759,6 @@ export default function App(){
     try {
       await fetch("https://script.google.com/macros/s/AKfycbyiUkJUehdwk6OrTAx1Gw3QFzv6NgY0aRdnZliWMJaI0kpHMzOzhwTrBjo5l3mGb6qPjA/exec",{
         method:"POST", mode:"no-cors",
-        headers:{"Content-Type":"application/json"},
         body:JSON.stringify({
           type:"ai_feedback",
           sport,
@@ -1385,7 +1383,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.62-2 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.62-3 made by GP</div>
           </div>
         </div>
       )}
