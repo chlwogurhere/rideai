@@ -2,6 +2,184 @@ import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
 
+/* ── 한국 주요 스키장/슬로프 데이터 (v0.62-5 신규) ──────── */
+/* 출처: 각 리조트 공식 자료 + 일반 정보 종합 (수치는 추정 포함) */
+const KOREAN_RESORTS = [
+  { id:"yongpyong", name:"용평리조트", region:"강원 평창", altitude:1458, slopes:[
+    { id:"mega-green", name:"메가 그린", level:"beginner", avgGradient:6.5, maxGradient:9, length:1400 },
+    { id:"silver", name:"실버", level:"beginner", avgGradient:10, maxGradient:13, length:1700 },
+    { id:"gold", name:"골드", level:"intermediate", avgGradient:13, maxGradient:16, length:1400 },
+    { id:"rainbow-1", name:"레인보우 1", level:"intermediate", avgGradient:14, maxGradient:17, length:1400 },
+    { id:"rainbow-2", name:"레인보우 2", level:"intermediate", avgGradient:16, maxGradient:19, length:1300 },
+    { id:"rainbow-3", name:"레인보우 3", level:"advanced", avgGradient:18, maxGradient:22, length:1200 },
+    { id:"rainbow-4", name:"레인보우 4", level:"advanced", avgGradient:20, maxGradient:25, length:1500 },
+    { id:"rainbow-paradise", name:"레인보우 파라다이스", level:"advanced", avgGradient:22, maxGradient:27, length:1200 },
+    { id:"red", name:"레드", level:"expert", avgGradient:22, maxGradient:32, length:1500 },
+    { id:"pink", name:"핑크", level:"expert", avgGradient:25, maxGradient:35, length:800 },
+    { id:"gold-valley", name:"골드밸리(월드컵)", level:"advanced", avgGradient:18, maxGradient:24, length:2400 },
+  ]},
+  { id:"vivaldi", name:"비발디파크", region:"강원 홍천", altitude:700, slopes:[
+    { id:"baby", name:"베이비", level:"novice", avgGradient:4, maxGradient:6, length:300 },
+    { id:"bali", name:"발리", level:"beginner", avgGradient:9, maxGradient:12, length:800 },
+    { id:"ali", name:"알리", level:"beginner-intermediate", avgGradient:12, maxGradient:15, length:700 },
+    { id:"helly", name:"헬리", level:"intermediate", avgGradient:14, maxGradient:17, length:800 },
+    { id:"classic", name:"클래식", level:"intermediate", avgGradient:16, maxGradient:20, length:1000 },
+    { id:"mega-vivaldi", name:"메가", level:"advanced", avgGradient:19, maxGradient:23, length:1200 },
+    { id:"big", name:"빅", level:"advanced", avgGradient:22, maxGradient:27, length:1000 },
+    { id:"red-vivaldi", name:"레드", level:"expert", avgGradient:25, maxGradient:35, length:900 },
+  ]},
+  { id:"highone", name:"하이원리조트", region:"강원 정선", altitude:1340, slopes:[
+    { id:"victoria", name:"빅토리아", level:"beginner", avgGradient:8, maxGradient:11, length:1400 },
+    { id:"victoria-x", name:"빅토리아 X", level:"beginner-intermediate", avgGradient:11, maxGradient:14, length:1300 },
+    { id:"zeus-1", name:"제우스 1", level:"intermediate", avgGradient:14, maxGradient:18, length:1100 },
+    { id:"zeus-2", name:"제우스 2", level:"intermediate", avgGradient:16, maxGradient:20, length:1200 },
+    { id:"zeus-3", name:"제우스 3", level:"advanced", avgGradient:19, maxGradient:24, length:1300 },
+    { id:"hera", name:"헤라", level:"advanced", avgGradient:22, maxGradient:27, length:900 },
+    { id:"athena-1", name:"아테나 1", level:"intermediate-advanced", avgGradient:17, maxGradient:21, length:1100 },
+    { id:"athena-2", name:"아테나 2", level:"advanced", avgGradient:20, maxGradient:25, length:1000 },
+    { id:"athena-3", name:"아테나 3", level:"advanced", avgGradient:22, maxGradient:28, length:900 },
+    { id:"apollo", name:"아폴로", level:"expert", avgGradient:27, maxGradient:32, length:800 },
+  ]},
+  { id:"phoenix", name:"휘닉스 평창", region:"강원 평창", altitude:1050, slopes:[
+    { id:"beginners-ph", name:"비기너스", level:"novice", avgGradient:6, maxGradient:9, length:600 },
+    { id:"hawk", name:"호크", level:"beginner", avgGradient:10, maxGradient:13, length:800 },
+    { id:"duke", name:"듀크", level:"intermediate", avgGradient:14, maxGradient:17, length:1100 },
+    { id:"mighty", name:"마이티", level:"intermediate", avgGradient:16, maxGradient:20, length:1000 },
+    { id:"champion", name:"챔피언", level:"advanced", avgGradient:20, maxGradient:24, length:900 },
+    { id:"expert-ph", name:"익스퍼트", level:"advanced", avgGradient:23, maxGradient:28, length:800 },
+    { id:"solomon", name:"솔로몬", level:"expert", avgGradient:28, maxGradient:35, length:700 },
+  ]},
+  { id:"konjiam", name:"곤지암리조트", region:"경기 광주", altitude:537, slopes:[
+    { id:"long-easy", name:"비기너 1 (롱이지)", level:"novice", avgGradient:5, maxGradient:8, length:1200 },
+    { id:"beginner-2", name:"비기너 2", level:"beginner", avgGradient:8, maxGradient:11, length:800 },
+    { id:"inter-1", name:"인터미디엇 1", level:"intermediate", avgGradient:12, maxGradient:15, length:900 },
+    { id:"inter-2", name:"인터미디엇 2", level:"intermediate", avgGradient:15, maxGradient:19, length:800 },
+    { id:"challenge", name:"어드밴스드 1 (챌린지)", level:"advanced", avgGradient:22, maxGradient:28, length:700 },
+    { id:"advanced-2", name:"어드밴스드 2", level:"advanced", avgGradient:25, maxGradient:30, length:600 },
+    { id:"konjiam-expert", name:"익스퍼트", level:"expert", avgGradient:28, maxGradient:35, length:500 },
+  ]},
+  { id:"muju", name:"무주덕유산", region:"전북 무주", altitude:1614, slopes:[
+    { id:"silkroad", name:"실크로드(최장)", level:"beginner", avgGradient:6, maxGradient:10, length:6100 },
+    { id:"manseon", name:"만선", level:"beginner", avgGradient:9, maxGradient:12, length:1400 },
+    { id:"minuet", name:"미뉴엣", level:"intermediate", avgGradient:13, maxGradient:16, length:1200 },
+    { id:"polka", name:"폴카", level:"intermediate", avgGradient:16, maxGradient:19, length:1100 },
+    { id:"mozart", name:"모차르트", level:"intermediate", avgGradient:17, maxGradient:21, length:1000 },
+    { id:"beethoven", name:"베토벤", level:"advanced", avgGradient:20, maxGradient:25, length:900 },
+    { id:"raiders", name:"레이더스", level:"advanced", avgGradient:22, maxGradient:28, length:800 },
+    { id:"carnival", name:"카니발", level:"expert", avgGradient:28, maxGradient:35, length:700 },
+  ]},
+  { id:"elysian", name:"엘리시안 강촌", region:"강원 춘천", altitude:700, slopes:[
+    { id:"family-el", name:"패밀리", level:"novice", avgGradient:6, maxGradient:9, length:500 },
+    { id:"color-blue", name:"컬러 블루", level:"beginner", avgGradient:9, maxGradient:12, length:700 },
+    { id:"color-green", name:"컬러 그린", level:"intermediate", avgGradient:13, maxGradient:17, length:800 },
+    { id:"pegasus", name:"페가수스", level:"intermediate", avgGradient:16, maxGradient:20, length:900 },
+    { id:"unicorn", name:"유니콘", level:"advanced", avgGradient:22, maxGradient:27, length:800 },
+    { id:"diamond-el", name:"다이아몬드", level:"expert", avgGradient:28, maxGradient:35, length:600 },
+  ]},
+  { id:"jisan", name:"지산 포레스트", region:"경기 이천", altitude:401, slopes:[
+    { id:"green-ji", name:"그린", level:"novice", avgGradient:5, maxGradient:8, length:600 },
+    { id:"blue-1", name:"블루 1", level:"beginner", avgGradient:9, maxGradient:13, length:700 },
+    { id:"blue-2", name:"블루 2", level:"intermediate", avgGradient:13, maxGradient:17, length:800 },
+    { id:"red-1", name:"레드 1", level:"intermediate", avgGradient:17, maxGradient:21, length:700 },
+    { id:"red-2", name:"레드 2", level:"advanced", avgGradient:22, maxGradient:27, length:600 },
+    { id:"black-ji", name:"블랙", level:"expert", avgGradient:28, maxGradient:35, length:500 },
+  ]},
+  { id:"oakvalley", name:"오크밸리", region:"강원 원주", altitude:580, slopes:[
+    { id:"oak-family", name:"패밀리", level:"novice", avgGradient:5, maxGradient:8, length:500 },
+    { id:"oak-green", name:"그린", level:"beginner", avgGradient:9, maxGradient:12, length:700 },
+    { id:"oak-blue", name:"블루", level:"intermediate", avgGradient:14, maxGradient:18, length:900 },
+    { id:"oak-silver", name:"실버", level:"intermediate", avgGradient:17, maxGradient:21, length:800 },
+    { id:"oak-gold", name:"골드", level:"advanced", avgGradient:22, maxGradient:27, length:700 },
+    { id:"oak-diamond", name:"다이아몬드", level:"expert", avgGradient:28, maxGradient:35, length:600 },
+  ]},
+  { id:"alpensia", name:"알펜시아", region:"강원 평창", altitude:1100, slopes:[
+    { id:"alp-yellow", name:"옐로우", level:"novice", avgGradient:6, maxGradient:9, length:600 },
+    { id:"alp-green", name:"그린", level:"beginner", avgGradient:10, maxGradient:13, length:800 },
+    { id:"alp-blue", name:"블루", level:"intermediate", avgGradient:14, maxGradient:18, length:1000 },
+    { id:"alp-red", name:"레드", level:"advanced", avgGradient:20, maxGradient:26, length:900 },
+    { id:"alp-black", name:"블랙(올림픽 코스)", level:"expert", avgGradient:28, maxGradient:35, length:700 },
+  ]},
+  { id:"custom", name:"기타 / 직접 입력", region:"", isCustom:true, slopes:[] },
+];
+
+const LEVEL_LABELS = {
+  novice: { label:"입문", color:"#a3e635", emoji:"🟢" },
+  beginner: { label:"초급", color:"#22c55e", emoji:"🟢" },
+  "beginner-intermediate": { label:"초중급", color:"#0ea5e9", emoji:"🔵" },
+  intermediate: { label:"중급", color:"#3b82f6", emoji:"🔵" },
+  "intermediate-advanced": { label:"중상급", color:"#f59e0b", emoji:"🟡" },
+  advanced: { label:"상급", color:"#ef4444", emoji:"🔴" },
+  expert: { label:"최상급", color:"#1f2937", emoji:"⚫" }
+};
+
+const TIME_OF_DAY_OPTIONS = [
+  { id:"early-morning", label:"🌅 오픈 직후", hours:"08:30~10:00", defaultCondition:"fresh-groomed" },
+  { id:"morning", label:"☀️ 오전", hours:"10:00~12:00", defaultCondition:"groomed" },
+  { id:"afternoon", label:"🌤️ 오후 (마모 시작)", hours:"12:00~16:00", defaultCondition:"worn" },
+  { id:"evening", label:"🌆 야간 오픈 직후", hours:"18:30~20:00", defaultCondition:"groomed" },
+  { id:"late-night", label:"🌙 심야", hours:"20:00~새벽", defaultCondition:"hardpack" },
+];
+
+const SNOW_CONDITION_OPTIONS = [
+  { id:"fresh-groomed", label:"🆕 정설 직후 (부드러움)", desc:"에지 잘 박힘, 카빙 최적", friction:0.18 },
+  { id:"groomed", label:"✅ 양호 (일반 정설)", desc:"평균적인 컨디션", friction:0.15 },
+  { id:"worn", label:"⚠️ 마모됨", desc:"눈 헐겁고 범프 형성", friction:0.13 },
+  { id:"hardpack", label:"🧊 하드팩 (단단함)", desc:"에지 그립 약함, 주의", friction:0.10 },
+  { id:"icy", label:"🥶 아이스 (얼음)", desc:"미끄럼 위험, 상급자 권장", friction:0.05 },
+  { id:"powder", label:"❄️ 파우더 (자연설)", desc:"한국에서는 드문 상황", friction:0.20 },
+  { id:"slush", label:"🌊 슬러시 (봄, 무거움)", desc:"저항 큼, 체력 소모", friction:0.22 },
+];
+
+/* 슬로프 컨텍스트를 AI 프롬프트용 텍스트로 변환 (v0.62-5) */
+function buildSlopeContextPrompt(slopeData) {
+  if (!slopeData || !slopeData.resortId) return "";
+  const resort = KOREAN_RESORTS.find(r => r.id === slopeData.resortId);
+  if (!resort) return "";
+
+  let s;
+  if (resort.isCustom) {
+    if (!slopeData.customSlope?.name) return "";
+    s = {
+      resortName: "직접 입력",
+      slopeName: slopeData.customSlope.name,
+      slopeLevel: LEVEL_LABELS[slopeData.customSlope.level]?.label || "",
+      avgGradient: slopeData.customSlope.avgGradient,
+    };
+  } else {
+    const slope = resort.slopes.find(sl => sl.id === slopeData.slopeId);
+    if (!slope) return "";
+    s = {
+      resortName: resort.name,
+      region: resort.region,
+      altitude: resort.altitude,
+      slopeName: slope.name,
+      slopeLevel: LEVEL_LABELS[slope.level]?.label || "",
+      avgGradient: slope.avgGradient,
+      maxGradient: slope.maxGradient,
+      length: slope.length,
+    };
+  }
+  const tod = TIME_OF_DAY_OPTIONS.find(t => t.id === slopeData.timeOfDayId);
+  const cond = SNOW_CONDITION_OPTIONS.find(c => c.id === slopeData.conditionId);
+
+  let ctx = "\n\n[라이딩 환경 정보 — 분석 시 반드시 고려]\n";
+  ctx += `- 스키장: ${s.resortName}`;
+  if (s.region) ctx += ` (${s.region})`;
+  if (s.altitude) ctx += `, 정상 표고 ${s.altitude}m`;
+  ctx += `\n- 슬로프: ${s.slopeName} (${s.slopeLevel})\n`;
+  ctx += `- 평균 경사도: ${s.avgGradient}°`;
+  if (s.maxGradient) ctx += ` (최대 ${s.maxGradient}°)`;
+  ctx += `\n`;
+  if (s.length) ctx += `- 슬로프 길이: ${s.length}m\n`;
+  if (tod) ctx += `- 시간대: ${tod.label} (${tod.hours})\n`;
+  if (cond) ctx += `- 설질: ${cond.label} — ${cond.desc}\n`;
+  ctx += `\n[고려사항]\n`;
+  ctx += `- 경사가 가파를수록 더 깊은 무릎 굽힘과 낮은 중심이 필요합니다.\n`;
+  ctx += `- 설질이 단단할수록 에지각을 더 세워야 그립을 확보할 수 있습니다.\n`;
+  ctx += `- 라이더가 선택한 슬로프(${s.slopeLevel})의 난이도를 고려해 피드백 수위를 조정해주세요.\n`;
+  return ctx;
+}
+
 /* ── 카카오 애드핏 배너 컴포넌트 ─────────────────────────────── */
 function AdFitBanner({ adUnit }) {
   const ref = useRef(null);
@@ -34,7 +212,7 @@ function AdFitBanner({ adUnit }) {
     </div>
   );
 }
-const VERSION = "ver 0.62-4";
+const VERSION = "ver 0.62-5";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -661,9 +839,9 @@ async function deleteHistory(id) {
   } catch(e) { console.warn("deleteHistory failed:", e); }
 }
 
-const STEPS=["종목 선택","레벨 선택","영상 추가","분석","피사체 선택","피드백"];
+const STEPS=["종목 선택","레벨 선택","슬로프 정보","영상 추가","분석","피사체 선택","피드백"];
 function StepBar({current}){
-  const idx={sport:0,level:1,upload:2,loading:3,picking:4,done:5,error:0,history:0}[current]??0;
+  const idx={sport:0,level:1,slope:2,upload:3,loading:4,queue:4,picking:5,done:6,error:0,history:0}[current]??0;
   return(<div style={{display:"flex",alignItems:"flex-start",marginBottom:28}}>
     {STEPS.map((s,i)=>(
       <div key={i} style={{display:"flex",alignItems:"center",flex:i<STEPS.length-1?1:"none"}}>
@@ -933,6 +1111,7 @@ export default function App(){
   const [sport,setSport]=useState("ski");
   const [level,setLevel]=useState(""); // "lv1"|"lv2"|"lv3"|"demon"|"unknown"
   const [stance,setStance]=useState("regular"); // "regular"|"goofy" (보드 전용)
+  const [slopeData,setSlopeData]=useState(null); // v0.62-5 슬로프 정보 {resortId, slopeId, timeOfDayId, conditionId, customSlope?}
   const [focusSkill,setFocusSkill]=useState("전체"); // 집중 분석 기술
   const [subSkill,setSubSkill]=useState(""); // 롱/미들/숏 
   const [file,setFile]=useState(null);
@@ -1147,7 +1326,7 @@ export default function App(){
       }
       const maxIdx = Math.max(frames.length-1, 0);
       msgContent.push({type:"text",text:
-        "당신은 KSIA(대한스키지도자연맹) 기준의 전문 "+sl+" 코치입니다.\n"+termGuide+"\n"+levelGuide+(focusGuide?"\n"+focusGuide:"")+"\n\n[코칭 언어 규칙] 각도 수치 언급 금지. 슬로프 옆에서 직접 코칭하듯 자연스럽게. 잘된 점은 구체적 칭찬, 개선점은 방법 제시.\n위 후보 장면 중 라이더가 잘 보이는 4개를 선택하세요.\n\n"+
+        "당신은 KSIA(대한스키지도자연맹) 기준의 전문 "+sl+" 코치입니다.\n"+termGuide+"\n"+levelGuide+(focusGuide?"\n"+focusGuide:"")+buildSlopeContextPrompt(slopeData)+"\n\n[코칭 언어 규칙] 각도 수치 언급 금지. 슬로프 옆에서 직접 코칭하듯 자연스럽게. 잘된 점은 구체적 칭찬, 개선점은 방법 제시.\n위 후보 장면 중 라이더가 잘 보이는 4개를 선택하세요.\n\n"+
         "[점수 산출 방식 — 반드시 준수]\n"+
         "아래 체크리스트 항목별로 1~10점을 먼저 부여한 뒤, 가중 평균으로 최종 3개 점수를 계산하세요.\n\n"+
         "【자세 점수 체크리스트】\n"+
@@ -1399,7 +1578,7 @@ export default function App(){
             </div>
           </div>
           {(()=>{
-            const prevMap={level:"sport",upload:"level",loading:"upload",queue:"upload",picking:"upload",done:"upload",error:"upload",history:"sport"};
+            const prevMap={level:"sport",slope:"level",upload:"slope",loading:"upload",queue:"upload",picking:"upload",done:"upload",error:"upload",history:"sport"};
             const prev=prevMap[phase];
             return prev?(
               <button onClick={()=>setPhase(prev)} style={{padding:"6px 12px",borderRadius:8,border:"0.5px solid rgba(0,0,0,0.12)",background:"#fff",color:"#64748b",fontSize:12,cursor:"pointer",flexShrink:0}}>
@@ -1787,12 +1966,147 @@ export default function App(){
                 </div>
               </div>
             )}
-            <button onClick={()=>{if(level)setPhase("upload");}} disabled={!level}
+            <button onClick={()=>{if(level)setPhase("slope");}} disabled={!level}
               style={{width:"100%",padding:14,borderRadius:10,border:"none",background:level?"#0f172a":"#e2e8f0",color:level?"#fff":"#94a3b8",fontSize:15,fontWeight:600,cursor:level?"pointer":"not-allowed"}}>
               다음 →
             </button>
           </div>
         )}
+
+        {/* STEP 1.5: SLOPE INFO (v0.62-5 신규) */}
+        {phase==="slope"&&(<div style={{animation:"fadeUp 0.3s ease"}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+            <span style={{fontSize:22}}>📍</span>
+            <span style={{fontSize:15,fontWeight:600,color:sport==="ski"?"#1d4ed8":"#6d28d9"}}>라이딩 환경 정보</span>
+          </div>
+          <div style={{fontSize:13,color:"#64748b",marginBottom:18}}>
+            슬로프 경사도와 설질을 알려주시면 분석 정확도가 올라갑니다. (선택 사항 — 건너뛸 수 있어요)
+          </div>
+
+          {/* 1) 스키장 선택 */}
+          <div style={{marginBottom:14}}>
+            <div style={{fontSize:13,fontWeight:500,color:"#0f172a",marginBottom:6}}>스키장</div>
+            <select
+              value={slopeData?.resortId||""}
+              onChange={e=>setSlopeData({resortId:e.target.value, slopeId:"", timeOfDayId:slopeData?.timeOfDayId||"morning", conditionId:"", customSlope:{name:"",avgGradient:15,level:"intermediate"}})}
+              style={{width:"100%",padding:"12px 14px",borderRadius:10,border:"1.5px solid #cbd5e1",background:"#fff",fontSize:14,color:"#0f172a",cursor:"pointer"}}>
+              <option value="">스키장을 선택하세요</option>
+              {KOREAN_RESORTS.filter(r=>!r.isCustom).map(r=>(
+                <option key={r.id} value={r.id}>{r.name} · {r.region}</option>
+              ))}
+              <option value="custom">─ 기타 / 직접 입력 ─</option>
+            </select>
+          </div>
+
+          {/* 2) 슬로프 선택 (일반 모드) */}
+          {slopeData?.resortId && !KOREAN_RESORTS.find(r=>r.id===slopeData.resortId)?.isCustom && (
+            <div style={{marginBottom:14}}>
+              <div style={{fontSize:13,fontWeight:500,color:"#0f172a",marginBottom:6}}>슬로프</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+                {KOREAN_RESORTS.find(r=>r.id===slopeData.resortId).slopes.map(s=>{
+                  const lvl=LEVEL_LABELS[s.level];
+                  const sel=s.id===slopeData.slopeId;
+                  return(
+                    <button key={s.id} onClick={()=>setSlopeData({...slopeData,slopeId:s.id})}
+                      style={{padding:"10px 10px",borderRadius:10,border:sel?"2px solid #2563eb":"1.5px solid #cbd5e1",background:sel?"#dbeafe":"#fff",textAlign:"left",cursor:"pointer"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:3}}>
+                        <span style={{fontSize:10}}>{lvl?.emoji}</span>
+                        <span style={{fontSize:10,fontWeight:600,color:lvl?.color}}>{lvl?.label}</span>
+                      </div>
+                      <div style={{fontSize:13,fontWeight:600,color:"#0f172a",lineHeight:1.2}}>{s.name}</div>
+                      <div style={{fontSize:10,color:"#64748b",marginTop:2}}>평균 {s.avgGradient}° · {s.length}m</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* 2-b) 직접 입력 모드 */}
+          {slopeData?.resortId && KOREAN_RESORTS.find(r=>r.id===slopeData.resortId)?.isCustom && (
+            <div style={{marginBottom:14,padding:"14px",background:"#f8fafc",borderRadius:10,border:"0.5px solid rgba(0,0,0,0.08)"}}>
+              <div style={{marginBottom:10}}>
+                <div style={{fontSize:11,fontWeight:500,color:"#64748b",marginBottom:4}}>슬로프 이름</div>
+                <input type="text" value={slopeData.customSlope?.name||""}
+                  onChange={e=>setSlopeData({...slopeData,customSlope:{...slopeData.customSlope,name:e.target.value}})}
+                  placeholder="예: 니세코 그랑 히라후 알파인 코스"
+                  style={{width:"100%",padding:"9px 12px",borderRadius:8,border:"1.5px solid #cbd5e1",fontSize:13}}/>
+              </div>
+              <div style={{marginBottom:10}}>
+                <div style={{fontSize:11,fontWeight:500,color:"#64748b",marginBottom:4}}>평균 경사도: {slopeData.customSlope?.avgGradient||15}°</div>
+                <input type="range" min="3" max="40" value={slopeData.customSlope?.avgGradient||15}
+                  onChange={e=>setSlopeData({...slopeData,customSlope:{...slopeData.customSlope,avgGradient:parseInt(e.target.value)}})}
+                  style={{width:"100%"}}/>
+                <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"#94a3b8",marginTop:2}}>
+                  <span>3°</span><span>15° 중급</span><span>25° 상급</span><span>40°</span>
+                </div>
+              </div>
+              <div>
+                <div style={{fontSize:11,fontWeight:500,color:"#64748b",marginBottom:4}}>난이도</div>
+                <select value={slopeData.customSlope?.level||"intermediate"}
+                  onChange={e=>setSlopeData({...slopeData,customSlope:{...slopeData.customSlope,level:e.target.value}})}
+                  style={{width:"100%",padding:"9px 12px",borderRadius:8,border:"1.5px solid #cbd5e1",fontSize:13,background:"#fff"}}>
+                  {Object.entries(LEVEL_LABELS).map(([key,val])=>(
+                    <option key={key} value={key}>{val.emoji} {val.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+
+          {/* 3) 시간대 */}
+          {slopeData?.resortId && (slopeData.slopeId || KOREAN_RESORTS.find(r=>r.id===slopeData.resortId)?.isCustom) && (
+            <div style={{marginBottom:14}}>
+              <div style={{fontSize:13,fontWeight:500,color:"#0f172a",marginBottom:6}}>라이딩 시간대</div>
+              <select
+                value={slopeData?.timeOfDayId||"morning"}
+                onChange={e=>{
+                  const tod=TIME_OF_DAY_OPTIONS.find(t=>t.id===e.target.value);
+                  setSlopeData({...slopeData,timeOfDayId:e.target.value,conditionId:slopeData.conditionId||tod?.defaultCondition||"groomed"});
+                }}
+                style={{width:"100%",padding:"12px 14px",borderRadius:10,border:"1.5px solid #cbd5e1",background:"#fff",fontSize:14,cursor:"pointer"}}>
+                {TIME_OF_DAY_OPTIONS.map(t=>(
+                  <option key={t.id} value={t.id}>{t.label} · {t.hours}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* 4) 설질 */}
+          {slopeData?.timeOfDayId && (
+            <div style={{marginBottom:18}}>
+              <div style={{fontSize:13,fontWeight:500,color:"#0f172a",marginBottom:6}}>설질 상태</div>
+              <div style={{display:"flex",flexDirection:"column",gap:5}}>
+                {SNOW_CONDITION_OPTIONS.map(c=>{
+                  const sel=c.id===slopeData.conditionId;
+                  return(
+                    <button key={c.id} onClick={()=>setSlopeData({...slopeData,conditionId:c.id})}
+                      style={{padding:"10px 12px",borderRadius:9,border:sel?"2px solid #2563eb":"1.5px solid #cbd5e1",background:sel?"#dbeafe":"#fff",textAlign:"left",cursor:"pointer"}}>
+                      <div style={{fontSize:13,fontWeight:600,color:"#0f172a"}}>{c.label}</div>
+                      <div style={{fontSize:11,color:"#64748b",marginTop:1}}>{c.desc}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* 액션 버튼 */}
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={()=>{setSlopeData(null);setPhase("upload");}}
+              style={{flex:1,padding:14,borderRadius:10,border:"1.5px solid #cbd5e1",background:"#fff",color:"#64748b",fontSize:14,fontWeight:500,cursor:"pointer"}}>
+              건너뛰기
+            </button>
+            <button onClick={()=>setPhase("upload")}
+              disabled={!slopeData?.resortId || !slopeData?.conditionId || (!slopeData?.slopeId && !slopeData?.customSlope?.name)}
+              style={{flex:2,padding:14,borderRadius:10,border:"none",
+                background:(slopeData?.resortId && slopeData?.conditionId && (slopeData?.slopeId || slopeData?.customSlope?.name))?"#0f172a":"#e2e8f0",
+                color:(slopeData?.resortId && slopeData?.conditionId && (slopeData?.slopeId || slopeData?.customSlope?.name))?"#fff":"#94a3b8",
+                fontSize:15,fontWeight:600,cursor:(slopeData?.resortId && slopeData?.conditionId && (slopeData?.slopeId || slopeData?.customSlope?.name))?"pointer":"not-allowed"}}>
+              다음 →
+            </button>
+          </div>
+        </div>)}
 
         {/* STEP 2: UPLOAD */}
         {phase==="upload"&&(<div style={{animation:"fadeUp 0.3s ease"}}>
@@ -2420,6 +2734,18 @@ export default function App(){
 
         {/* STEP 5: DONE */}
         {phase==="done"&&result&&(<div style={{animation:"fadeUp 0.4s ease"}}>
+          {/* 슬로프 환경 정보 표시 (v0.62-5) */}
+          {slopeData?.resortId && (slopeData.slopeId || slopeData.customSlope?.name) && (()=>{
+            const r=KOREAN_RESORTS.find(x=>x.id===slopeData.resortId);
+            const sl=r?.isCustom?slopeData.customSlope:r?.slopes.find(x=>x.id===slopeData.slopeId);
+            const cond=SNOW_CONDITION_OPTIONS.find(c=>c.id===slopeData.conditionId);
+            return(
+              <div style={{background:"#f8fafc",border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:10,padding:"10px 14px",marginBottom:14,display:"flex",alignItems:"center",gap:8,fontSize:12,color:"#64748b"}}>
+                <span style={{fontSize:14}}>📍</span>
+                <span><strong style={{color:"#0f172a"}}>{r?.isCustom?"직접 입력":r?.name}</strong> · {sl?.name||sl?.name} ({sl?.avgGradient}°) · {cond?.label||""}</span>
+              </div>
+            );
+          })()}
           {(()=>{
             const levelOrder=["lv1","lv2","lv3","demon"];
             const levelNames={"lv1":"레벨1","lv2":"레벨2","lv3":"레벨3","demon":"데몬스트레이터"};
