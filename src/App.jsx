@@ -2,192 +2,6 @@ import { useState, useRef, useEffect, useCallback } from "react";
 
 const MODEL = "claude-sonnet-4-20250514";
 
-/* ── 기술별 세부 평가 항목 데이터 (v0.63 신규) ──────────── */
-/* 각 기술마다 7개 세부 항목. label = 사용자 표시명, term = 괄호 안 전문 용어(없으면 빈 문자열) */
-const SKILL_BREAKDOWN_ITEMS = {
-  // ── 스키 ──────────────────────────────────────────
-  "베이직턴 롱턴": [
-    { label:"양 스키 평행 유지", term:"" },
-    { label:"발목·무릎·골반 각도", term:"앵귤레이션" },
-    { label:"체중 앞·뒤 위치", term:"전·중·후경" },
-    { label:"바깥발 체중 이동 타이밍", term:"" },
-    { label:"무릎·발목 굽힘", term:"충격 흡수" },
-    { label:"상체 안정성", term:"진행 방향 향함" },
-    { label:"턴 호의 매끄러움", term:"" },
-  ],
-  "베이직턴 미들턴": [
-    { label:"양 스키 평행 유지", term:"패러렐" },
-    { label:"발목·무릎·골반 각도", term:"앵귤레이션" },
-    { label:"턴 반경 일정성", term:"" },
-    { label:"체중 이동 타이밍", term:"" },
-    { label:"상체·하체 분리", term:"" },
-    { label:"골반·중심 안정", term:"" },
-    { label:"리듬 일관성", term:"" },
-  ],
-  "베이직턴 숏턴": [
-    { label:"양 스키 평행 유지", term:"" },
-    { label:"폴 플랜팅 타이밍", term:"" },
-    { label:"무릎 굴곡", term:"충격 흡수" },
-    { label:"상체 고정", term:"흔들림 억제" },
-    { label:"리듬 일관성", term:"" },
-    { label:"체중 앞·뒤 위치", term:"전·중·후경" },
-    { label:"턴 시작·끝 매끄러움", term:"" },
-  ],
-  "카빙턴 롱턴": [
-    { label:"발목·무릎·골반 각도", term:"앵귤레이션" },
-    { label:"설면과 스키 각도", term:"인클리네이션" },
-    { label:"바깥발 체중 집중", term:"외경 압력" },
-    { label:"체중 앞·뒤 위치", term:"전·중·후경" },
-    { label:"압력 들어가는 시점", term:"가압 타이밍" },
-    { label:"골반·중심 안정", term:"" },
-    { label:"상체·하체 분리", term:"" },
-  ],
-  "카빙턴 미들턴": [
-    { label:"발목·무릎·골반 각도", term:"앵귤레이션" },
-    { label:"설면과 스키 각도", term:"인클리네이션" },
-    { label:"엣지 전환 타이밍", term:"" },
-    { label:"양 스키 평행 유지", term:"" },
-    { label:"체중 앞·뒤 위치", term:"전·중·후경" },
-    { label:"턴 반경 일정성", term:"" },
-    { label:"상체·하체 분리", term:"" },
-  ],
-  "카빙턴 숏턴": [
-    { label:"빠른 엣지 전환 속도", term:"" },
-    { label:"발목·무릎·골반 각도", term:"앵귤레이션" },
-    { label:"폴 플랜팅 타이밍", term:"턴 시작과 일치" },
-    { label:"상체 선행 억제", term:"" },
-    { label:"무릎 굴곡", term:"충격 흡수" },
-    { label:"리듬 일관성", term:"" },
-    { label:"가압 타이밍", term:"" },
-  ],
-  "다이나믹턴 롱턴": [
-    { label:"플렉션·익스텐션 진폭", term:"압축·신장" },
-    { label:"발목·무릎·골반 각도", term:"앵귤레이션" },
-    { label:"바깥발 압력 강도", term:"" },
-    { label:"상체 선행", term:"다음 턴 방향" },
-    { label:"압력 지속성", term:"턴 전체 일정" },
-    { label:"스키딩 없는 순수 카빙", term:"" },
-    { label:"무릎 전진", term:"발끝 앞으로" },
-  ],
-  "다이나믹턴 미들턴": [
-    { label:"플렉션·익스텐션 타이밍", term:"" },
-    { label:"무릎 전진", term:"" },
-    { label:"엣지 전환·압력 일치", term:"" },
-    { label:"발목·무릎·골반 각도", term:"앵귤레이션" },
-    { label:"가압 타이밍", term:"" },
-    { label:"상체 안정성", term:"" },
-    { label:"리듬 일관성", term:"" },
-  ],
-  "다이나믹턴 숏턴": [
-    { label:"빠른 플렉션·익스텐션", term:"" },
-    { label:"폴 플랜팅 정확도", term:"" },
-    { label:"리듬 규칙성", term:"" },
-    { label:"상체 흔들림 억제", term:"" },
-    { label:"무릎 굴곡", term:"" },
-    { label:"가압 타이밍", term:"" },
-    { label:"발목·무릎·골반 각도", term:"앵귤레이션" },
-  ],
-  "모글": [
-    { label:"혹 정상 충격 흡수", term:"압축" },
-    { label:"혹 사이 신장", term:"설면 접촉" },
-    { label:"상체 수직 안정성", term:"" },
-    { label:"폴 플랜팅 리듬", term:"" },
-    { label:"속도 조절", term:"라인 컨트롤" },
-    { label:"시선 처리", term:"두세 혹 앞" },
-    { label:"무릎·발목 굴곡 깊이", term:"" },
-  ],
-  "종합활강": [
-    { label:"턴 종류 전환 부드러움", term:"롱·미들·숏" },
-    { label:"각 턴 크기 완성도", term:"" },
-    { label:"속도 적응성", term:"사면 변화 대응" },
-    { label:"전체 리듬 일관성", term:"" },
-    { label:"상체·하체 분리", term:"" },
-    { label:"발목·무릎·골반 각도", term:"앵귤레이션" },
-    { label:"체력 분배", term:"후반 흐트러짐 없음" },
-  ],
-  // ── 스노보드 ──────────────────────────────────────
-  "카빙턴 롱턴(보드)": [
-    { label:"발목·무릎·골반 각도", term:"앵귤레이션" },
-    { label:"설면과 보드 각도", term:"인클리네이션" },
-    { label:"양발 압력 균형", term:"전·후" },
-    { label:"엣지 전환 타이밍", term:"" },
-    { label:"상체 로테이션 절제", term:"하체 주도" },
-    { label:"리듬 일관성", term:"" },
-    { label:"상체·하체 분리", term:"" },
-  ],
-  "카빙턴 미들턴(보드)": [
-    { label:"엣지 전환 타이밍", term:"" },
-    { label:"발목·무릎·골반 각도", term:"앵귤레이션" },
-    { label:"양발 압력 균형", term:"전·후" },
-    { label:"상체 로테이션 절제", term:"" },
-    { label:"리듬 일관성", term:"" },
-    { label:"턴 반경 일정성", term:"" },
-    { label:"설면과 보드 각도", term:"인클리네이션" },
-  ],
-  "카빙턴 숏턴(보드)": [
-    { label:"빠른 힐·토 엣지 전환", term:"" },
-    { label:"상체 고정", term:"흔들림 억제" },
-    { label:"무릎 굴곡", term:"충격 흡수" },
-    { label:"발목·무릎·골반 각도", term:"앵귤레이션" },
-    { label:"리듬 빠르고 일정", term:"" },
-    { label:"양발 압력 균형", term:"" },
-    { label:"가압 타이밍", term:"" },
-  ],
-  "슬라이딩턴 롱턴": [
-    { label:"앞발 체중 비율", term:"약 60%" },
-    { label:"상체 로테이션 리드", term:"" },
-    { label:"힐·토 전환 부드러움", term:"" },
-    { label:"테일 스키딩 호 형성", term:"" },
-    { label:"상체 안정성", term:"" },
-    { label:"리듬 일관성", term:"" },
-    { label:"발목·무릎·골반 각도", term:"앵귤레이션" },
-  ],
-  "슬라이딩턴 미들턴": [
-    { label:"턴 타이밍·리듬 일관성", term:"" },
-    { label:"상체 로테이션 적절성", term:"과다 억제" },
-    { label:"체중 이동 부드러움", term:"" },
-    { label:"힐·토 전환 부드러움", term:"" },
-    { label:"발목·무릎·골반 각도", term:"앵귤레이션" },
-    { label:"앞발 체중 비율", term:"" },
-    { label:"상체 안정성", term:"" },
-  ],
-  "슬라이딩턴 숏턴": [
-    { label:"빠른 힐·토 전환", term:"" },
-    { label:"상체 흔들림 억제", term:"" },
-    { label:"리듬 규칙성", term:"" },
-    { label:"뒷발 쏠림 방지", term:"" },
-    { label:"무릎 굴곡", term:"" },
-    { label:"발목·무릎·골반 각도", term:"앵귤레이션" },
-    { label:"앞발 체중 비율", term:"" },
-  ],
-  "모글(보드)": [
-    { label:"혹 정상 흡수", term:"무릎·고관절 굽힘" },
-    { label:"상체 수직 유지", term:"" },
-    { label:"보드 설면 접촉 유지", term:"떠오름 없음" },
-    { label:"속도 조절", term:"" },
-    { label:"라인 선택", term:"혹과 혹 사이" },
-    { label:"시선 처리", term:"" },
-    { label:"양발 압력 균형", term:"" },
-  ],
-  "종합활강(보드)": [
-    { label:"카빙·슬라이딩 전환 부드러움", term:"" },
-    { label:"힐·토 사이드 균형", term:"" },
-    { label:"속도 컨트롤", term:"" },
-    { label:"전체 리듬 일관성", term:"" },
-    { label:"발목·무릎·골반 각도", term:"앵귤레이션" },
-    { label:"상체 안정성", term:"" },
-    { label:"양발 압력 균형", term:"" },
-  ],
-};
-
-/* 레벨별 평가 기준 (v0.63 신규) */
-const LEVEL_RUBRIC = {
-  1: "[레벨 1 기준] '시도'한 항목은 3점, '기본기 완성' 수준이면 4-5점. 칭찬 위주로, 동기부여 톤으로 작성.",
-  2: "[레벨 2 기준] '안정적 수행'은 4-5점, '기본 가능' 정도면 3점. 균형 잡힌 코칭 톤.",
-  3: "[레벨 3 기준] '정확한 수행'이 4-5점, '안정' 정도는 3점. 디테일 지적 가능.",
-  4: "[레벨 4 기준] '프로 수준 정확도'가 4-5점, '정확' 정도는 3점. 미세 조정 코칭 가능.",
-};
-
 /* ── 카카오 애드핏 배너 컴포넌트 ─────────────────────────────── */
 function AdFitBanner({ adUnit }) {
   const ref = useRef(null);
@@ -220,7 +34,7 @@ function AdFitBanner({ adUnit }) {
     </div>
   );
 }
-const VERSION = "ver 0.63";
+const VERSION = "ver 0.62-4";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -503,18 +317,6 @@ async function captureClip(vid, centerTime, subX, subY, fps=20) {
   return frames;
 }
 
-/* ── STAR RATING (v0.63) ─────────────────────────────────── */
-function StarRating({ value, size=11 }){
-  const v = Math.max(0, Math.min(5, parseFloat(value)||0));
-  const pct = (v / 5) * 100;
-  return (
-    <div style={{position:"relative",fontSize:size,lineHeight:1,display:"inline-block"}}>
-      <span style={{color:"#e2e8f0",letterSpacing:1}}>★★★★★</span>
-      <span style={{position:"absolute",top:0,left:0,color:"#f59e0b",letterSpacing:1,overflow:"hidden",whiteSpace:"nowrap",width:pct+"%"}}>★★★★★</span>
-    </div>
-  );
-}
-
 /* ── ANIMATED CANVAS COMPONENT ───────────────────────────── */
 function AnimatedClip({ frames, label }) {
   const ref = useRef(null);
@@ -539,10 +341,6 @@ function AnimatedClip({ frames, label }) {
   }, [frames]);
 
   if (!frames || frames.length === 0) return null;
-  if (!label) {
-    // v0.63: 컴팩트 모드 (세부 평가 인라인 펼침용)
-    return <canvas ref={ref} width={400} height={400} style={{ width:"100%", height:"100%", display:"block" }}/>;
-  }
   return (
     <div style={{ marginTop:10 }}>
       <div style={{ fontSize:11, color:"#94a3b8", marginBottom:4, display:"flex", alignItems:"center", gap:6 }}>
@@ -1173,7 +971,6 @@ export default function App(){
   const [rawData,setRawData]=useState(null);
   const [result,setResult]=useState(null);
   const [tab,setTab]=useState("good");
-  const [expandedBreakdown,setExpandedBreakdown]=useState(null); // v0.63: 펼쳐진 세부 항목 인덱스
   const [error,setError]=useState("");
   const [apiKey,setApiKey]=useState(()=>localStorage.getItem("rideai_key")||"");
   const [showKeyInput,setShowKeyInput]=useState(false);
@@ -1310,19 +1107,6 @@ export default function App(){
       const focusGuide = fullSkill
         ? "[집중 분석 기술: "+fullSkill+"] "+checkpoint+" 이 체크포인트를 최우선으로 분석하고, 피드백과 팁도 이 기술 위주로 작성하세요. 모션 탐지 모드로 턴 정점 장면이 집중 추출됩니다."
         : "";
-
-      /* ── 세부 평가 항목 가이드 (v0.63 신규) ── */
-      const breakdownItems = SKILL_BREAKDOWN_ITEMS[skKey] || null;
-      const levelNum = ({lv1:1,lv2:2,lv3:3,demon:4})[level] || 2;
-      const breakdownGuide = breakdownItems ? (
-        "\n[세부 평가 항목 — "+fullSkill+" 7개 항목]\n" +
-        breakdownItems.map((it,i)=>`${i+1}. ${it.label}${it.term?" ("+it.term+")":""}`).join("\n") +
-        "\n각 항목을 별점 0.0~5.0 (소수점 첫째자리)로 평가하고, 그 항목이 가장 잘 보이는 frameIndex(0~"+(maxIdx)+")와 한 줄 피드백을 응답하세요. " +
-        "피드백은 반드시 '잘된 점 → 개선점' 순서로 작성. 칭찬으로 시작해 어떻게 더 좋아질 수 있는지 한 줄로 마무리. " +
-        "전문용어는 쉽게 풀어쓰되 괄호 안에 전문용어를 함께 표기. " +
-        (LEVEL_RUBRIC[levelNum] || LEVEL_RUBRIC[2])
-      ) : "";
-
       // KSIA 기반 코칭 기준
       const ksiaRef = isSki ? `
 [KSIA 스키 등급별 핵심 기준 — 대한스키지도자연맹]
@@ -1363,7 +1147,7 @@ export default function App(){
       }
       const maxIdx = Math.max(frames.length-1, 0);
       msgContent.push({type:"text",text:
-        "당신은 KSIA(대한스키지도자연맹) 기준의 전문 "+sl+" 코치입니다.\n"+termGuide+"\n"+levelGuide+(focusGuide?"\n"+focusGuide:"")+(breakdownGuide?"\n"+breakdownGuide:"")+"\n\n[코칭 언어 규칙] 각도 수치 언급 금지. 슬로프 옆에서 직접 코칭하듯 자연스럽게. 잘된 점은 구체적 칭찬, 개선점은 방법 제시.\n위 후보 장면 중 라이더가 잘 보이는 4개를 선택하세요.\n\n"+
+        "당신은 KSIA(대한스키지도자연맹) 기준의 전문 "+sl+" 코치입니다.\n"+termGuide+"\n"+levelGuide+(focusGuide?"\n"+focusGuide:"")+"\n\n[코칭 언어 규칙] 각도 수치 언급 금지. 슬로프 옆에서 직접 코칭하듯 자연스럽게. 잘된 점은 구체적 칭찬, 개선점은 방법 제시.\n위 후보 장면 중 라이더가 잘 보이는 4개를 선택하세요.\n\n"+
         "[점수 산출 방식 — 반드시 준수]\n"+
         "아래 체크리스트 항목별로 1~10점을 먼저 부여한 뒤, 가중 평균으로 최종 3개 점수를 계산하세요.\n\n"+
         "【자세 점수 체크리스트】\n"+
@@ -1394,9 +1178,7 @@ export default function App(){
         '{"frameIndex":9,"type":"warn","title":"제목","desc":"전문용어(설명) 2문장"}'+
         '],'+
         '"feedback":[{"type":"good","tag":"잘된 점","text":"KSIA 기준 잘된 부분 2~3문장","actionSteps":["구체적 동작1","동작2"]},{"type":"warn","tag":"개선 포인트","text":"개선방법 2~3문장","actionSteps":["언제어떻게 구체동작1","구체동작2"]},{"type":"info","tag":"코치 조언","text":"코칭 2~3문장","actionSteps":["구체동작1","구체동작2"]}],'+
-        '"tips":[{"text":"친근한 코칭 말투 — 예: 앞발에 살짝 더 실어볼까요","detail":"구체적으로 어떻게 하는지 2문장"},{"text":"팁2","detail":"구체적 설명"},{"text":"팁3","detail":"구체적 설명"},{"text":"팁4","detail":"구체적 설명"}],'+
-        (breakdownItems?'"breakdown":['+breakdownItems.map((it,i)=>'{"name":"'+it.label+'","term":"'+(it.term||"")+'","score":3.5,"frameIndex":'+(i%maxIdx)+',"feedback":"잘된 점 짧게. 개선점 짧게."}').join(",")+'],':'')+
-        '"estimatedLevel":"lv1또는lv2또는lv3또는demon"}'+
+        '"tips":[{"text":"친근한 코칭 말투 — 예: 앞발에 살짝 더 실어볼까요","detail":"구체적으로 어떻게 하는지 2문장"},{"text":"팁2","detail":"구체적 설명"},{"text":"팁3","detail":"구체적 설명"},{"text":"팁4","detail":"구체적 설명"}],"estimatedLevel":"lv1또는lv2또는lv3또는demon"}'+
         "\n규칙: frameIndex는 0~"+maxIdx+" 중 실제 라이더가 보이는 장면 선택, value 60-95, good 2개+warn 2개, 한국어."+
         " 동일한 영상이라도 분석할 때마다 약간의 차이가 있을 수 있으며, 영상의 실제 라이딩 품질에 따라 점수가 달라져야 합니다. 스노보드 종목일 경우 폴(pole)이 없으므로 폴 관련 언급 절대 금지. tips text는 친근한 코칭 말투로 — 드릴/연습/훈련 같은 딱딱한 용어 금지. [엣지 방향 규칙] 포즈 측정값에 [엣지 방향 추정] 항목이 있으면 이미지 판단보다 우선 적용하세요. 스키 설명: 인엣지(안쪽 날)/아웃엣지(바깥 날) + 어느 발인지 명시 — 예: 오른발 인엣지. 스노보드 설명: 토사이드(발가락 쪽 엣지)/힐사이드(뒤꿈치 쪽 엣지) 사용. 방향 추정 불명확 시 단정 짓지 말고 이미지상으로 보입니다 식으로 표현. estimatedLevel은 영상에서 보이는 실제 실력을 KSIA 기준으로 추정해 lv1/lv2/lv3/demon 중 하나로만 응답하세요."
       });
@@ -1601,7 +1383,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.63 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.62-4 made by GP</div>
           </div>
         </div>
       )}
@@ -1818,20 +1600,9 @@ export default function App(){
           {(()=>{
             const PATCH_NOTES=[
               {
-                ver:"v0.63",
-                date:"2026. 4. 27.",
-                isLatest:true,
-                logs:[
-                  {type:"new",text:"선택한 기술별로 7개 세부 항목 평가를 받아볼 수 있어요"},
-                  {type:"new",text:"각 항목마다 별점과 함께 잘된 점·개선점을 한 줄로 알려드려요"},
-                  {type:"new",text:"항목별 ‘사진·영상 보기’를 누르면 해당 자세의 캡처와 슬로우 영상을 바로 볼 수 있어요"},
-                  {type:"improve",text:"레벨에 맞춰 평가 기준이 자동 조정돼요 — 입문자에겐 너그럽게, 상급자에겐 엄격하게"},
-                ],
-              },
-              {
                 ver:"v0.62",
                 date:"2025. 4. 26.",
-                isLatest:false,
+                isLatest:true,
                 logs:[
                   {type:"new",text:"AI 분석이 맞지 않을 때 피드백을 남길 수 있어요"},
                   {type:"new",text:"피드백 내용을 바탕으로 즉시 재분석을 요청할 수 있어요"},
@@ -2709,79 +2480,6 @@ export default function App(){
             {(result.scores||[]).map((s,i)=><ScoreBar key={i} {...s}/>)}
             <ScoreGuide/>
           </div>
-
-          {/* ── 세부 평가 섹션 (v0.63 신규) ── */}
-          {result.breakdown&&result.breakdown.length>0&&(()=>{
-            const items=result.breakdown;
-            const avg=items.reduce((sum,it)=>sum+(parseFloat(it.score)||0),0)/items.length;
-            const annotated=result.annotated||[];
-            return(
-              <div style={{background:"#fff",border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:12,marginBottom:16,overflow:"hidden"}}>
-                <div style={{background:"#f8fafc",padding:"11px 16px",borderBottom:"0.5px solid rgba(0,0,0,0.08)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <div style={{fontSize:13,fontWeight:600,color:"#0f172a"}}>{focusSkill!=="전체"?fullSkill:"기술"} 세부 평가</div>
-                  <div style={{display:"flex",alignItems:"center",gap:6}}>
-                    <StarRating value={avg}/>
-                    <span style={{fontSize:11,fontWeight:500,color:"#0f172a"}}>평균 {avg.toFixed(1)}</span>
-                  </div>
-                </div>
-                <div style={{padding:"0 16px"}}>
-                  {items.map((it,i)=>{
-                    const isOpen=expandedBreakdown===i;
-                    const score=parseFloat(it.score)||0;
-                    const idx=Math.max(0,Math.min(annotated.length-1,parseInt(it.frameIndex)||0));
-                    const matchedFrame=annotated[idx]||null;
-                    return(
-                      <div key={i} style={{padding:"12px 0",borderBottom:i<items.length-1?"0.5px solid rgba(0,0,0,0.06)":"none"}}>
-                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8,marginBottom:5}}>
-                          <div style={{fontSize:12,fontWeight:500,color:"#0f172a",minWidth:0,flex:1}}>
-                            {it.name}
-                            {it.term&&<span style={{fontWeight:400,color:"#94a3b8",marginLeft:4}}>({it.term})</span>}
-                          </div>
-                          <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
-                            <StarRating value={score}/>
-                            <span style={{fontSize:11,fontWeight:500,color:"#0f172a",minWidth:24,textAlign:"right"}}>{score.toFixed(1)}</span>
-                          </div>
-                        </div>
-                        <div style={{fontSize:11,color:"#64748b",lineHeight:1.6,marginBottom:matchedFrame?9:0}}>{it.feedback||""}</div>
-                        {matchedFrame&&(
-                          <button onClick={()=>setExpandedBreakdown(isOpen?null:i)} style={{
-                            background:isOpen?"#dbeafe":"#f8fafc",
-                            border:isOpen?"none":"0.5px solid rgba(0,0,0,0.1)",
-                            color:isOpen?"#1d4ed8":"#0f172a",
-                            fontSize:11,fontWeight:500,padding:"6px 11px",borderRadius:99,cursor:"pointer",
-                            display:"inline-flex",alignItems:"center",gap:5
-                          }}>
-                            <svg width="11" height="11" viewBox="0 0 12 12"><rect x="1" y="2" width="10" height="8" rx="1" stroke="currentColor" strokeWidth="1" fill="none"/><circle cx="6" cy="6" r="2" stroke="currentColor" strokeWidth="1" fill="none"/></svg>
-                            사진·영상 보기
-                            <svg width="9" height="9" viewBox="0 0 10 10"><path d={isOpen?"M 2 4 L 5 7 L 8 4":"M 2 7 L 5 4 L 8 7"} stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"/></svg>
-                          </button>
-                        )}
-                        {isOpen&&matchedFrame&&(
-                          <div style={{background:"#f8fafc",borderRadius:10,padding:10,marginTop:9}}>
-                            <div style={{display:"flex",gap:8}}>
-                              <div style={{flex:1,minWidth:0}}>
-                                {matchedFrame.canvas
-                                  ? <img src={matchedFrame.canvas.toDataURL?matchedFrame.canvas.toDataURL("image/jpeg",0.9):matchedFrame.canvas} alt="" style={{width:"100%",aspectRatio:"1",objectFit:"cover",borderRadius:8,display:"block",background:"#1a1a1a"}}/>
-                                  : <div style={{width:"100%",aspectRatio:"1",background:"#1a1a1a",borderRadius:8}}/>}
-                                <div style={{fontSize:10,color:"#94a3b8",textAlign:"center",marginTop:5}}>캡처 사진</div>
-                              </div>
-                              <div style={{flex:1,minWidth:0}}>
-                                {matchedFrame.gifFrames&&matchedFrame.gifFrames.length>0
-                                  ? <div style={{borderRadius:8,overflow:"hidden",background:"#1a1a1a",aspectRatio:"1"}}><AnimatedClip frames={matchedFrame.gifFrames} label=""/></div>
-                                  : <div style={{width:"100%",aspectRatio:"1",background:"#1a1a1a",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",color:"#64748b",fontSize:11}}>영상 없음</div>}
-                                <div style={{fontSize:10,color:"#94a3b8",textAlign:"center",marginTop:5}}>슬로우 영상</div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })()}
-
           {/* 광고 배너 — 결과 상단 */}
           <AdFitBanner adUnit="DAN-AeHytcuMcCUFT2Os"/>
           <div style={{marginBottom:16}}>
