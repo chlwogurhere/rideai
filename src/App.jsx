@@ -220,7 +220,7 @@ function AdFitBanner({ adUnit }) {
     </div>
   );
 }
-const VERSION = "ver 0.63-5";
+const VERSION = "ver 0.63-6";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -1606,7 +1606,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.63-5 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.63-6 made by GP</div>
           </div>
         </div>
       )}
@@ -2732,10 +2732,7 @@ export default function App(){
                 </div>
                 <div style={{padding:"0 16px"}}>
                   {items.map((it,i)=>{
-                    const isOpen=expandedBreakdown===i;
                     const score=parseFloat(it.score)||0;
-                    const idx=Math.max(0,Math.min(annotated.length-1,parseInt(it.frameIndex)||0));
-                    const matchedFrame=annotated[idx]||null;
                     return(
                       <div key={i} style={{padding:"12px 0",borderBottom:i<items.length-1?"0.5px solid rgba(0,0,0,0.06)":"none"}}>
                         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8,marginBottom:5}}>
@@ -2748,38 +2745,7 @@ export default function App(){
                             <span style={{fontSize:11,fontWeight:500,color:"#0f172a",minWidth:24,textAlign:"right"}}>{score.toFixed(1)}</span>
                           </div>
                         </div>
-                        <div style={{fontSize:11,color:"#64748b",lineHeight:1.6,marginBottom:matchedFrame?9:0}}>{it.feedback||""}</div>
-                        {matchedFrame&&(
-                          <button onClick={()=>setExpandedBreakdown(isOpen?null:i)} style={{
-                            background:isOpen?"#dbeafe":"#f8fafc",
-                            border:isOpen?"none":"0.5px solid rgba(0,0,0,0.1)",
-                            color:isOpen?"#1d4ed8":"#0f172a",
-                            fontSize:11,fontWeight:500,padding:"6px 11px",borderRadius:99,cursor:"pointer",
-                            display:"inline-flex",alignItems:"center",gap:5
-                          }}>
-                            <svg width="11" height="11" viewBox="0 0 12 12"><rect x="1" y="2" width="10" height="8" rx="1" stroke="currentColor" strokeWidth="1" fill="none"/><circle cx="6" cy="6" r="2" stroke="currentColor" strokeWidth="1" fill="none"/></svg>
-                            사진·영상 보기
-                            <svg width="9" height="9" viewBox="0 0 10 10"><path d={isOpen?"M 2 4 L 5 7 L 8 4":"M 2 7 L 5 4 L 8 7"} stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"/></svg>
-                          </button>
-                        )}
-                        {isOpen&&matchedFrame&&(
-                          <div style={{background:"#f8fafc",borderRadius:10,padding:10,marginTop:9}}>
-                            <div style={{display:"flex",gap:8}}>
-                              <div style={{flex:1,minWidth:0}}>
-                                {matchedFrame.canvas
-                                  ? <img src={matchedFrame.canvas.toDataURL?matchedFrame.canvas.toDataURL("image/jpeg",0.9):matchedFrame.canvas} alt="" style={{width:"100%",aspectRatio:"1",objectFit:"cover",borderRadius:8,display:"block",background:"#1a1a1a"}}/>
-                                  : <div style={{width:"100%",aspectRatio:"1",background:"#1a1a1a",borderRadius:8}}/>}
-                                <div style={{fontSize:10,color:"#94a3b8",textAlign:"center",marginTop:5}}>캡처 사진</div>
-                              </div>
-                              <div style={{flex:1,minWidth:0}}>
-                                {matchedFrame.gifFrames&&matchedFrame.gifFrames.length>0
-                                  ? <div style={{borderRadius:8,overflow:"hidden",background:"#1a1a1a",aspectRatio:"1"}}><AnimatedClip frames={matchedFrame.gifFrames} label=""/></div>
-                                  : <div style={{width:"100%",aspectRatio:"1",background:"#1a1a1a",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",color:"#64748b",fontSize:11}}>영상 없음</div>}
-                                <div style={{fontSize:10,color:"#94a3b8",textAlign:"center",marginTop:5}}>슬로우 영상</div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
+                        <div style={{fontSize:11,color:"#64748b",lineHeight:1.6}}>{it.feedback||""}</div>
                       </div>
                     );
                   })}
@@ -2790,8 +2756,7 @@ export default function App(){
 
           {/* 광고 배너 — 결과 상단 */}
           <AdFitBanner adUnit="DAN-AeHytcuMcCUFT2Os"/>
-          {/* 장면별 분석 — 세부 평가가 없을 때만 (v0.63-3: 기술 구체 선택 시 세부 평가가 대신 표시됨) */}
-          {!(result.breakdown&&result.breakdown.length>0)&&(
+          {/* 장면별 분석 — 항상 표시 */}
           <div style={{marginBottom:16}}>
             <div style={{fontSize:14,fontWeight:600,marginBottom:12}}>장면별 분석</div>
             <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
@@ -2805,7 +2770,6 @@ export default function App(){
               {(groups[tab]||[]).map((f,i)=><FrameCard key={i} frame={f}/>)}
             </div>
           </div>
-          )}
           <div style={{marginBottom:16}}>
             <div style={{fontSize:14,fontWeight:600,marginBottom:12}}>코치 피드백</div>
             {(result.feedback||[]).map((f,i)=><FeedbackCard key={i} type={f.type} tag={f.tag} text={f.text} actionSteps={f.actionSteps}/>)}
