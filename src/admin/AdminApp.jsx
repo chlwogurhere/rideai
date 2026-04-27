@@ -722,7 +722,11 @@ export default function AdminApp() {
                   <div style={{ fontSize: 11, color: C.muted, marginBottom: 5 }}>미리보기</div>
                   <div style={{ background: "#fff", border: `0.5px solid ${C.border}`, borderRadius: 12, padding: "20px", textAlign: "center", boxShadow: "0 4px 20px rgba(0,0,0,0.08)" }}>
                     <div style={{ fontSize: 22, marginBottom: 10 }}>📢</div>
-                    <div style={{ fontSize: 13, color: C.primary, lineHeight: 1.8, whiteSpace: "pre-line", marginBottom: 16 }}>{popupText}</div>
+                    <div style={{ fontSize: 13, color: C.primary, lineHeight: 1.8, marginBottom: 16 }}>
+                      {popupText.replace(/\\n/g,"\n").split("\n").map((line,i,arr)=>(
+                        <span key={i}>{line}{i<arr.length-1&&<br/>}</span>
+                      ))}
+                    </div>
                     <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
                       <button style={{ padding: "8px 20px", borderRadius: 8, border: `0.5px solid ${C.border}`, background: "#f8fafc", fontSize: 12, cursor: "pointer", color: C.muted }}>오늘 하루 안 보기</button>
                       <button style={{ padding: "8px 20px", borderRadius: 8, border: "none", background: C.primary, color: "#fff", fontSize: 12, cursor: "pointer", fontWeight: 500 }}>확인</button>
