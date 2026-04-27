@@ -220,7 +220,7 @@ function AdFitBanner({ adUnit }) {
     </div>
   );
 }
-const VERSION = "ver 0.63-1";
+const VERSION = "ver 0.63-2";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -1450,13 +1450,16 @@ export default function App(){
     if(pickedFrames.length>0){
       try{
         setLoadMsg("피사체 정밀 분석 중...");setPct(55);
+        // v0.63-2: onPicksDone 안에서 levelGuide 재구성 (기존 ReferenceError 수정)
+        const levelMap2nd={"lv1":"레벨1","lv2":"레벨2","lv3":"레벨3","demon":"데몬스트레이터","unknown":"","":""};
+        const levelStr2nd=levelMap2nd[level]||"";
+        const levelGuide=levelStr2nd?`[KSIA ${levelStr2nd}] 기준에 맞춰 평가해주세요.`:"";
         const msg2=[];
         msg2.push({type:"text",text:"아래는 라이더를 중심으로 정밀하게 크롭한 "+pickedFrames.length+"개 장면입니다. 라이더의 자세를 세밀하게 재분석하여 더 정확한 코칭 피드백을 제공하세요. 신체 부위(무릎 굴곡, 상체 기울기, 팔 위치, 시선)를 구체적으로 분석하세요."});
         pickedFrames.forEach((f,i)=>{
           msg2.push({type:"text",text:"[정밀 장면 "+(i+1)+" — "+f.time+"초]"});
           msg2.push({type:"image",source:{type:"base64",media_type:"image/jpeg",data:f.data.split(",")[1]}});
         });
-        const termGuide2 = termGuide; // KSIA 기준 동일 적용
         msg2.push({type:"text",text:
           "당신은 KSIA 기준의 전문 "+sl+" 코치입니다. 라이더를 가까이서 본 이 장면을 바탕으로 정밀 코칭을 해주세요.\n"+levelGuide+"\n"+
           "각도 수치 없이, 슬로프에서 직접 코칭하듯 자연스럽게 설명하세요.\n"+
@@ -1601,7 +1604,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.63-1 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.63-2 made by GP</div>
           </div>
         </div>
       )}
@@ -2715,10 +2718,11 @@ export default function App(){
             const items=result.breakdown;
             const avg=items.reduce((sum,it)=>sum+(parseFloat(it.score)||0),0)/items.length;
             const annotated=result.annotated||[];
+            const fullSkillLabel = focusSkill!=="전체" ? (focusSkill + (subSkill ? " "+subSkill+"턴" : "")) : "기술";
             return(
               <div style={{background:"#fff",border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:12,marginBottom:16,overflow:"hidden"}}>
                 <div style={{background:"#f8fafc",padding:"11px 16px",borderBottom:"0.5px solid rgba(0,0,0,0.08)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <div style={{fontSize:13,fontWeight:600,color:"#0f172a"}}>{focusSkill!=="전체"?fullSkill:"기술"} 세부 평가</div>
+                  <div style={{fontSize:13,fontWeight:600,color:"#0f172a"}}>{fullSkillLabel} 세부 평가</div>
                   <div style={{display:"flex",alignItems:"center",gap:6}}>
                     <StarRating value={avg}/>
                     <span style={{fontSize:11,fontWeight:500,color:"#0f172a"}}>평균 {avg.toFixed(1)}</span>
