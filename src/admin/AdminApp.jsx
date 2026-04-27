@@ -413,8 +413,8 @@ function PatchNotesEditor({ initialNotes, onSave }) {
       {notes.map((note, ni) => (
         <div key={ni} style={{ background: "#fff", border: `0.5px solid ${C.border}`, borderRadius: 12, marginBottom: 12, overflow: "hidden" }}>
           <div style={{ background: "#f8fafc", padding: "10px 14px", borderBottom: `0.5px solid ${C.border}`, display: "flex", alignItems: "center", gap: 8 }}>
-            <input value={note.ver} onChange={e => updateNote(ni, "ver", e.target.value)} style={{ width: 80, padding: "4px 8px", borderRadius: 6, border: `0.5px solid ${C.border}`, fontSize: 12, fontWeight: 500 }} />
-            <input value={note.date} onChange={e => updateNote(ni, "date", e.target.value)} style={{ flex: 1, padding: "4px 8px", borderRadius: 6, border: `0.5px solid ${C.border}`, fontSize: 12, color: C.muted }} />
+            <input value={note.ver} onChange={e => updateNote(ni, "ver", e.target.value)} onKeyDown={e=>e.stopPropagation()} style={{ width: 80, padding: "4px 8px", borderRadius: 6, border: `0.5px solid ${C.border}`, fontSize: 12, fontWeight: 500 }} />
+            <input value={note.date} onChange={e => updateNote(ni, "date", e.target.value)} onKeyDown={e=>e.stopPropagation()} style={{ flex: 1, padding: "4px 8px", borderRadius: 6, border: `0.5px solid ${C.border}`, fontSize: 12, color: C.muted }} />
             <button onClick={() => setLatest(ni)} style={{ padding: "3px 8px", borderRadius: 99, border: "none", background: note.isLatest ? C.greenBg : "#e2e8f0", color: note.isLatest ? C.greenText : C.muted, fontSize: 11, cursor: "pointer", fontWeight: note.isLatest ? 500 : 400 }}>{note.isLatest ? "★ 최신" : "최신으로"}</button>
             <button onClick={() => removeNote(ni)} style={{ background: "none", border: "none", color: C.subtle, cursor: "pointer", fontSize: 14, padding: "0 4px" }}>✕</button>
           </div>
@@ -424,7 +424,7 @@ function PatchNotesEditor({ initialNotes, onSave }) {
                 <select value={log.type} onChange={e => updateLog(ni, li, "type", e.target.value)} style={{ padding: "4px 6px", borderRadius: 6, border: `0.5px solid ${C.border}`, fontSize: 11, background: "#fff", flexShrink: 0, width: 92 }}>
                   {typeOptions.map(t => <option key={t.v} value={t.v}>{t.label}</option>)}
                 </select>
-                <input value={log.text} onChange={e => updateLog(ni, li, "text", e.target.value)} placeholder="패치 내용 입력" style={{ flex: 1, padding: "4px 8px", borderRadius: 6, border: `0.5px solid ${C.border}`, fontSize: 12 }} />
+                <input value={log.text} onChange={e => updateLog(ni, li, "text", e.target.value)} onKeyDown={e=>e.stopPropagation()} placeholder="패치 내용 입력" style={{ flex: 1, padding: "4px 8px", borderRadius: 6, border: `0.5px solid ${C.border}`, fontSize: 12 }} />
                 <button onClick={() => removeLog(ni, li)} style={{ background: "none", border: "none", color: C.subtle, cursor: "pointer", fontSize: 13, flexShrink: 0 }}>✕</button>
               </div>
             ))}
@@ -681,7 +681,9 @@ export default function AdminApp() {
                   <span style={{ fontSize: 12, color: bannerEnabled ? C.greenText : C.muted, fontWeight: 500 }}>{bannerEnabled ? "표시 중" : "숨김"}</span>
                 </label>
               </div>
-              <textarea value={bannerText} onChange={e => setBannerText(e.target.value)} rows={2}
+              <textarea value={bannerText} onChange={e => setBannerText(e.target.value)}
+                onKeyDown={e => e.stopPropagation()}
+                rows={2}
                 placeholder="예: 🎿 v0.63 업데이트 — 기술별 세부 평가가 추가됐어요!"
                 style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `0.5px solid ${C.border}`, fontSize: 13, resize: "vertical", boxSizing: "border-box", lineHeight: 1.6, marginBottom: 10 }} />
               {bannerText && (
@@ -714,7 +716,9 @@ export default function AdminApp() {
                   <span style={{ fontSize: 12, color: popupEnabled ? C.greenText : C.muted, fontWeight: 500 }}>{popupEnabled ? "표시 중" : "숨김"}</span>
                 </label>
               </div>
-              <textarea value={popupText} onChange={e => setPopupText(e.target.value)} rows={4}
+              <textarea value={popupText} onChange={e => setPopupText(e.target.value)}
+                onKeyDown={e => e.stopPropagation()}
+                rows={4}
                 placeholder={"예: 안녕하세요 👋\nSNOWRIDE AI 베타 서비스 중입니다.\n분석 결과가 이상하거나 오류가 생기면 결과 화면 하단 피드백 버튼으로 알려주세요 🙏"}
                 style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `0.5px solid ${C.border}`, fontSize: 13, resize: "vertical", boxSizing: "border-box", lineHeight: 1.7, marginBottom: 10 }} />
               {popupText && (
@@ -722,10 +726,8 @@ export default function AdminApp() {
                   <div style={{ fontSize: 11, color: C.muted, marginBottom: 5 }}>미리보기</div>
                   <div style={{ background: "#fff", border: `0.5px solid ${C.border}`, borderRadius: 12, padding: "20px", textAlign: "center", boxShadow: "0 4px 20px rgba(0,0,0,0.08)" }}>
                     <div style={{ fontSize: 22, marginBottom: 10 }}>📢</div>
-                    <div style={{ fontSize: 13, color: C.primary, lineHeight: 1.8, marginBottom: 16 }}>
-                      {popupText.replace(/\\n/g,"\n").split("\n").map((line,i,arr)=>(
-                        <span key={i}>{line}{i<arr.length-1&&<br/>}</span>
-                      ))}
+                    <div style={{ fontSize: 13, color: C.primary, lineHeight: 1.8, whiteSpace: "pre-wrap", textAlign: "center", marginBottom: 16, wordBreak: "break-word" }}>
+                      {popupText}
                     </div>
                     <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
                       <button style={{ padding: "8px 20px", borderRadius: 8, border: `0.5px solid ${C.border}`, background: "#f8fafc", fontSize: 12, cursor: "pointer", color: C.muted }}>오늘 하루 안 보기</button>
@@ -749,7 +751,7 @@ export default function AdminApp() {
             <div style={{ background: C.card, border: `0.5px solid ${C.border}`, borderRadius: 12, padding: "20px 22px" }}>
               <div style={{ fontSize: 14, fontWeight: 600, color: C.primary, marginBottom: 4 }}>관리자 비밀번호 변경</div>
               <div style={{ fontSize: 12, color: C.muted, marginBottom: 16 }}>변경 즉시 적용됩니다</div>
-              <input type="password" value={adminPw} onChange={e => setAdminPw(e.target.value)} placeholder="새 비밀번호 입력"
+              <input type="password" value={adminPw} onChange={e => setAdminPw(e.target.value)} onKeyDown={e=>e.stopPropagation()} placeholder="새 비밀번호 입력"
                 style={{ width: "100%", padding: "11px 14px", borderRadius: 10, border: `0.5px solid ${C.border}`, fontSize: 13, marginBottom: 10, boxSizing: "border-box" }} />
               <button onClick={saveAdminPw} style={{ padding: "9px 20px", borderRadius: 8, border: "none", background: C.primary, color: "#fff", fontSize: 13, cursor: "pointer", fontWeight: 500 }}>변경</button>
               {settingMsg && <div style={{ marginTop: 10, fontSize: 13, color: C.green }}>{settingMsg}</div>}
