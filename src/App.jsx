@@ -220,7 +220,7 @@ function AdFitBanner({ adUnit }) {
     </div>
   );
 }
-const VERSION = "ver 0.63-6";
+const VERSION = "ver 0.63-7";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -387,7 +387,7 @@ async function apiCall(messages, system, apiKey) {
   const headers = { "Content-Type": "application/json", "x-api-key": key };
   if (isLocal) headers["anthropic-version"] = "2023-06-01";
   const r = await fetch(url, { method:"POST", headers,
-    body: JSON.stringify({ model:MODEL, max_tokens:5000, temperature:0, system, messages }) });
+    body: JSON.stringify({ model:MODEL, max_tokens:5000, temperature:0.4, system, messages }) });
   if (!r.ok) throw new Error("HTTP " + r.status);
   const j = await r.json();
   if (j.error) throw new Error(j.error.message || j.error.type);
@@ -735,8 +735,9 @@ function FrameCard({frame}){
       <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:7,flexWrap:"wrap"}}>
         <Tag type={frame.type}>{frame.type==="good"?"✅ 잘된 점":"⚠️ 개선 필요"}</Tag>
         {frame.time!=null&&<span style={{fontSize:11,color:"#94a3b8"}}>{frame.time.toFixed(1)}초</span>}
-        {hasGif&&<button onClick={()=>setShowGif(v=>!v)} style={{marginLeft:"auto",fontSize:11,padding:"2px 9px",borderRadius:20,border:"0.5px solid rgba(0,0,0,0.15)",background:showGif?"#0f172a":"transparent",color:showGif?"#fff":"#64748b",cursor:"pointer"}}>
-          {showGif?"▶ 사진 보기":"🎞 동영상 보기"}
+        {hasGif&&<button onClick={()=>setShowGif(v=>!v)} style={{marginLeft:"auto",fontSize:11,padding:"5px 11px",borderRadius:99,border:"none",background:showGif?"#0f172a":"#f1f5f9",color:showGif?"#fff":"#475569",cursor:"pointer",fontWeight:500,display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
+          <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><rect x="1" y="2" width="10" height="8" rx="1.5" stroke="currentColor" strokeWidth="1" fill="none"/><path d="M5 4.5L8 6L5 7.5V4.5Z" fill="currentColor"/></svg>
+          {showGif?"사진 보기":"동영상 보기"}
         </button>}
       </div>
       <div style={{fontSize:13,fontWeight:500,marginBottom:5}}>{frame.title}</div>
@@ -1319,7 +1320,7 @@ export default function App(){
         "\n[★중요★ 세부 평가 필수 응답 — "+fullSkill+" 정확히 7개 항목]\n" +
         "다음 7개 항목 각각에 대해 반드시 응답해야 합니다. 누락 시 응답이 무효 처리됩니다.\n" +
         breakdownItems.map((it,i)=>`${i+1}. ${it.label}${it.term?" ("+it.term+")":""}`).join("\n") +
-        "\n각 항목을 별점 0.0~5.0 (소수점 첫째자리)로 평가하고, 그 항목이 가장 잘 보이는 frameIndex(0~"+(maxIdx)+")와 한 줄 피드백을 응답하세요. " +
+        "\n각 항목을 별점 0.0~5.0 (소수점 첫째자리, 0.1 단위로 정밀하게)로 평가하고, 그 항목이 가장 잘 보이는 frameIndex(0~"+(maxIdx)+")와 한 줄 피드백을 응답하세요. " +
         "피드백은 반드시 '잘된 점 → 개선점' 순서로 작성. 칭찬으로 시작해 어떻게 더 좋아질 수 있는지 한 줄로 마무리. " +
         "전문용어는 쉽게 풀어쓰되 괄호 안에 전문용어를 함께 표기. " +
         (LEVEL_RUBRIC[levelNum] || LEVEL_RUBRIC[2]) +
@@ -1397,7 +1398,7 @@ export default function App(){
         '],'+
         '"feedback":[{"type":"good","tag":"잘된 점","text":"KSIA 기준 잘된 부분 2~3문장","actionSteps":["구체적 동작1","동작2"]},{"type":"warn","tag":"개선 포인트","text":"개선방법 2~3문장","actionSteps":["언제어떻게 구체동작1","구체동작2"]},{"type":"info","tag":"코치 조언","text":"코칭 2~3문장","actionSteps":["구체동작1","구체동작2"]}],'+
         '"tips":[{"text":"친근한 코칭 말투 — 예: 앞발에 살짝 더 실어볼까요","detail":"구체적으로 어떻게 하는지 2문장"},{"text":"팁2","detail":"구체적 설명"},{"text":"팁3","detail":"구체적 설명"},{"text":"팁4","detail":"구체적 설명"}],'+
-        (breakdownItems?'"breakdown":['+breakdownItems.map((it,i)=>'{"name":"'+it.label+'","term":"'+(it.term||"")+'","score":3.5,"frameIndex":'+(maxIdx>0?(i%(maxIdx+1)):0)+',"feedback":"잘된 점 짧게. 개선점 짧게."}').join(",")+'],':'')+
+        (breakdownItems?'"breakdown":['+breakdownItems.map((it,i)=>'{"name":"'+it.label+'","term":"'+(it.term||"")+'","score":'+(2.8+i*0.37).toFixed(1)+',"frameIndex":'+(maxIdx>0?(i%(maxIdx+1)):0)+',"feedback":"잘된 점 짧게. 개선점 짧게."}').join(",")+'],':'')+
         '"estimatedLevel":"lv1또는lv2또는lv3또는demon"}'+
         "\n규칙: frameIndex는 0~"+maxIdx+" 중 실제 라이더가 보이는 장면 선택, value 60-95, good 2개+warn 2개, 한국어."+(breakdownItems?" breakdown 배열에 정확히 "+breakdownItems.length+"개 항목 모두 포함 필수.":"")+
         " 동일한 영상이라도 분석할 때마다 약간의 차이가 있을 수 있으며, 영상의 실제 라이딩 품질에 따라 점수가 달라져야 합니다. 스노보드 종목일 경우 폴(pole)이 없으므로 폴 관련 언급 절대 금지. tips text는 친근한 코칭 말투로 — 드릴/연습/훈련 같은 딱딱한 용어 금지. [엣지 방향 규칙] 포즈 측정값에 [엣지 방향 추정] 항목이 있으면 이미지 판단보다 우선 적용하세요. 스키 설명: 인엣지(안쪽 날)/아웃엣지(바깥 날) + 어느 발인지 명시 — 예: 오른발 인엣지. 스노보드 설명: 토사이드(발가락 쪽 엣지)/힐사이드(뒤꿈치 쪽 엣지) 사용. 방향 추정 불명확 시 단정 짓지 말고 이미지상으로 보입니다 식으로 표현. estimatedLevel은 영상에서 보이는 실제 실력을 KSIA 기준으로 추정해 lv1/lv2/lv3/demon 중 하나로만 응답하세요."
@@ -1474,7 +1475,7 @@ export default function App(){
           '{"frameIndex":3,"type":"warn","title":"제목","desc":"KSIA 기준 자연스러운 코칭 말투 2문장","annotations":[{"x":0.5,"y":0.45,"type":"warn","label":"라벨","arrow":{"x":0.5,"y":0.58}}]}],'+
           '"feedback":[{"type":"good","tag":"잘된 점","text":"KSIA 기준 잘된 부분 코칭 말투 2~3문장"},{"type":"warn","tag":"개선 포인트","text":"KSIA 기준 개선방법 코칭 말투 2~3문장"},{"type":"info","tag":"코치 조언","text":"슬로프에서 바로 해볼 수 있는 팁 2~3문장"}],'+
           '"tips":[{"text":"친근한 말투 짧게 — 예: 앞발에 살짝 더 실어볼까요","detail":"구체적 설명 2문장"},{"text":"팁2","detail":"설명"},{"text":"팁3","detail":"설명"},{"text":"팁4","detail":"설명"}]}'+
-          "\n규칙: value 60-95, good/warn 각2개, 한국어, 크롭이미지 기준 x/y(0.3~0.7 범위에 라이더 있음). 동일 입력에 항상 동일 결과를 출력하세요."
+          "\n규칙: value 60-95, good/warn 각2개, 한국어, 크롭이미지 기준 x/y(0.3~0.7 범위에 라이더 있음)."
         });
         const raw2=await apiCall([{role:"user",content:msg2}],"You are a JSON API. Output ONLY a valid JSON object. No markdown. No code fences.",apiKey);
         refinedData=parseJSON(raw2);
@@ -1606,7 +1607,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.63-6 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.63-7 made by GP</div>
           </div>
         </div>
       )}
@@ -2344,7 +2345,6 @@ export default function App(){
                                 <span style={{fontSize:13,color:"#0f172a",lineHeight:1.6}}>{txt}</span>
                               </div>
                               {det&&<div style={{background:"#f8fafc",borderTop:"0.5px solid rgba(0,0,0,0.07)",padding:"7px 12px 7px 41px"}}>
-                                <div style={{fontSize:10,fontWeight:500,color:"#64748b",marginBottom:3}}>구체적으로는</div>
                                 <div style={{fontSize:11,color:"#64748b",lineHeight:1.65}}>{det}</div>
                               </div>}
                             </div>
@@ -2715,11 +2715,45 @@ export default function App(){
             <ScoreGuide/>
           </div>
 
-          {/* ── 세부 평가 섹션 (v0.63 신규) ── */}
+          {/* 광고 배너 — 결과 상단 */}
+          <AdFitBanner adUnit="DAN-AeHytcuMcCUFT2Os"/>
+          {/* 장면별 분석 — 항상 표시 */}
+          <div style={{background:"#fff",border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:12,marginBottom:16,overflow:"hidden"}}>
+            <div style={{padding:"12px 14px",borderBottom:"0.5px solid rgba(0,0,0,0.08)"}}>
+              <div style={{fontSize:13,fontWeight:600,color:"#0f172a",marginBottom:10}}>장면별 분석</div>
+              <div style={{display:"flex",gap:8}}>
+                {[["good","잘된 장면","#16a34a","#dcfce7","#15803d"],["warn","고쳐볼 장면","#d97706","#fef9c3","#92400e"]].map(([k,lbl,ic,bg,tc])=>groups[k].length>0&&(
+                  <button key={k} onClick={()=>setTab(k)} style={{
+                    flex:1,padding:"10px 8px",borderRadius:10,border:"none",cursor:"pointer",
+                    background:tab===k?bg:"#f8fafc",
+                    display:"flex",alignItems:"center",justifyContent:"center",gap:6,
+                    transition:"all 0.15s"
+                  }}>
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                      {k==="good"
+                        ? <><circle cx="8" cy="8" r="7" fill={tab===k?"#16a34a":"#cbd5e1"}/><path d="M5 8.5L7 10.5L11 6" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></>
+                        : <><circle cx="8" cy="8" r="7" fill={tab===k?"#d97706":"#cbd5e1"}/><path d="M8 5V8.5" stroke="#fff" strokeWidth="1.5" strokeLinecap="round"/><circle cx="8" cy="10.5" r="0.8" fill="#fff"/></>}
+                    </svg>
+                    <span style={{fontSize:12,fontWeight:500,color:tab===k?tc:"#64748b"}}>{lbl}</span>
+                    <span style={{
+                      fontSize:11,fontWeight:500,padding:"1px 7px",borderRadius:99,
+                      background:tab===k?ic:"#e2e8f0",color:"#fff"
+                    }}>{groups[k].length}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div style={{padding:"12px 14px"}}>
+              <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr)",gap:12}}>
+                {(groups[tab]||[]).map((f,i)=><FrameCard key={i} frame={f}/>)}
+              </div>
+            </div>
+          </div>
+
+          {/* 세부 평가 — 기술 선택 시만 표시 (v0.63) */}
           {result.breakdown&&result.breakdown.length>0&&(()=>{
             const items=result.breakdown;
             const avg=items.reduce((sum,it)=>sum+(parseFloat(it.score)||0),0)/items.length;
-            const annotated=result.annotated||[];
             const fullSkillLabel = focusSkill!=="전체" ? (focusSkill + (subSkill ? " "+subSkill+"턴" : "")) : "기술";
             return(
               <div style={{background:"#fff",border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:12,marginBottom:16,overflow:"hidden"}}>
@@ -2754,22 +2788,6 @@ export default function App(){
             );
           })()}
 
-          {/* 광고 배너 — 결과 상단 */}
-          <AdFitBanner adUnit="DAN-AeHytcuMcCUFT2Os"/>
-          {/* 장면별 분석 — 항상 표시 */}
-          <div style={{marginBottom:16}}>
-            <div style={{fontSize:14,fontWeight:600,marginBottom:12}}>장면별 분석</div>
-            <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
-              {[["good","✅ 잘된 장면"],["warn","⚠️ 고쳐볼 장면"]].map(([k,lbl])=>groups[k].length>0&&(
-                <button key={k} onClick={()=>setTab(k)} style={{padding:"6px 14px",borderRadius:99,fontSize:13,cursor:"pointer",border:tab===k?"2px solid "+(k==="good"?"#16a34a":"#dc2626"):"0.5px solid rgba(0,0,0,0.12)",background:tab===k?(k==="good"?"#f0fdf4":"#fef2f2"):"transparent",color:tab===k?(k==="good"?"#166534":"#991b1b"):"#64748b",fontWeight:tab===k?500:400}}>
-                  {lbl} ({groups[k].length})
-                </button>
-              ))}
-            </div>
-            <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr)",gap:12}}>
-              {(groups[tab]||[]).map((f,i)=><FrameCard key={i} frame={f}/>)}
-            </div>
-          </div>
           <div style={{marginBottom:16}}>
             <div style={{fontSize:14,fontWeight:600,marginBottom:12}}>코치 피드백</div>
             {(result.feedback||[]).map((f,i)=><FeedbackCard key={i} type={f.type} tag={f.tag} text={f.text} actionSteps={f.actionSteps}/>)}
@@ -2787,7 +2805,6 @@ export default function App(){
                   </div>
                   {detail&&(
                     <div style={{background:"#f8fafc",borderTop:"0.5px solid rgba(0,0,0,0.07)",padding:"9px 14px 9px 46px"}}>
-                      <div style={{fontSize:11,fontWeight:500,color:"#64748b",marginBottom:4}}>구체적으로는</div>
                       <div style={{fontSize:12,color:"#64748b",lineHeight:1.7}}>{detail}</div>
                     </div>
                   )}
