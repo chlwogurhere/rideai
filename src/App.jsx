@@ -220,7 +220,7 @@ function AdFitBanner({ adUnit }) {
     </div>
   );
 }
-const VERSION = "ver 0.63-4";
+const VERSION = "ver 0.63-5";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -1510,7 +1510,7 @@ export default function App(){
     analysisIdRef.current = aid;
     setFeedback(null); setStars(0); setComment(""); setStarDone(false); setAiSelected([]); setAiMemo(""); setAiFeedbackDone(false);
     setFeedbackDone(localStorage.getItem("rideai_fb_"+aid)==="done");
-    const finalResult = {...refinedData, annotated};
+    const finalResult = {...refinedData, annotated, breakdown: rawData.breakdown||refinedData.breakdown||[]};
     setResult(finalResult);
     setTab(annotated.some(f=>f.type==="good")?"good":"warn");
     setPhase("done");
@@ -1606,7 +1606,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.63-4 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.63-5 made by GP</div>
           </div>
         </div>
       )}
