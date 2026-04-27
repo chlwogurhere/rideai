@@ -220,7 +220,7 @@ function AdFitBanner({ adUnit }) {
     </div>
   );
 }
-const VERSION = "ver 0.63-2";
+const VERSION = "ver 0.63-3";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -387,7 +387,7 @@ async function apiCall(messages, system, apiKey) {
   const headers = { "Content-Type": "application/json", "x-api-key": key };
   if (isLocal) headers["anthropic-version"] = "2023-06-01";
   const r = await fetch(url, { method:"POST", headers,
-    body: JSON.stringify({ model:MODEL, max_tokens:3000, temperature:0, system, messages }) });
+    body: JSON.stringify({ model:MODEL, max_tokens:5000, temperature:0, system, messages }) });
   if (!r.ok) throw new Error("HTTP " + r.status);
   const j = await r.json();
   if (j.error) throw new Error(j.error.message || j.error.type);
@@ -1316,12 +1316,14 @@ export default function App(){
       const breakdownItems = SKILL_BREAKDOWN_ITEMS[skKey] || null;
       const levelNum = ({lv1:1,lv2:2,lv3:3,demon:4})[level] || 2;
       const breakdownGuide = breakdownItems ? (
-        "\n[세부 평가 항목 — "+fullSkill+" 7개 항목]\n" +
+        "\n[★중요★ 세부 평가 필수 응답 — "+fullSkill+" 정확히 7개 항목]\n" +
+        "다음 7개 항목 각각에 대해 반드시 응답해야 합니다. 누락 시 응답이 무효 처리됩니다.\n" +
         breakdownItems.map((it,i)=>`${i+1}. ${it.label}${it.term?" ("+it.term+")":""}`).join("\n") +
         "\n각 항목을 별점 0.0~5.0 (소수점 첫째자리)로 평가하고, 그 항목이 가장 잘 보이는 frameIndex(0~"+(maxIdx)+")와 한 줄 피드백을 응답하세요. " +
         "피드백은 반드시 '잘된 점 → 개선점' 순서로 작성. 칭찬으로 시작해 어떻게 더 좋아질 수 있는지 한 줄로 마무리. " +
         "전문용어는 쉽게 풀어쓰되 괄호 안에 전문용어를 함께 표기. " +
-        (LEVEL_RUBRIC[levelNum] || LEVEL_RUBRIC[2])
+        (LEVEL_RUBRIC[levelNum] || LEVEL_RUBRIC[2]) +
+        "\n→ JSON 응답에 \"breakdown\" 배열을 반드시 포함해야 하며, 정확히 7개 객체가 들어가야 합니다."
       ) : "";
 
       // KSIA 기반 코칭 기준
@@ -1397,7 +1399,7 @@ export default function App(){
         '"tips":[{"text":"친근한 코칭 말투 — 예: 앞발에 살짝 더 실어볼까요","detail":"구체적으로 어떻게 하는지 2문장"},{"text":"팁2","detail":"구체적 설명"},{"text":"팁3","detail":"구체적 설명"},{"text":"팁4","detail":"구체적 설명"}],'+
         (breakdownItems?'"breakdown":['+breakdownItems.map((it,i)=>'{"name":"'+it.label+'","term":"'+(it.term||"")+'","score":3.5,"frameIndex":'+(maxIdx>0?(i%(maxIdx+1)):0)+',"feedback":"잘된 점 짧게. 개선점 짧게."}').join(",")+'],':'')+
         '"estimatedLevel":"lv1또는lv2또는lv3또는demon"}'+
-        "\n규칙: frameIndex는 0~"+maxIdx+" 중 실제 라이더가 보이는 장면 선택, value 60-95, good 2개+warn 2개, 한국어."+
+        "\n규칙: frameIndex는 0~"+maxIdx+" 중 실제 라이더가 보이는 장면 선택, value 60-95, good 2개+warn 2개, 한국어."+(breakdownItems?" breakdown 배열에 정확히 "+breakdownItems.length+"개 항목 모두 포함 필수.":"")+
         " 동일한 영상이라도 분석할 때마다 약간의 차이가 있을 수 있으며, 영상의 실제 라이딩 품질에 따라 점수가 달라져야 합니다. 스노보드 종목일 경우 폴(pole)이 없으므로 폴 관련 언급 절대 금지. tips text는 친근한 코칭 말투로 — 드릴/연습/훈련 같은 딱딱한 용어 금지. [엣지 방향 규칙] 포즈 측정값에 [엣지 방향 추정] 항목이 있으면 이미지 판단보다 우선 적용하세요. 스키 설명: 인엣지(안쪽 날)/아웃엣지(바깥 날) + 어느 발인지 명시 — 예: 오른발 인엣지. 스노보드 설명: 토사이드(발가락 쪽 엣지)/힐사이드(뒤꿈치 쪽 엣지) 사용. 방향 추정 불명확 시 단정 짓지 말고 이미지상으로 보입니다 식으로 표현. estimatedLevel은 영상에서 보이는 실제 실력을 KSIA 기준으로 추정해 lv1/lv2/lv3/demon 중 하나로만 응답하세요."
       });
 
@@ -1604,7 +1606,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.63-2 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.63-3 made by GP</div>
           </div>
         </div>
       )}
@@ -2788,6 +2790,8 @@ export default function App(){
 
           {/* 광고 배너 — 결과 상단 */}
           <AdFitBanner adUnit="DAN-AeHytcuMcCUFT2Os"/>
+          {/* 장면별 분석 — 세부 평가가 없을 때만 (v0.63-3: 기술 구체 선택 시 세부 평가가 대신 표시됨) */}
+          {!(result.breakdown&&result.breakdown.length>0)&&(
           <div style={{marginBottom:16}}>
             <div style={{fontSize:14,fontWeight:600,marginBottom:12}}>장면별 분석</div>
             <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
@@ -2801,6 +2805,7 @@ export default function App(){
               {(groups[tab]||[]).map((f,i)=><FrameCard key={i} frame={f}/>)}
             </div>
           </div>
+          )}
           <div style={{marginBottom:16}}>
             <div style={{fontSize:14,fontWeight:600,marginBottom:12}}>코치 피드백</div>
             {(result.feedback||[]).map((f,i)=><FeedbackCard key={i} type={f.type} tag={f.tag} text={f.text} actionSteps={f.actionSteps}/>)}
