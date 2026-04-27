@@ -1124,6 +1124,21 @@ export default function App(){
   const [subSkill,setSubSkill]=useState(""); // 롱/미들/숏 
   const [file,setFile]=useState(null);
   const [phase,setPhase]=useState("landing"); // landing | sport | upload | loading | picking | done | history | error
+
+  // ── 공지사항 (v0.63-9) ──────────────────────────────
+  const [banner, setBanner] = useState({ enabled: false, text: "" });
+  const [popup, setPopup]   = useState({ enabled: false, text: "" });
+  const [popupDismissed, setPopupDismissed] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/notice").then(r => r.json()).then(d => {
+      if (d.banner) setBanner(d.banner);
+      if (d.popup)  setPopup(d.popup);
+    }).catch(() => {});
+    // 오늘 팝업 이미 봤는지 확인
+    const seen = localStorage.getItem("rideai_popup_seen");
+    if (seen === new Date().toISOString().slice(0, 10)) setPopupDismissed(true);
+  }, []);
   const [history,setHistory]=useState([]);
   const [selectedHistory,setSelectedHistory]=useState(null);
   const [histFilter,setHistFilter]=useState({sport:"전체",level:"전체",skill:"전체",period:"전체"});
@@ -1577,6 +1592,7 @@ export default function App(){
               <div><div style={{fontSize:22,fontWeight:900,color:"#0d47a1",letterSpacing:0.5}}>SNOW<span style={{color:"#2196f3"}}>RIDE</span></div><div style={{fontSize:12,color:"#94a3b8",letterSpacing:1.5}}>AI COACHING STAFF</div></div>
             </div>
           </div>
+
           {(()=>{
             const prevMap={level:"sport",upload:"level",loading:"upload",queue:"upload",picking:"upload",done:"upload",error:"upload",history:"sport"};
             const prev=prevMap[phase];
@@ -1591,7 +1607,36 @@ export default function App(){
               {apiKey?"🔑 API 키":"🔑 키 필요"}
             </button>
           )}
-        </div>
+        </div>{/* end HEADER */}
+
+        {/* ── 배너 공지 (v0.63-9) ── */}
+        {banner.enabled && banner.text && (
+          <div style={{background:"#fef3c7",border:"0.5px solid #fcd34d",borderRadius:10,padding:"10px 16px",marginBottom:16,display:"flex",alignItems:"flex-start",gap:8}}>
+            <span style={{fontSize:14,flexShrink:0}}>📢</span>
+            <span style={{fontSize:13,color:"#92400e",lineHeight:1.6,whiteSpace:"pre-line"}}>{banner.text}</span>
+          </div>
+        )}
+
+        {/* ── 팝업 공지 (v0.63-9) ── */}
+        {popup.enabled && popup.text && !popupDismissed && (
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:999,padding:20}}>
+            <div style={{background:"#fff",borderRadius:16,padding:"28px 24px",maxWidth:360,width:"100%",boxShadow:"0 8px 40px rgba(0,0,0,0.15)"}}>
+              <div style={{fontSize:26,textAlign:"center",marginBottom:12}}>📢</div>
+              <div style={{fontSize:14,color:"#0f172a",lineHeight:1.8,whiteSpace:"pre-line",textAlign:"center",marginBottom:20}}>{popup.text}</div>
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={()=>{
+                  localStorage.setItem("rideai_popup_seen",new Date().toISOString().slice(0,10));
+                  setPopupDismissed(true);
+                }} style={{flex:1,padding:"10px 0",borderRadius:9,border:"0.5px solid rgba(0,0,0,0.12)",background:"#f8fafc",color:"#64748b",fontSize:13,cursor:"pointer"}}>
+                  오늘 하루 안 보기
+                </button>
+                <button onClick={()=>setPopupDismissed(true)} style={{flex:1,padding:"10px 0",borderRadius:9,border:"none",background:"#0f172a",color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer"}}>
+                  확인
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {showKeyInput&&!import.meta.env.VITE_ANTHROPIC_KEY&&(<div style={{background:"#f8fafc",border:"0.5px solid rgba(0,0,0,0.1)",borderRadius:12,padding:16,marginBottom:20}}>
           <div style={{fontSize:13,fontWeight:500,marginBottom:8}}>Anthropic API 키</div>

@@ -448,6 +448,13 @@ export default function AdminApp() {
   const [noticeEnabled, setNoticeEnabled] = useState(false);
   const [noticeType, setNoticeType] = useState("banner");
   const [noticeText, setNoticeText] = useState("");
+  // v0.63-9 분리된 배너/팝업 state
+  const [bannerEnabled, setBannerEnabled] = useState(false);
+  const [bannerText, setBannerText] = useState("");
+  const [bannerMsg, setBannerMsg] = useState("");
+  const [popupEnabled, setPopupEnabled] = useState(false);
+  const [popupText, setPopupText] = useState("");
+  const [popupMsg, setPopupMsg] = useState("");
   const [patchNotes, setPatchNotes] = useState([]);
   const [adminPw, setAdminPw] = useState("");
   const [settingMsg, setSettingMsg] = useState("");
@@ -468,6 +475,10 @@ export default function AdminApp() {
       setNoticeEnabled(s.notice_enabled === "true");
       setNoticeType(s.notice_type || "banner");
       setNoticeText(s.notice_text || "");
+      setBannerEnabled(s.banner_enabled === "true");
+      setBannerText(s.banner_text || "");
+      setPopupEnabled(s.popup_enabled === "true");
+      setPopupText(s.popup_text || "");
       try { setPatchNotes(JSON.parse(s.patch_notes || "[]")); } catch { setPatchNotes([]); }
     }
   };
@@ -484,6 +495,24 @@ export default function AdminApp() {
     ]);
     setSettingMsg("저장됐어요!");
     setTimeout(() => setSettingMsg(""), 2000);
+  };
+
+  const saveBanner = async () => {
+    await Promise.all([
+      saveSetting("banner_enabled", String(bannerEnabled)),
+      saveSetting("banner_text", bannerText),
+    ]);
+    setBannerMsg("저장됐어요!");
+    setTimeout(() => setBannerMsg(""), 2000);
+  };
+
+  const savePopup = async () => {
+    await Promise.all([
+      saveSetting("popup_enabled", String(popupEnabled)),
+      saveSetting("popup_text", popupText),
+    ]);
+    setPopupMsg("저장됐어요!");
+    setTimeout(() => setPopupMsg(""), 2000);
   };
 
   const saveAdminPw = async () => {
@@ -634,50 +663,79 @@ export default function AdminApp() {
 
         {/* ── 공지사항 ── */}
         {tab === "notice" && (
-          <div style={{ maxWidth: 600 }}>
+          <div style={{ maxWidth: 640 }}>
+
+            {/* 배너 */}
             <div style={{ background: C.card, border: `0.5px solid ${C.border}`, borderRadius: 12, padding: "20px 22px", marginBottom: 16 }}>
-              <div style={{ fontSize: 14, fontWeight: 600, color: C.primary, marginBottom: 16 }}>공지사항 설정</div>
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 12, fontWeight: 500, color: C.primary, marginBottom: 8 }}>표시 방식</div>
-                <div style={{ display: "flex", gap: 8 }}>
-                  {[["banner", "상단 배너", "항상 보임, 방해 적음"], ["popup", "팝업 모달", "첫 진입 시 자동 표시"]].map(([val, label, desc]) => (
-                    <button key={val} onClick={() => setNoticeType(val)} style={{
-                      flex: 1, padding: "10px 12px", borderRadius: 10, border: `2px solid ${noticeType === val ? C.blue : C.border}`,
-                      background: noticeType === val ? C.blueBg : "#fff", cursor: "pointer", textAlign: "left"
-                    }}>
-                      <div style={{ fontSize: 13, fontWeight: 500, color: noticeType === val ? C.blueText : C.primary }}>{label}</div>
-                      <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{desc}</div>
-                    </button>
-                  ))}
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+                <div style={{ width: 32, height: 32, background: C.amberBg, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>📢</div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: C.primary }}>상단 배너</div>
+                  <div style={{ fontSize: 11, color: C.muted }}>앱 상단에 항상 표시 · 방해 적음</div>
                 </div>
-              </div>
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 12, fontWeight: 500, color: C.primary, marginBottom: 6 }}>공지 내용</div>
-                <textarea value={noticeText} onChange={e => setNoticeText(e.target.value)} rows={3} placeholder="공지사항 내용을 입력하세요 (빈칸이면 표시 안 됨)"
-                  style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `0.5px solid ${C.border}`, fontSize: 13, resize: "vertical", boxSizing: "border-box", lineHeight: 1.6 }} />
-              </div>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-                  <input type="checkbox" checked={noticeEnabled} onChange={e => setNoticeEnabled(e.target.checked)} />
-                  <span style={{ fontSize: 13, color: C.primary }}>공지사항 표시 활성화</span>
+                <label style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+                  <div style={{ position: "relative", width: 40, height: 22 }} onClick={() => setBannerEnabled(v => !v)}>
+                    <div style={{ position: "absolute", inset: 0, background: bannerEnabled ? C.green : "#e2e8f0", borderRadius: 99, transition: "background 0.2s" }} />
+                    <div style={{ position: "absolute", top: 3, left: bannerEnabled ? 21 : 3, width: 16, height: 16, background: "#fff", borderRadius: "50%", transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
+                  </div>
+                  <span style={{ fontSize: 12, color: bannerEnabled ? C.greenText : C.muted, fontWeight: 500 }}>{bannerEnabled ? "표시 중" : "숨김"}</span>
                 </label>
-                <button onClick={saveNotice} style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: C.primary, color: "#fff", fontSize: 13, cursor: "pointer", fontWeight: 500 }}>저장</button>
+              </div>
+              <textarea value={bannerText} onChange={e => setBannerText(e.target.value)} rows={2}
+                placeholder="예: 🎿 v0.63 업데이트 — 기술별 세부 평가가 추가됐어요!"
+                style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `0.5px solid ${C.border}`, fontSize: 13, resize: "vertical", boxSizing: "border-box", lineHeight: 1.6, marginBottom: 10 }} />
+              {bannerText && (
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ fontSize: 11, color: C.muted, marginBottom: 5 }}>미리보기</div>
+                  <div style={{ background: C.amberBg, border: `0.5px solid #fcd34d`, borderRadius: 8, padding: "9px 16px", fontSize: 13, color: C.amberText, lineHeight: 1.5 }}>
+                    {bannerText}
+                  </div>
+                </div>
+              )}
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, alignItems: "center" }}>
+                {bannerMsg && <span style={{ fontSize: 12, color: C.green }}>{bannerMsg}</span>}
+                <button onClick={saveBanner} style={{ padding: "8px 20px", borderRadius: 8, border: "none", background: C.primary, color: "#fff", fontSize: 13, cursor: "pointer", fontWeight: 500 }}>저장</button>
               </div>
             </div>
-            {noticeText && (
-              <div>
-                <div style={{ fontSize: 12, color: C.muted, marginBottom: 8 }}>미리보기</div>
-                {noticeType === "banner" ? (
-                  <div style={{ background: C.amberBg, border: `0.5px solid #fcd34d`, borderRadius: 8, padding: "10px 16px", fontSize: 13, color: C.amberText }}>⚠️ {noticeText}</div>
-                ) : (
-                  <div style={{ background: C.card, border: `0.5px solid ${C.border}`, borderRadius: 12, padding: "20px", textAlign: "center" }}>
-                    <div style={{ fontSize: 14, fontWeight: 500, color: C.primary, marginBottom: 8 }}>{noticeText}</div>
-                    <button style={{ padding: "8px 20px", borderRadius: 8, border: "none", background: C.primary, color: "#fff", fontSize: 13, cursor: "pointer" }}>확인</button>
+
+            {/* 팝업 */}
+            <div style={{ background: C.card, border: `0.5px solid ${C.border}`, borderRadius: 12, padding: "20px 22px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+                <div style={{ width: 32, height: 32, background: C.blueBg, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>💬</div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: C.primary }}>팝업 모달</div>
+                  <div style={{ fontSize: 11, color: C.muted }}>앱 첫 진입 시 자동 표시 · 하루 한 번</div>
+                </div>
+                <label style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+                  <div style={{ position: "relative", width: 40, height: 22 }} onClick={() => setPopupEnabled(v => !v)}>
+                    <div style={{ position: "absolute", inset: 0, background: popupEnabled ? C.green : "#e2e8f0", borderRadius: 99, transition: "background 0.2s" }} />
+                    <div style={{ position: "absolute", top: 3, left: popupEnabled ? 21 : 3, width: 16, height: 16, background: "#fff", borderRadius: "50%", transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
                   </div>
-                )}
+                  <span style={{ fontSize: 12, color: popupEnabled ? C.greenText : C.muted, fontWeight: 500 }}>{popupEnabled ? "표시 중" : "숨김"}</span>
+                </label>
               </div>
-            )}
-            {settingMsg && <div style={{ marginTop: 10, fontSize: 13, color: C.green }}>{settingMsg}</div>}
+              <textarea value={popupText} onChange={e => setPopupText(e.target.value)} rows={4}
+                placeholder={"예: 안녕하세요 👋\nSNOWRIDE AI 베타 서비스 중입니다.\n분석 결과가 이상하거나 오류가 생기면 결과 화면 하단 피드백 버튼으로 알려주세요 🙏"}
+                style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `0.5px solid ${C.border}`, fontSize: 13, resize: "vertical", boxSizing: "border-box", lineHeight: 1.7, marginBottom: 10 }} />
+              {popupText && (
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ fontSize: 11, color: C.muted, marginBottom: 5 }}>미리보기</div>
+                  <div style={{ background: "#fff", border: `0.5px solid ${C.border}`, borderRadius: 12, padding: "20px", textAlign: "center", boxShadow: "0 4px 20px rgba(0,0,0,0.08)" }}>
+                    <div style={{ fontSize: 22, marginBottom: 10 }}>📢</div>
+                    <div style={{ fontSize: 13, color: C.primary, lineHeight: 1.8, whiteSpace: "pre-line", marginBottom: 16 }}>{popupText}</div>
+                    <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+                      <button style={{ padding: "8px 20px", borderRadius: 8, border: `0.5px solid ${C.border}`, background: "#f8fafc", fontSize: 12, cursor: "pointer", color: C.muted }}>오늘 하루 안 보기</button>
+                      <button style={{ padding: "8px 20px", borderRadius: 8, border: "none", background: C.primary, color: "#fff", fontSize: 12, cursor: "pointer", fontWeight: 500 }}>확인</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, alignItems: "center" }}>
+                {popupMsg && <span style={{ fontSize: 12, color: C.green }}>{popupMsg}</span>}
+                <button onClick={savePopup} style={{ padding: "8px 20px", borderRadius: 8, border: "none", background: C.primary, color: "#fff", fontSize: 13, cursor: "pointer", fontWeight: 500 }}>저장</button>
+              </div>
+            </div>
+
           </div>
         )}
 
