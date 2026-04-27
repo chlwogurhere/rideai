@@ -220,7 +220,7 @@ function AdFitBanner({ adUnit }) {
     </div>
   );
 }
-const VERSION = "ver 0.63-7";
+const VERSION = "ver 0.63-8";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -1415,7 +1415,7 @@ export default function App(){
       if(frames.length>0){setPhase("picking");}
       else{
         const annotated=(data.frames||[]).map(fd=>({...fd,canvas:null,svg:make3DFigureSVG(sport,fd.type,fd),time:null}));
-        setResult({...data,annotated});setTab(annotated.some(f=>f.type==="good")?"good":"warn");setPhase("done");
+        setResult({...data,annotated,focusSkill,subSkill});setTab(annotated.some(f=>f.type==="good")?"good":"warn");setPhase("done");
       }
       try{vid.currentTime=0;}catch(e){}
     }catch(outerErr){
@@ -1511,7 +1511,7 @@ export default function App(){
     analysisIdRef.current = aid;
     setFeedback(null); setStars(0); setComment(""); setStarDone(false); setAiSelected([]); setAiMemo(""); setAiFeedbackDone(false);
     setFeedbackDone(localStorage.getItem("rideai_fb_"+aid)==="done");
-    const finalResult = {...refinedData, annotated, breakdown: rawData.breakdown||refinedData.breakdown||[]};
+    const finalResult = {...refinedData, annotated, breakdown: rawData.breakdown||refinedData.breakdown||[], focusSkill, subSkill};
     setResult(finalResult);
     setTab(annotated.some(f=>f.type==="good")?"good":"warn");
     setPhase("done");
@@ -1607,7 +1607,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.63-7 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.63-8 made by GP</div>
           </div>
         </div>
       )}
@@ -2950,6 +2950,37 @@ export default function App(){
                 {(result?.annotated||[]).map((f,i)=><ShareFrameCard key={i} frame={f}/>)}
               </div>
             </div>
+            {/* Breakdown — 세부 평가 (기술 선택 시만 표시) */}
+            {result?.breakdown&&result.breakdown.length>0&&(()=>{
+              const items=result.breakdown;
+              const avg=items.reduce((sum,it)=>sum+(parseFloat(it.score)||0),0)/items.length;
+              const fullSkillLabel = result.focusSkill&&result.focusSkill!=="전체" ? result.focusSkill+(result.subSkill?" "+result.subSkill+"턴":"") : (items[0]?.name?"선택 기술":"기술");
+              const pct=v=>Math.max(0,Math.min(100,(parseFloat(v)||0)/5*100));
+              return(
+                <div style={{marginBottom:14}}>
+                  <div style={{fontSize:13,fontWeight:600,marginBottom:10}}>{fullSkillLabel} 세부 평가 <span style={{fontSize:12,fontWeight:400,color:"#94a3b8"}}>평균 {avg.toFixed(1)}</span></div>
+                  <div style={{background:"#fff",borderRadius:12,border:"0.5px solid rgba(0,0,0,0.08)",overflow:"hidden"}}>
+                    {items.map((it,i)=>{
+                      const score=parseFloat(it.score)||0;
+                      return(
+                        <div key={i} style={{padding:"10px 14px",borderBottom:i<items.length-1?"0.5px solid rgba(0,0,0,0.06)":"none"}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                            <div style={{fontSize:12,fontWeight:500,color:"#0f172a"}}>
+                              {it.name}{it.term&&<span style={{fontWeight:400,color:"#94a3b8",marginLeft:4,fontSize:11}}>({it.term})</span>}
+                            </div>
+                            <span style={{fontSize:12,fontWeight:600,color:"#f59e0b"}}>{score.toFixed(1)}</span>
+                          </div>
+                          <div style={{height:4,background:"rgba(0,0,0,0.08)",borderRadius:99,marginBottom:5}}>
+                            <div style={{height:"100%",width:pct(score)+"%",background:"#f59e0b",borderRadius:99}}/>
+                          </div>
+                          {it.feedback&&<div style={{fontSize:11,color:"#64748b",lineHeight:1.6}}>{it.feedback}</div>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
             {/* Feedback */}
             <div style={{marginBottom:14}}>
               <div style={{fontSize:13,fontWeight:600,marginBottom:10}}>코치 피드백</div>
