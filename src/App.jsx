@@ -220,7 +220,7 @@ function AdFitBanner({ adUnit }) {
     </div>
   );
 }
-const VERSION = "ver 0.63-3";
+const VERSION = "ver 0.63-4";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -1305,7 +1305,7 @@ export default function App(){
       // 보드 종목 key 매핑
       const skKey = isSki
         ? fullSkill
-        : fullSkill.replace("카빙턴","카빙턴").replace("슬라이딩턴","슬라이딩턴").replace("모글","모글(보드)").replace("종합활강","종합활강(보드)");
+        : fullSkill.replace("카빙턴 롱턴","카빙턴 롱턴(보드)").replace("카빙턴 미들턴","카빙턴 미들턴(보드)").replace("카빙턴 숏턴","카빙턴 숏턴(보드)").replace("모글","모글(보드)").replace("종합활강","종합활강(보드)");
       const checkpoint = skillCheckpoints[skKey] || (fullSkill ? "【"+fullSkill+" 집중 분석】움직임이 가장 큰 구간을 집중 추출합니다. 선택한 기술의 자세와 리듬을 중점적으로 분석하세요." : "");
       const focusGuide = fullSkill
         ? "[집중 분석 기술: "+fullSkill+"] "+checkpoint+" 이 체크포인트를 최우선으로 분석하고, 피드백과 팁도 이 기술 위주로 작성하세요. 모션 탐지 모드로 턴 정점 장면이 집중 추출됩니다."
@@ -1606,7 +1606,7 @@ export default function App(){
             <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
               입장하기
             </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.63-3 made by GP</div>
+            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.63-4 made by GP</div>
           </div>
         </div>
       )}
