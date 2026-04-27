@@ -220,7 +220,7 @@ function AdFitBanner({ adUnit }) {
     </div>
   );
 }
-const VERSION = "ver 0.63-8";
+const VERSION = "ver 0.63-9";
 
 /* ── html2canvas loader ───────────────────────────────────── */
 function loadHtml2Canvas() {
@@ -910,7 +910,6 @@ function ShareFrameCard({frame}){
 
 /* ── MAIN APP ─────────────────────────────────────────────── */
 export default function App(){
-  const [authed,setAuthed]=useState(true); // 베타 게이트 제거
   const [saving,setSaving]=useState(false);
   const [logoB64,setLogoB64]=useState("");
 
@@ -1116,21 +1115,6 @@ export default function App(){
       console.error("share failed:", e);
     }
     setSaving(false);
-  };
-  const [pwInput,setPwInput]=useState("");
-  const [pwError,setPwError]=useState(false);
-
-  const BETA_PW = "gompang2"; // 비밀번호 변경 시 여기만 수정
-
-  const tryAuth = () => {
-    if(pwInput.trim()===BETA_PW){
-      const exp = Date.now() + 2 * 60 * 60 * 1000; // 2시간
-      localStorage.setItem("rideai_auth", JSON.stringify({ok:true, exp}));
-      setAuthed(true); setPwError(false);
-    } else {
-      setPwError(true);
-      setTimeout(()=>setPwError(false),2000);
-    }
   };
 
   const [sport,setSport]=useState("ski");
@@ -1515,6 +1499,19 @@ export default function App(){
     setResult(finalResult);
     setTab(annotated.some(f=>f.type==="good")?"good":"warn");
     setPhase("done");
+    // 분석 로그 저장 (v0.63-9, 백그라운드)
+    try {
+      const scores = finalResult.scores || [];
+      fetch("/api/log-analysis", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          sport, level, focus_skill:focusSkill, sub_skill:subSkill,
+          score_posture:scores.find(s=>s.label==="자세")?.value||null,
+          score_balance:scores.find(s=>s.label==="균형")?.value||null,
+          score_skill:scores.find(s=>s.label==="기술")?.value||null,
+        })
+      }).catch(()=>{});
+    } catch(e) {}
     // Save thumbnails: one per frame, very small (100x100, low quality)
     const thumbs = [];
     for (const af of annotated) {
@@ -1568,51 +1565,9 @@ export default function App(){
         {/* MAIN CONTENT */}
         <div style={{flex:1,maxWidth:720,minWidth:0,background:"#f8fafc",minHeight:"100vh"}}>
 
-      {/* ── BETA PASSWORD GATE ── */}
-      {!authed && (
-        <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}}>
-          <div style={{background:"#fff",borderRadius:20,padding:"32px 24px",maxWidth:380,width:"100%",boxShadow:"0 4px 32px rgba(0,0,0,0.08)"}}>
-            <div style={{textAlign:"center",marginBottom:22}}>
-              <img src="/logo.png" alt="SNOWRIDE AI" style={{width:120,height:120,objectFit:"contain",marginBottom:8,display:"block",margin:"0 auto 8px"}}/>
-              <div style={{fontSize:18,fontWeight:900,color:"#0d47a1",letterSpacing:0.5,marginBottom:2}}>SNOW<span style={{color:"#2196f3"}}>RIDE</span></div>
-              <div style={{fontSize:10,color:"#64748b",letterSpacing:2}}>AI COACHING STAFF</div>
-            </div>
-            <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
-              {[["🎬","영상 업로드","라이딩 영상을 올리면 AI가 자동으로 핵심 장면을 선택해요"],
-                ["🤖","AI 정밀 분석","KSIA 기준으로 자세·균형·기술을 코치처럼 분석해드려요"],
-                ["📊","맞춤 피드백","잘된 점과 개선 포인트를 슬로우모션과 함께 확인하세요"]
-              ].map(([icon,title,desc],i)=>(
-                <div key={i} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"10px 12px",background:"#f8fafc",borderRadius:10,border:"0.5px solid rgba(0,0,0,0.07)"}}>
-                  <span style={{fontSize:18,flexShrink:0,marginTop:1}}>{icon}</span>
-                  <div>
-                    <div style={{fontSize:12,fontWeight:500,color:"#0f172a",marginBottom:1}}>{title}</div>
-                    <div style={{fontSize:11,color:"#64748b",lineHeight:1.5}}>{desc}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div style={{background:"#f1f5f9",borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:12,color:"#64748b",lineHeight:1.6}}>
-              <div style={{fontWeight:600,color:"#475569",marginBottom:2}}>🔒 베타 서비스</div>
-              <div>현재 초대된 사용자만 이용 가능합니다. 베타 참여는 운영자에게 문의하세요.</div>
-            </div>
-            <input
-              type="password"
-              placeholder="베타 접근 코드 입력"
-              value={pwInput}
-              onChange={e=>setPwInput(e.target.value)}
-              onKeyDown={e=>e.key==="Enter"&&tryAuth()}
-              style={{width:"100%",padding:"12px 16px",borderRadius:10,border:"1.5px solid "+(pwError?"#ef4444":"rgba(0,0,0,0.12)"),fontSize:15,marginBottom:10,outline:"none",textAlign:"center",letterSpacing:2,animation:pwError?"shake 0.4s ease":"none",background:pwError?"#fef2f2":"#fff"}}
-            />
-            {pwError && <div style={{fontSize:12,color:"#ef4444",marginBottom:8}}>접근 코드가 올바르지 않습니다.</div>}
-            <button onClick={tryAuth} style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"#0f172a",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
-              입장하기
-            </button>
-            <div style={{marginTop:20,fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI ver 0.63-8 made by GP</div>
-          </div>
-        </div>
-      )}
+      {/* ── BETA PASSWORD GATE 제거됨 (v0.63-9) ── */}
 
-      {authed && <div style={{padding:"1.5rem 20px 60px",maxWidth:720,margin:"0 auto"}}>
+      <div style={{padding:"1.5rem 20px 60px",maxWidth:720,margin:"0 auto"}}>
 
         {/* HEADER */}
         <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:24}}>
@@ -3003,7 +2958,7 @@ export default function App(){
 
         <div style={{textAlign:"center",padding:"32px 0 4px",fontSize:11,color:"#cbd5e1"}}>SNOWRIDE AI COACHING STAFF {VERSION}</div>
         <div style={{textAlign:"center",padding:"0 0 12px",fontSize:11,color:"#cbd5e1"}}>made by GP</div>
-      </div>}
+      </div>
 
         </div>{/* end main content */}
 
