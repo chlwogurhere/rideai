@@ -302,26 +302,66 @@ function PreviewModal({ phase, onClose }) {
   };
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-      <div style={{ background: "#fff", borderRadius: 16, width: "100%", maxWidth: 420, maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        {/* 헤더 */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 16px", borderBottom: `0.5px solid ${C.border}`, flexShrink: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: C.primary, flex: 1 }}>화면 미리보기</div>
-          <button onClick={onClose} style={{ background: "none", border: "none", fontSize: 16, cursor: "pointer", color: C.muted, padding: "2px 6px" }}>✕</button>
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: "16px" }}>
+      <div style={{ display: "flex", gap: 24, alignItems: "flex-start", maxHeight: "95vh", width: "100%", maxWidth: 820 }}>
+
+        {/* 왼쪽 — 폰 프레임 */}
+        <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center" }}>
+          {/* 폰 외곽 */}
+          <div style={{
+            width: 375, background: "#1a1a2e", borderRadius: 44, padding: "14px 10px",
+            boxShadow: "0 32px 80px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.08)"
+          }}>
+            {/* 노치 */}
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
+              <div style={{ width: 100, height: 6, background: "#0d0d1a", borderRadius: 99 }} />
+            </div>
+            {/* 화면 영역 — 실제 앱처럼 스크롤 가능 */}
+            <div style={{
+              background: current === "result" ? "#f8fafc" : "#fff",
+              borderRadius: 30, overflow: "hidden",
+              height: "calc(95vh - 80px)", maxHeight: 760,
+              display: "flex", flexDirection: "column"
+            }}>
+              {/* 앱 상단 바 */}
+              <div style={{ background: "#0f172a", padding: "10px 16px", display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                <div style={{ width: 28, height: 28, background: "rgba(255,255,255,0.15)", borderRadius: 8 }} />
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#fff", letterSpacing: 0.5 }}>SNOW<span style={{ color: "#60a5fa" }}>RIDE</span></div>
+                  <div style={{ fontSize: 8, color: "rgba(255,255,255,0.5)", letterSpacing: 1.5 }}>AI COACHING STAFF</div>
+                </div>
+                <div style={{ marginLeft: "auto", fontSize: 9, color: "rgba(255,255,255,0.5)" }}>미리보기</div>
+              </div>
+              {/* 실제 화면 내용 — 스크롤 가능 */}
+              <div style={{ flex: 1, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
+                {renderScreen()}
+              </div>
+            </div>
+            {/* 홈 바 */}
+            <div style={{ display: "flex", justifyContent: "center", marginTop: 8 }}>
+              <div style={{ width: 120, height: 4, background: "rgba(255,255,255,0.25)", borderRadius: 99 }} />
+            </div>
+          </div>
         </div>
-        {/* 탭 */}
-        <div style={{ display: "flex", gap: 0, padding: "8px 12px", borderBottom: `0.5px solid ${C.border}`, overflowX: "auto", flexShrink: 0 }}>
+
+        {/* 오른쪽 — 탭 + 닫기 */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8, minWidth: 160 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "#fff" }}>화면 미리보기</div>
+            <button onClick={onClose} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", fontSize: 13, cursor: "pointer", width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+          </div>
           {Object.entries(screens).map(([key, { label }]) => (
             <button key={key} onClick={() => setCurrent(key)} style={{
-              padding: "6px 10px", borderRadius: 6, border: "none", fontSize: 11, fontWeight: current === key ? 500 : 400,
-              background: current === key ? C.primary : "transparent",
-              color: current === key ? "#fff" : C.muted, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0
+              padding: "12px 16px", borderRadius: 12, border: "none", fontSize: 13,
+              fontWeight: current === key ? 600 : 400,
+              background: current === key ? "#fff" : "rgba(255,255,255,0.1)",
+              color: current === key ? C.primary : "rgba(255,255,255,0.7)",
+              cursor: "pointer", textAlign: "left", transition: "all 0.15s"
             }}>{label}</button>
           ))}
-        </div>
-        {/* 내용 */}
-        <div style={{ flex: 1, overflowY: "auto" }}>
-          {renderScreen()}
+          <div style={{ marginTop: 8, fontSize: 11, color: "rgba(255,255,255,0.4)", lineHeight: 1.6 }}>
+            화면 안에서 스크롤하면<br />전체 내용을 볼 수 있어요
+          </div>
         </div>
       </div>
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
