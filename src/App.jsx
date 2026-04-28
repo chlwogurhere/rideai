@@ -1613,11 +1613,7 @@ export default function App(){
         {banner.enabled && banner.text && (
           <div style={{background:"#fef3c7",border:"0.5px solid #fcd34d",borderRadius:10,padding:"10px 16px",marginBottom:16,display:"flex",alignItems:"flex-start",gap:8}}>
             <span style={{fontSize:14,flexShrink:0}}>📢</span>
-            <span style={{fontSize:13,color:"#92400e",lineHeight:1.6}}>
-              {banner.text.replace(/\\n/g,"\n").split("\n").map((line,i,arr)=>(
-                <span key={i}>{line}{i<arr.length-1&&<br/>}</span>
-              ))}
-            </span>
+            <span style={{fontSize:13,color:"#92400e",lineHeight:1.6,whiteSpace:"pre-wrap",wordBreak:"break-word"}}>{banner.text.replace(/\\n/g,"\n")}</span>
           </div>
         )}
 
@@ -1626,11 +1622,7 @@ export default function App(){
           <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:999,padding:20}}>
             <div style={{background:"#fff",borderRadius:16,padding:"28px 24px",maxWidth:360,width:"100%",boxShadow:"0 8px 40px rgba(0,0,0,0.15)"}}>
               <div style={{fontSize:26,textAlign:"center",marginBottom:12}}>📢</div>
-              <div style={{fontSize:14,color:"#0f172a",lineHeight:1.8,textAlign:"center",marginBottom:20}}>
-                {popup.text.replace(/\\n/g,"\n").split("\n").map((line,i)=>(
-                  <span key={i}>{line}{i<popup.text.replace(/\\n/g,"\n").split("\n").length-1&&<br/>}</span>
-                ))}
-              </div>
+              <div style={{fontSize:14,color:"#0f172a",lineHeight:1.8,whiteSpace:"pre-wrap",textAlign:"center",marginBottom:20,wordBreak:"break-word"}}>{popup.text.replace(/\\n/g,"\n")}</div>
               <div style={{display:"flex",gap:8}}>
                 <button onClick={()=>{
                   localStorage.setItem("rideai_popup_seen",new Date().toISOString().slice(0,10));
@@ -1731,7 +1723,86 @@ export default function App(){
               style={{width:"100%",padding:"11px 0",borderRadius:10,border:"0.5px solid rgba(0,0,0,0.12)",background:"#fff",color:"#0f172a",fontSize:13,fontWeight:500,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
               <span style={{fontSize:15}}>📋</span> 이전 분석 기록 보기
             </button>
+
+          {/* 업데이트 내역 — landing 페이지 (v0.63-9) */}
+          {(()=>{
+            const PATCH_NOTES=[
+              {
+                ver:"v0.63",
+                date:"2026. 4. 27.",
+                isLatest:true,
+                logs:[
+                  {type:"new",text:"선택한 기술별로 7개 세부 항목 평가를 받아볼 수 있어요"},
+                  {type:"new",text:"각 항목마다 별점과 함께 잘된 점·개선점을 한 줄로 알려드려요"},
+                  {type:"improve",text:"레벨에 맞춰 평가 기준이 자동 조정돼요 — 입문자에겐 너그럽게, 상급자에겐 엄격하게"},
+                ],
+              },
+              {
+                ver:"v0.62",
+                date:"2025. 4. 26.",
+                isLatest:false,
+                logs:[
+                  {type:"new",text:"AI 분석이 맞지 않을 때 피드백을 남길 수 있어요"},
+                  {type:"new",text:"피드백 내용을 바탕으로 즉시 재분석을 요청할 수 있어요"},
+                ],
+              },
+              {
+                ver:"v0.61",
+                date:"2025. 4. 25.",
+                isLatest:false,
+                logs:[
+                  {type:"new",text:"점수 측정이 더 정밀해졌어요"},
+                  {type:"new",text:"점수가 어떻게 계산되는지 확인할 수 있어요"},
+                ],
+              },
+              {
+                ver:"v0.60",
+                date:"2025. 4. 25.",
+                isLatest:false,
+                logs:[
+                  {type:"new",text:"앱 첫 화면이 새로워졌어요"},
+                  {type:"new",text:"버튼과 선택 항목이 더 잘 보이도록 개선됐어요"},
+                  {type:"fix",text:"화면에 } 글자가 표시되던 오류를 수정했어요"},
+                  {type:"improve",text:"카카오톡 공유 오류를 수정했어요"},
+                  {type:"improve",text:"결과 이미지 저장 시 로고가 정상 출력돼요"},
+                ],
+              },
+            ];
+            const typeStyle={new:{color:"#16a34a",label:"✦"},improve:{color:"#2563eb",label:"▲"},fix:{color:"#dc2626",label:"✕"}};
+            return(
+              <div style={{background:"#fff",borderRadius:12,overflow:"hidden",marginBottom:14,border:"0.5px solid rgba(0,0,0,0.08)"}}>
+                <div style={{background:"#f8fafc",padding:"9px 14px",borderBottom:"0.5px solid rgba(0,0,0,0.06)"}}>
+                  <div style={{fontSize:12,fontWeight:600,color:"#0f172a"}}>업데이트 내역</div>
+                </div>
+                <div style={{padding:"10px 14px",display:"flex",flexDirection:"column",gap:10}}>
+                  {PATCH_NOTES.map((patch)=>(
+                    <div key={patch.ver} style={{border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:10,overflow:"hidden"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",background:"#f8fafc",borderBottom:"0.5px solid rgba(0,0,0,0.06)"}}>
+                        <div style={{fontSize:11,fontWeight:600,background:"#dbeafe",color:"#1d4ed8",padding:"2px 8px",borderRadius:99}}>{patch.ver}</div>
+                        <div style={{fontSize:11,color:"#94a3b8"}}>{patch.date}</div>
+                        {patch.isLatest&&<div style={{marginLeft:"auto",fontSize:10,background:"#dcfce7",color:"#166534",padding:"1px 7px",borderRadius:99}}>최신</div>}
+                      </div>
+                      <div style={{padding:"10px 12px",display:"flex",flexDirection:"column",gap:6}}>
+                        {patch.logs.map((log,i)=>(
+                          <div key={i} style={{display:"flex",alignItems:"flex-start",gap:6,fontSize:12,color:"#0f172a"}}>
+                            <span style={{color:typeStyle[log.type].color,flexShrink:0,fontSize:11,marginTop:1}}>{typeStyle[log.type].label}</span>
+                            <span>{log.text}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  <div style={{display:"flex",gap:12,fontSize:11,color:"#94a3b8",paddingTop:2}}>
+                    <div style={{display:"flex",alignItems:"center",gap:3}}><span style={{color:"#16a34a"}}>✦</span> 새 기능</div>
+                    <div style={{display:"flex",alignItems:"center",gap:3}}><span style={{color:"#2563eb"}}>▲</span> 개선</div>
+                    <div style={{display:"flex",alignItems:"center",gap:3}}><span style={{color:"#dc2626"}}>✕</span> 버그 수정</div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
           </div>
+
         )}
 
         {/* STEP 1: SPORT */}
@@ -1828,89 +1899,6 @@ export default function App(){
             </div>
           </div>
 
-          {/* 업데이트 내역 */}
-          {(()=>{
-            const PATCH_NOTES=[
-              {
-                ver:"v0.63",
-                date:"2026. 4. 27.",
-                isLatest:true,
-                logs:[
-                  {type:"new",text:"선택한 기술별로 7개 세부 항목 평가를 받아볼 수 있어요"},
-                  {type:"new",text:"각 항목마다 별점과 함께 잘된 점·개선점을 한 줄로 알려드려요"},
-                  {type:"new",text:"항목별 ‘사진·영상 보기’를 누르면 해당 자세의 캡처와 슬로우 영상을 바로 볼 수 있어요"},
-                  {type:"improve",text:"레벨에 맞춰 평가 기준이 자동 조정돼요 — 입문자에겐 너그럽게, 상급자에겐 엄격하게"},
-                ],
-              },
-              {
-                ver:"v0.62",
-                date:"2025. 4. 26.",
-                isLatest:false,
-                logs:[
-                  {type:"new",text:"AI 분석이 맞지 않을 때 피드백을 남길 수 있어요"},
-                  {type:"new",text:"피드백 내용을 바탕으로 즉시 재분석을 요청할 수 있어요"},
-                ],
-              },
-              {
-                ver:"v0.61",
-                date:"2025. 4. 25.",
-                isLatest:false,
-                logs:[
-                  {type:"new",text:"점수 측정이 더 정밀해졌어요"},
-                  {type:"new",text:"점수가 어떻게 계산되는지 확인할 수 있어요"},
-                ],
-              },
-              {
-                ver:"v0.60",
-                date:"2025. 4. 25.",
-                isLatest:false,
-                logs:[
-                  {type:"new",text:"앱 첫 화면이 새로워졌어요"},
-                  {type:"new",text:"버튼과 선택 항목이 더 잘 보이도록 개선됐어요"},
-                  {type:"new",text:"업데이트 내역을 확인할 수 있어요"},
-                  {type:"fix",text:"화면에 } 글자가 표시되던 오류를 수정했어요"},
-                  {type:"improve",text:"카카오톡 공유 오류를 수정했어요"},
-                  {type:"improve",text:"결과 이미지 저장 시 로고가 정상 출력돼요"},
-                ],
-              },
-            ];
-            const typeStyle={
-              new:{color:"#16a34a",label:"✦"},
-              improve:{color:"#2563eb",label:"▲"},
-              fix:{color:"#dc2626",label:"✕"},
-            };
-            return(
-              <div style={{background:"#fff",borderRadius:12,overflow:"hidden",marginBottom:14,border:"0.5px solid rgba(0,0,0,0.08)"}}>
-                <div style={{background:"#f8fafc",padding:"9px 14px",borderBottom:"0.5px solid rgba(0,0,0,0.06)"}}>
-                  <div style={{fontSize:12,fontWeight:600,color:"#0f172a"}}>업데이트 내역</div>
-                </div>
-                <div style={{padding:"10px 14px",display:"flex",flexDirection:"column",gap:10}}>
-                  {PATCH_NOTES.map((patch)=>(
-                    <div key={patch.ver} style={{border:"0.5px solid rgba(0,0,0,0.08)",borderRadius:10,overflow:"hidden"}}>
-                      <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",background:"#f8fafc",borderBottom:"0.5px solid rgba(0,0,0,0.06)"}}>
-                        <div style={{fontSize:11,fontWeight:600,background:"#dbeafe",color:"#1d4ed8",padding:"2px 8px",borderRadius:99}}>{patch.ver}</div>
-                        <div style={{fontSize:11,color:"#94a3b8"}}>{patch.date}</div>
-                        {patch.isLatest&&<div style={{marginLeft:"auto",fontSize:10,background:"#dcfce7",color:"#166534",padding:"1px 7px",borderRadius:99}}>최신</div>}
-                      </div>
-                      <div style={{padding:"10px 12px",display:"flex",flexDirection:"column",gap:6}}>
-                        {patch.logs.map((log,i)=>(
-                          <div key={i} style={{display:"flex",alignItems:"flex-start",gap:6,fontSize:12,color:"#0f172a"}}>
-                            <span style={{color:typeStyle[log.type].color,flexShrink:0,fontSize:11,marginTop:1}}>{typeStyle[log.type].label}</span>
-                            <span>{log.text}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                  <div style={{display:"flex",gap:12,fontSize:11,color:"#94a3b8",paddingTop:2}}>
-                    <div style={{display:"flex",alignItems:"center",gap:3}}><span style={{color:"#16a34a"}}>✦</span> 새 기능</div>
-                    <div style={{display:"flex",alignItems:"center",gap:3}}><span style={{color:"#2563eb"}}>▲</span> 개선</div>
-                    <div style={{display:"flex",alignItems:"center",gap:3}}><span style={{color:"#dc2626"}}>✕</span> 버그 수정</div>
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
 
         </div>)}
 
