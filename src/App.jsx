@@ -1123,7 +1123,50 @@ export default function App(){
   const [focusSkill,setFocusSkill]=useState("전체"); // 집중 분석 기술
   const [subSkill,setSubSkill]=useState(""); // 롱/미들/숏 
   const [file,setFile]=useState(null);
-  const [phase,setPhase]=useState("landing"); // landing | sport | upload | loading | picking | done | history | error
+  const [phase,setPhase]=useState(()=>{
+    // 관리자 미리보기 모드: ?preview=sport 같은 파라미터로 초기 화면 설정
+    const p = new URLSearchParams(window.location.search).get("preview");
+    const valid = ["landing","sport","level","upload","loading","done"];
+    return (p && valid.includes(p)) ? p : "landing";
+  });
+
+  // 미리보기 모드: loading·done 화면에 목 데이터 주입
+  useEffect(()=>{
+    const p = new URLSearchParams(window.location.search).get("preview");
+    if(p==="loading"){
+      setLoadMsg("AI가 핵심 장면을 분석하는 중이에요...");
+      setPct(60);
+    }
+    if(p==="done"){
+      setResult({
+        scores:[{label:"자세",value:78,color:"#3b82f6"},{label:"균형",value:82,color:"#22c55e"},{label:"기술",value:73,color:"#f59e0b"}],
+        frames:[],annotated:[],
+        feedback:[
+          {type:"good",tag:"잘된 점",text:"무릎 굴곡이 일정하게 유지되고 있어서 충격 흡수가 잘 되고 있어요."},
+          {type:"warn",tag:"개선 포인트",text:"상체가 가끔 뒤로 기울어지는 경향이 있어요. 진행방향으로 시선을 두어보세요."},
+          {type:"info",tag:"코치 조언",text:"다음 활강에서는 양손을 허리 높이로 벌리고 내려와보세요."},
+        ],
+        tips:[
+          {text:"시선을 더 멀리 두어보세요",detail:"발끝이 아닌 10~15미터 앞을 보면서 활강하세요."},
+          {text:"양팔을 허리 높이로 벌려보세요",detail:"팔을 몸에서 조금 떨어뜨려 균형추 역할을 하게 하세요."},
+          {text:"앞발에 체중을 더 실어보세요",detail:"상체가 뒤로 기울지 않도록 앞발 쪽으로 체중을 이동해보세요."},
+          {text:"무릎 굴곡은 지금처럼 유지하세요",detail:"현재 무릎 사용이 좋습니다. 이 굴곡으로 계속 연습하세요."},
+        ],
+        breakdown:[
+          {name:"발목·무릎·골반 각도",term:"앵귤레이션",score:4.2,feedback:"무릎이 잘 꺾여 있어요. 골반이 살짝 더 들어가면 좋아요."},
+          {name:"설면과 보드 각도",term:"인클리네이션",score:3.6,feedback:"기울기가 안정적이에요. 턴 후반에 좀 더 눕혀주세요."},
+          {name:"바깥발 체중 집중",term:"외경 압력",score:3.8,feedback:"턴 시작 압력이 잘 잡혀요. 끝까지 유지해주세요."},
+          {name:"체중 앞·뒤 위치",term:"전·중·후경",score:3.4,feedback:"출발은 좋아요. 중반부터 뒤로 빠지니 정강이를 앞으로 밀어보세요."},
+          {name:"압력 들어가는 시점",term:"가압 타이밍",score:3.9,feedback:"전환이 부드러워요. 중반부터 미리 눌러주면 더 좋아요."},
+          {name:"골반·중심 안정",term:"",score:4.0,feedback:"중심이 잘 잡혀있어요. 좌우 흔들림만 줄이면 완벽해요."},
+          {name:"상체·하체 분리",term:"",score:4.5,feedback:"상체가 진행 방향을 잘 향해요. 팔 위치만 조금 더 신경써보세요."},
+        ],
+        focusSkill:"카빙턴", subSkill:"롱턴",
+      });
+      setTab("good");
+      setSport("snowboard");
+    }
+  },[]);
 
   // ── 공지사항 (v0.63-9) ──────────────────────────────
   const [banner, setBanner] = useState({ enabled: false, text: "" });
