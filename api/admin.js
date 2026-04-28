@@ -13,7 +13,10 @@ const headers = {
 async function supabase(path, method = "GET", body = null) {
   const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     method,
-    headers: { ...headers, ...(method !== "GET" ? { "Prefer": "return=representation" } : {}) },
+    headers: {
+      ...headers,
+      ...(method === "GET" ? { "Range": "0-9999", "Prefer": "count=exact" } : { "Prefer": "return=representation" })
+    },
     ...(body ? { body: JSON.stringify(body) } : {})
   });
   if (!r.ok) throw new Error(await r.text());
@@ -40,7 +43,7 @@ export default async function handler(req, res) {
     // ── 대시보드: 기본 통계
     if (action === "stats") {
       const [all, settings] = await Promise.all([
-        supabase("analyses?select=created_at,sport,level,focus_skill,score_posture,score_balance,score_skill&order=created_at.desc&limit=1000"),
+        supabase("analyses?select=created_at,sport,level,focus_skill,score_posture,score_balance,score_skill&order=created_at.desc"),
         supabase("admin_settings?select=key,value")
       ]);
 
