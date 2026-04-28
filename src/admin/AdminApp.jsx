@@ -78,293 +78,71 @@ function DonutChart({ data, colors, labels }) {
 
 /* ── 앱 미리보기 모달 ── */
 function PreviewModal({ phase, onClose }) {
-  const MOCK = {
-    scores: [
-      { label: "자세", value: 78, color: "#3b82f6" },
-      { label: "균형", value: 82, color: "#22c55e" },
-      { label: "기술", value: 73, color: "#f59e0b" }
-    ],
-    feedback: [
-      { type: "good", tag: "잘된 점", text: "무릎 굴곡이 일정하게 유지되고 있어서 충격 흡수가 잘 되고 있어요. 전체적으로 보드 위에서 안정감 있게 타고 계세요." },
-      { type: "warn", tag: "개선 포인트", text: "상체가 가끔 뒤로 기울어지는 경향이 있어요. 진행방향으로 시선을 두고 상체를 앞으로 기울여보세요." },
-      { type: "info", tag: "코치 조언", text: "다음 활강에서는 양손을 허리 높이로 벌리고 시선을 10미터 앞에 두고 내려와보세요." }
-    ],
-    tips: [
-      { text: "시선을 더 멀리 두어보세요", detail: "발끝이 아닌 10~15미터 앞을 보면서 활강하세요. 자연스럽게 상체 자세가 개선됩니다." },
-      { text: "양팔을 허리 높이로 벌려보세요", detail: "팔을 몸에서 조금 떨어뜨려 균형추 역할을 하게 하세요. 턴할 때 더 안정적이 됩니다." },
-      { text: "앞발에 체중을 더 실어보세요", detail: "상체가 뒤로 기울지 않도록 앞발 쪽으로 체중을 이동해보세요." },
-      { text: "무릎 굴곡은 지금처럼 유지하세요", detail: "현재 무릎 사용이 좋습니다. 이 정도 굴곡으로 충격을 흡수하며 계속 연습하세요." }
-    ],
-    breakdown: [
-      { name: "발목·무릎·골반 각도", term: "앵귤레이션", score: 4.2, feedback: "무릎이 안쪽으로 잘 꺾여 있어요. 골반이 살짝 더 들어가면 엣지가 더 깊게 박혀요." },
-      { name: "설면과 보드 각도", term: "인클리네이션", score: 3.6, feedback: "보드 기울기가 안정적이에요. 턴 후반에 좀 더 눕혀주면 카빙이 깔끔하게 나와요." },
-      { name: "바깥발 체중 집중", term: "외경 압력", score: 3.8, feedback: "턴 시작에 바깥발 압력이 잘 잡혀요. 턴 후반에 안발로 빠지는 경향이 있으니 끝까지 의식해주세요." },
-      { name: "체중 앞·뒤 위치", term: "전·중·후경", score: 3.4, feedback: "출발 자세는 좋아요. 턴 중반부터 무게가 뒤로 빠지니 정강이로 부츠 앞을 누르는 느낌으로 가주세요." },
-      { name: "압력 들어가는 시점", term: "가압 타이밍", score: 3.9, feedback: "엣지 전환이 부드러워요. 압력이 턴 후반에 몰리니 중반부터 미리 눌러주는 게 좋아요." },
-      { name: "골반·중심 안정", term: "", score: 4.0, feedback: "중심이 안정적으로 잡혀 있어요. 좌우 흔들림만 줄이면 더 깔끔한 라인이 나와요." },
-      { name: "상체·하체 분리", term: "", score: 4.5, feedback: "상체가 진행 방향을 잘 향하고 있어요. 팔이 살짝 내려가는 순간이 있으니 끝까지 균형을 잡아주세요." }
-    ]
-  };
-
-  const screens = {
-    landing: { label: "메인 화면", bg: "#fff" },
-    sport: { label: "종목 선택", bg: "#fff" },
-    level: { label: "레벨 선택", bg: "#fff" },
-    upload: { label: "영상 업로드", bg: "#fff" },
-    loading: { label: "분석 중", bg: "#fff" },
-    result: { label: "결과 화면", bg: "#f8fafc" },
-  };
-
   const [current, setCurrent] = useState(phase || "landing");
 
-  const renderScreen = () => {
-    switch (current) {
-      case "landing": return (
-        <div style={{ padding: "28px 24px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
-            <div style={{ width: 36, height: 36, background: "#0d47a1", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 14 }}>S</div>
-            <div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: "#0d47a1" }}>SNOW<span style={{ color: "#2196f3" }}>RIDE</span></div>
-              <div style={{ fontSize: 9, color: C.subtle, letterSpacing: 2 }}>AI COACHING STAFF</div>
-            </div>
-          </div>
-          <div style={{ background: "#f1f5f9", borderRadius: 12, padding: "16px 18px", marginBottom: 16 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: C.primary, marginBottom: 8 }}>SNOWRIDE AI 코칭 스태프</div>
-            <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.7 }}>스키·스노보드 라이딩 영상을 업로드하면 AI가 KSIA 기준으로 자세를 분석하고 맞춤 피드백을 제공합니다.</div>
-          </div>
-          {[["🎬", "영상 업로드", "라이딩 영상을 올리면 AI가 자동으로 핵심 장면을 선택해요"], ["🤖", "AI 정밀 분석", "KSIA 기준으로 자세·균형·기술을 코치처럼 분석해드려요"], ["📊", "맞춤 피드백", "잘된 점과 개선 포인트를 슬로우모션과 함께 확인하세요"]].map(([icon, title, desc], i) => (
-            <div key={i} style={{ display: "flex", gap: 10, padding: "10px 12px", background: "#fff", borderRadius: 10, border: `0.5px solid ${C.border}`, marginBottom: 8 }}>
-              <span style={{ fontSize: 18, flexShrink: 0 }}>{icon}</span>
-              <div><div style={{ fontSize: 12, fontWeight: 500, color: C.primary }}>{title}</div><div style={{ fontSize: 11, color: C.muted, lineHeight: 1.5 }}>{desc}</div></div>
-            </div>
-          ))}
-          <button style={{ width: "100%", padding: "13px 0", borderRadius: 10, border: "none", background: C.primary, color: "#fff", fontSize: 15, fontWeight: 600, cursor: "pointer", marginTop: 8 }}>시작하기</button>
-        </div>
-      );
+  const SCREENS = [
+    { id: "landing",  label: "🏠 메인 화면" },
+    { id: "sport",    label: "🎿 종목 선택" },
+    { id: "level",    label: "📊 레벨 선택" },
+    { id: "upload",   label: "🎬 영상 업로드" },
+    { id: "loading",  label: "⏳ 분석 중" },
+    { id: "done",     label: "📋 결과 화면" },
+  ];
 
-      case "sport": return (
-        <div style={{ padding: "24px 20px" }}>
-          <div style={{ fontSize: 18, fontWeight: 700, color: C.primary, marginBottom: 6 }}>종목 선택</div>
-          <div style={{ fontSize: 13, color: C.muted, marginBottom: 24 }}>분석할 종목을 선택해주세요</div>
-          {[["🎿", "스키", "알파인 스키 · KSIA 기준 분석", "#1d4ed8", "#dbeafe"], ["🏂", "스노보드", "프리스타일·카빙 · KSIA 기준 분석", "#7c3aed", "#ede9fe"]].map(([icon, name, desc, color, bg]) => (
-            <div key={name} style={{ background: bg, border: `2px solid ${color}`, borderRadius: 14, padding: "20px 18px", marginBottom: 12, cursor: "pointer" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <span style={{ fontSize: 32 }}>{icon}</span>
-                <div><div style={{ fontSize: 16, fontWeight: 600, color }}>{name}</div><div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{desc}</div></div>
-              </div>
-            </div>
-          ))}
-        </div>
-      );
-
-      case "level": return (
-        <div style={{ padding: "24px 20px" }}>
-          <div style={{ fontSize: 18, fontWeight: 700, color: C.primary, marginBottom: 6 }}>레벨 선택</div>
-          <div style={{ fontSize: 13, color: C.muted, marginBottom: 20 }}>현재 실력을 선택해주세요</div>
-          {[["lv1", "레벨 1", "기초 기술 연습 중", "#22c55e"], ["lv2", "레벨 2", "중급 기술 연습 중", "#3b82f6"], ["lv3", "레벨 3", "고급 기술 연습 중", "#f59e0b"], ["demon", "데몬스트레이터", "전문 지도자 수준", "#ef4444"]].map(([id, name, desc, color]) => (
-            <div key={id} style={{ background: "#fff", border: `0.5px solid ${C.border}`, borderRadius: 12, padding: "14px 16px", marginBottom: 8, cursor: "pointer" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{ width: 10, height: 10, borderRadius: "50%", background: color, flexShrink: 0 }} />
-                <div><div style={{ fontSize: 14, fontWeight: 500, color: C.primary }}>{name}</div><div style={{ fontSize: 12, color: C.muted }}>{desc}</div></div>
-              </div>
-            </div>
-          ))}
-          <button style={{ width: "100%", padding: "13px 0", borderRadius: 10, border: "none", background: C.primary, color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", marginTop: 8 }}>다음</button>
-        </div>
-      );
-
-      case "upload": return (
-        <div style={{ padding: "24px 20px" }}>
-          <div style={{ fontSize: 16, fontWeight: 600, color: "#1d4ed8", marginBottom: 20, display: "flex", alignItems: "center", gap: 8 }}>🏂 스노보드 영상 업로드</div>
-          <div style={{ border: "2px dashed #cbd5e1", borderRadius: 14, padding: "40px 20px", textAlign: "center", background: "#f8fafc", marginBottom: 16 }}>
-            <div style={{ fontSize: 32, marginBottom: 10 }}>🎬</div>
-            <div style={{ fontSize: 14, fontWeight: 500, color: C.primary, marginBottom: 4 }}>영상을 드래그하거나 클릭</div>
-            <div style={{ fontSize: 12, color: C.muted }}>MP4, MOV, AVI · 최대 100MB</div>
-          </div>
-          <div style={{ background: "#fff", border: `0.5px solid ${C.border}`, borderRadius: 10, padding: "12px 16px", marginBottom: 12 }}>
-            <div style={{ fontSize: 12, fontWeight: 500, color: C.primary, marginBottom: 8 }}>기술 선택 (선택 사항)</div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-              {["전체", "베이직턴", "카빙턴", "슬라이딩턴", "모글", "종합활강"].map(t => (
-                <button key={t} style={{ padding: "5px 10px", borderRadius: 99, fontSize: 11, border: t === "카빙턴" ? "2px solid #7c3aed" : `0.5px solid ${C.border}`, background: t === "카빙턴" ? "#ede9fe" : "#fff", color: t === "카빙턴" ? "#7c3aed" : C.muted, cursor: "pointer" }}>{t}</button>
-              ))}
-            </div>
-          </div>
-          <button style={{ width: "100%", padding: "13px 0", borderRadius: 10, border: "none", background: "#6366f1", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>분석 시작</button>
-        </div>
-      );
-
-      case "loading": return (
-        <div style={{ padding: "60px 24px", textAlign: "center" }}>
-          <div style={{ width: 56, height: 56, border: "4px solid #e2e8f0", borderTop: `4px solid ${C.primary}`, borderRadius: "50%", margin: "0 auto 24px", animation: "spin 1s linear infinite" }} />
-          <div style={{ fontSize: 16, fontWeight: 600, color: C.primary, marginBottom: 8 }}>AI가 영상을 분석하고 있어요</div>
-          <div style={{ fontSize: 13, color: C.muted, marginBottom: 24 }}>핵심 장면을 선택하는 중...</div>
-          <div style={{ height: 6, background: "#e2e8f0", borderRadius: 99, overflow: "hidden" }}>
-            <div style={{ height: "100%", width: "60%", background: C.primary, borderRadius: 99 }} />
-          </div>
-          <div style={{ fontSize: 12, color: C.subtle, marginTop: 8 }}>60% 완료</div>
-        </div>
-      );
-
-      case "result": return (
-        <div style={{ padding: "16px", background: "#f8fafc", minHeight: 500 }}>
-          {/* 종합 점수 */}
-          <div style={{ background: "#fff", border: `0.5px solid ${C.border}`, borderRadius: 12, padding: "14px 16px", marginBottom: 10 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: C.primary, marginBottom: 10 }}>종합 점수</div>
-            {MOCK.scores.map((s, i) => (
-              <div key={i} style={{ marginBottom: 8 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3, fontSize: 12 }}>
-                  <span style={{ color: C.muted }}>{s.label}</span>
-                  <span style={{ fontWeight: 500 }}>{s.value}점</span>
-                </div>
-                <div style={{ height: 5, background: "rgba(0,0,0,0.08)", borderRadius: 99 }}>
-                  <div style={{ height: "100%", width: s.value + "%", background: s.color, borderRadius: 99 }} />
-                </div>
-              </div>
-            ))}
-          </div>
-          {/* 장면별 분석 */}
-          <div style={{ background: "#fff", border: `0.5px solid ${C.border}`, borderRadius: 12, marginBottom: 10, overflow: "hidden" }}>
-            <div style={{ padding: "10px 14px", borderBottom: `0.5px solid ${C.border}` }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: C.primary, marginBottom: 8 }}>장면별 분석</div>
-              <div style={{ display: "flex", gap: 6 }}>
-                <div style={{ flex: 1, padding: "8px 6px", borderRadius: 8, background: "#dcfce7", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
-                  <span style={{ fontSize: 11, fontWeight: 500, color: "#15803d" }}>잘된 장면</span>
-                  <span style={{ fontSize: 10, background: "#16a34a", color: "#fff", padding: "1px 6px", borderRadius: 99 }}>2</span>
-                </div>
-                <div style={{ flex: 1, padding: "8px 6px", borderRadius: 8, background: "#f8fafc", border: `0.5px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
-                  <span style={{ fontSize: 11, fontWeight: 500, color: C.muted }}>고쳐볼 장면</span>
-                  <span style={{ fontSize: 10, background: "#e2e8f0", color: "#fff", padding: "1px 6px", borderRadius: 99 }}>2</span>
-                </div>
-              </div>
-            </div>
-            <div style={{ padding: "10px 14px" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                {[{ title: "안정적인 기본자세", type: "good" }, { title: "균형잡힌 라이딩", type: "good" }].map((f, i) => (
-                  <div key={i} style={{ background: "#1a1a1a", borderRadius: 8, aspectRatio: "4/3", position: "relative" }}>
-                    <div style={{ position: "absolute", bottom: 6, left: 6, background: "rgba(22,163,74,0.9)", color: "#fff", fontSize: 9, padding: "2px 6px", borderRadius: 99 }}>잘된 점</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-          {/* 세부 평가 */}
-          <div style={{ background: "#fff", border: `0.5px solid ${C.border}`, borderRadius: 12, marginBottom: 10, overflow: "hidden" }}>
-            <div style={{ background: "#f8fafc", padding: "10px 14px", borderBottom: `0.5px solid ${C.border}`, display: "flex", justifyContent: "space-between" }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: C.primary }}>카빙 롱턴 세부 평가</div>
-              <span style={{ fontSize: 11, color: "#f59e0b", fontWeight: 500 }}>평균 3.9</span>
-            </div>
-            <div style={{ padding: "0 14px" }}>
-              {MOCK.breakdown.slice(0, 3).map((it, i) => (
-                <div key={i} style={{ padding: "10px 0", borderBottom: i < 2 ? `0.5px solid ${C.border}` : "none" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
-                    <span style={{ fontSize: 11, fontWeight: 500, color: C.primary }}>{it.name}{it.term && <span style={{ fontWeight: 400, color: C.subtle }}> ({it.term})</span>}</span>
-                    <span style={{ fontSize: 11, fontWeight: 500, color: C.primary }}>{it.score.toFixed(1)}</span>
-                  </div>
-                  <div style={{ fontSize: 10, color: C.muted, lineHeight: 1.5 }}>{it.feedback}</div>
-                </div>
-              ))}
-              <div style={{ padding: "8px 0", textAlign: "center", fontSize: 10, color: C.subtle }}>··· 나머지 4개 항목 ···</div>
-            </div>
-          </div>
-          {/* 코치 피드백 */}
-          <div style={{ marginBottom: 10 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: C.primary, marginBottom: 8 }}>코치 피드백</div>
-            {MOCK.feedback.slice(0, 2).map((f, i) => {
-              const bc = { good: "#16a34a", warn: "#dc2626", info: "#2563eb" }[f.type];
-              return (
-                <div key={i} style={{ background: "#fff", borderLeft: `3px solid ${bc}`, borderRadius: 8, padding: "10px 12px", marginBottom: 6, border: `0.5px solid ${C.border}`, borderLeft: `3px solid ${bc}` }}>
-                  <div style={{ fontSize: 10, fontWeight: 600, color: bc, marginBottom: 3 }}>{f.tag}</div>
-                  <div style={{ fontSize: 11, color: C.primary, lineHeight: 1.5 }}>{f.text}</div>
-                </div>
-              );
-            })}
-          </div>
-          {/* 팁 */}
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: C.primary, marginBottom: 8 }}>이렇게 연습해보세요 💡</div>
-            {MOCK.tips.slice(0, 2).map((tip, i) => (
-              <div key={i} style={{ border: `0.5px solid ${C.border}`, borderRadius: 8, overflow: "hidden", marginBottom: 6 }}>
-                <div style={{ padding: "9px 12px", display: "flex", gap: 8, alignItems: "flex-start" }}>
-                  <span style={{ minWidth: 20, height: 20, background: C.primary, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 600, color: "#fff", flexShrink: 0 }}>{i + 1}</span>
-                  <span style={{ fontSize: 12, color: C.primary, lineHeight: 1.5 }}>{tip.text}</span>
-                </div>
-                <div style={{ background: "#f8fafc", borderTop: `0.5px solid ${C.border}`, padding: "7px 12px 7px 40px" }}>
-                  <div style={{ fontSize: 11, color: C.muted, lineHeight: 1.5 }}>{tip.detail}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-
-      default: return null;
-    }
-  };
+  // 화면 바뀔 때 iframe reload
+  const iframeRef = useState(null);
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: "16px" }}>
-      <div style={{ display: "flex", gap: 24, alignItems: "flex-start", maxHeight: "95vh", width: "100%", maxWidth: 820 }}>
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: "16px" }}>
+      <div style={{ display: "flex", gap: 28, alignItems: "flex-start", maxHeight: "95vh", width: "100%", maxWidth: 860 }}>
 
-        {/* 왼쪽 — 폰 프레임 */}
-        <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center" }}>
-          {/* 폰 외곽 */}
+        {/* 폰 프레임 */}
+        <div style={{ flexShrink: 0 }}>
           <div style={{
-            width: 375, background: "#1a1a2e", borderRadius: 44, padding: "14px 10px",
-            boxShadow: "0 32px 80px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.08)"
+            width: 390, background: "#1a1a2e", borderRadius: 50, padding: "16px 12px",
+            boxShadow: "0 32px 80px rgba(0,0,0,0.7), inset 0 0 0 1px rgba(255,255,255,0.08)"
           }}>
             {/* 노치 */}
-            <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
-              <div style={{ width: 100, height: 6, background: "#0d0d1a", borderRadius: 99 }} />
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
+              <div style={{ width: 110, height: 6, background: "#0d0d1a", borderRadius: 99 }} />
             </div>
-            {/* 화면 영역 — 실제 앱처럼 스크롤 가능 */}
-            <div style={{
-              background: current === "result" ? "#f8fafc" : "#fff",
-              borderRadius: 30, overflow: "hidden",
-              height: "calc(95vh - 80px)", maxHeight: 760,
-              display: "flex", flexDirection: "column"
-            }}>
-              {/* 앱 상단 바 */}
-              <div style={{ background: "#0f172a", padding: "10px 16px", display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                <div style={{ width: 28, height: 28, background: "rgba(255,255,255,0.15)", borderRadius: 8 }} />
-                <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "#fff", letterSpacing: 0.5 }}>SNOW<span style={{ color: "#60a5fa" }}>RIDE</span></div>
-                  <div style={{ fontSize: 8, color: "rgba(255,255,255,0.5)", letterSpacing: 1.5 }}>AI COACHING STAFF</div>
-                </div>
-                <div style={{ marginLeft: "auto", fontSize: 9, color: "rgba(255,255,255,0.5)" }}>미리보기</div>
-              </div>
-              {/* 실제 화면 내용 — 스크롤 가능 */}
-              <div style={{ flex: 1, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
-                {renderScreen()}
-              </div>
+            {/* iframe 화면 */}
+            <div style={{ borderRadius: 32, overflow: "hidden", height: "calc(95vh - 100px)", maxHeight: 780, background: "#f8fafc", position: "relative" }}>
+              <iframe
+                key={current}
+                src={`/?preview=${current}`}
+                style={{ width: "100%", height: "100%", border: "none", display: "block" }}
+                title={`preview-${current}`}
+              />
             </div>
             {/* 홈 바 */}
-            <div style={{ display: "flex", justifyContent: "center", marginTop: 8 }}>
-              <div style={{ width: 120, height: 4, background: "rgba(255,255,255,0.25)", borderRadius: 99 }} />
+            <div style={{ display: "flex", justifyContent: "center", marginTop: 10 }}>
+              <div style={{ width: 130, height: 4, background: "rgba(255,255,255,0.25)", borderRadius: 99 }} />
             </div>
           </div>
         </div>
 
-        {/* 오른쪽 — 탭 + 닫기 */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8, minWidth: 160 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: "#fff" }}>화면 미리보기</div>
-            <button onClick={onClose} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", fontSize: 13, cursor: "pointer", width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+        {/* 오른쪽 탭 */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: "#fff" }}>화면 미리보기</div>
+            <button onClick={onClose} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", cursor: "pointer", width: 30, height: 30, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>✕</button>
           </div>
-          {Object.entries(screens).map(([key, { label }]) => (
-            <button key={key} onClick={() => setCurrent(key)} style={{
-              padding: "12px 16px", borderRadius: 12, border: "none", fontSize: 13,
-              fontWeight: current === key ? 600 : 400,
-              background: current === key ? "#fff" : "rgba(255,255,255,0.1)",
-              color: current === key ? C.primary : "rgba(255,255,255,0.7)",
-              cursor: "pointer", textAlign: "left", transition: "all 0.15s"
-            }}>{label}</button>
+          {SCREENS.map(s => (
+            <button key={s.id} onClick={() => setCurrent(s.id)} style={{
+              padding: "13px 16px", borderRadius: 12, border: "none", fontSize: 13,
+              fontWeight: current === s.id ? 600 : 400, textAlign: "left",
+              background: current === s.id ? "#fff" : "rgba(255,255,255,0.1)",
+              color: current === s.id ? C.primary : "rgba(255,255,255,0.75)",
+              cursor: "pointer", transition: "all 0.15s"
+            }}>{s.label}</button>
           ))}
-          <div style={{ marginTop: 8, fontSize: 11, color: "rgba(255,255,255,0.4)", lineHeight: 1.6 }}>
-            화면 안에서 스크롤하면<br />전체 내용을 볼 수 있어요
+          <div style={{ marginTop: 10, fontSize: 11, color: "rgba(255,255,255,0.4)", lineHeight: 1.7 }}>
+            실제 앱 화면이 표시돼요.<br />
+            폰 화면 안에서 스크롤 가능해요.
           </div>
         </div>
       </div>
-      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
